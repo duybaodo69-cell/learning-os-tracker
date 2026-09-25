@@ -225,6 +225,25 @@ npm run preview         # preview the production build
 - Vercel auto-detects Vite: build command `npm run build`, output directory `dist`.
   There is no `vercel.json` and none is needed.
 
+### Git identity
+
+The GitHub account is **duybaodo69-cell**. Commits must be authored with an email that GitHub
+recognises for that account, otherwise they land in the repo but show as an unlinked author and
+earn no contribution credit. Use the account's noreply address (already set globally and in this
+repo, and it keeps the real address out of the public commit log):
+
+```
+git config user.name  "duybaodo69-cell"
+git config user.email "288628278+duybaodo69-cell@users.noreply.github.com"
+```
+
+Do **not** use the personal Gmail address here — it is not registered on the GitHub account.
+Check attribution at any time with:
+
+```bash
+gh api repos/duybaodo69-cell/learning-os-tracker/commits   --jq '.[] | "\(.sha[0:7])  \(.author.login // "UNLINKED")"'
+```
+
 ### Everyday workflow
 
 ```bash
