@@ -21,6 +21,12 @@ export default function SettingsScreen() {
   // Đếm số bản ghi để bạn biết đang có bao nhiêu dữ liệu.
   const checkinCount = useLiveQuery(() => db.checkins.count(), [], 0);
   const blockCount = useLiveQuery(() => db.focusBlocks.count(), [], 0);
+  const dumpCount = useLiveQuery(() => db.brainDumps.count(), [], 0);
+  const cardCount = useLiveQuery(() => db.cards.count(), [], 0);
+  const logCount = useLiveQuery(() => db.reviewLogs.count(), [], 0);
+
+  // Tổng mọi bản ghi — dùng để biết kho có trống hay không.
+  const totalCount = checkinCount + blockCount + dumpCount + cardCount + logCount;
 
   const [confirmClear, setConfirmClear] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -77,7 +83,7 @@ export default function SettingsScreen() {
               <Button
                 variant="danger"
                 onClick={() => setConfirmClear(true)}
-                disabled={busy || (checkinCount === 0 && blockCount === 0)}
+                disabled={busy || totalCount === 0}
                 className="text-sm"
               >
                 Xoá dữ liệu mẫu
@@ -100,6 +106,18 @@ export default function SettingsScreen() {
           <li className="flex justify-between">
             <span className="text-slate-600">Focus block</span>
             <span className="font-semibold tabular-nums">{blockCount}</span>
+          </li>
+          <li className="flex justify-between">
+            <span className="text-slate-600">Brain dump</span>
+            <span className="font-semibold tabular-nums">{dumpCount}</span>
+          </li>
+          <li className="flex justify-between">
+            <span className="text-slate-600">Thẻ ôn tập</span>
+            <span className="font-semibold tabular-nums">{cardCount}</span>
+          </li>
+          <li className="flex justify-between">
+            <span className="text-slate-600">Lượt ôn đã ghi</span>
+            <span className="font-semibold tabular-nums">{logCount}</span>
           </li>
         </ul>
       </Card>
@@ -128,7 +146,8 @@ export default function SettingsScreen() {
         detail={
           <>
             <strong>
-              {checkinCount} check-in và {blockCount} focus block
+              {checkinCount} check-in, {blockCount} focus block, {dumpCount} brain dump,{" "}
+              {cardCount} thẻ và {logCount} lượt ôn
             </strong>{" "}
             trong kho dữ liệu mẫu sẽ bị xoá.
             <br />

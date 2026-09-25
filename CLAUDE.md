@@ -228,7 +228,8 @@ src/
   switches apps. Elapsed time is always `now - startedAt`. The on-screen clock is display only.
 - **Demo mode is a second Dexie database** (`learning-os-demo`), not a flag on the rows. Toggling
   it reloads the page because the database is chosen once at startup. Real data is never touched,
-  and every sample note is tagged `[MẪU]`.
+  and every sample note is tagged `[MẪU]`. `demoData.ts` seeds all five tables; when a phase adds
+  a table, seed it there too or demo mode shows that screen empty and looks broken.
 - **`useLiveQuery` (dexie-react-hooks)** re-renders screens automatically when data changes; there
   is no manual refresh anywhere.
 - **`useLiveQuery` returns `undefined` while loading, and `Table.get()` resolves to `undefined`
@@ -251,10 +252,11 @@ src/
   changes ease. Real SM-2 lowers ease on a lapse; the constants at the top of the file are where
   that would go.
 - **`again` resets `reps` to 0**, so a forgotten card walks the 1-day/3-day ladder again instead of
-  jumping back to a long interval. This was an addition to the stated rules, kept because the
-  ladder is meaningless without it.
+  jumping back to a long interval. This went beyond the stated rules; the owner reviewed it and
+  confirmed it on 2026-09-25. Do not revert without asking.
 - **`easy` is floored at `good + 1` day.** Without it, `round(1 x 2.5 x 1.3)` and the first ladder
-  step collide and the Easy button does nothing on a new card.
+  step collide and the Easy button does nothing on a new card. Also confirmed by the owner
+  on 2026-09-25.
 - **The review queue is frozen when the session starts** (`queueIds`), not recomputed per render.
   A live query would drop each card the moment it is graded and reshuffle the order mid-session.
 - **Grading writes the card and the ReviewLog in one Dexie transaction** so history can never
