@@ -164,8 +164,7 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - **Phase 2** — Brain dump + spaced-review cards.
 - **Phase 3** — Predictions + Brier score + calibration.
 - **Phase 4** — Dashboard + weekly review + experiments + export/import.
-- **Phase 5** — PWA (installable + offline) + install on phone.
-  *(Hosting is already done — see section 9. Only the PWA half of this phase is left.)*
+- **Phase 5** — PWA (installable + offline) + install on phone. **Done.**
 - **Phase 6** *(later)* — Claude weekly-analysis export + optional cloud sync.
 
 ### Current status
@@ -178,7 +177,8 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] **Phase 2 COMPLETE** — brain dump, cards, review queue, 10-minute mode.
 - [x] **Phase 3 COMPLETE** — predictions, Brier score, calibration chart, pre-mortem.
 - [x] **Phase 4 COMPLETE** — dashboard, weekly review, experiments, JSON export/import.
-- [ ] Next: Phase 5 (PWA: installable + offline).
+- [x] **Phase 5 COMPLETE** — PWA: installable, offline, icons, version line.
+- [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export + optional cloud sync.
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
 
@@ -314,6 +314,26 @@ src/
   so a failure leaves the old data intact.
 - **Recharts is shared between the calibration and dashboard charts** and Vite splits it into its
   own chunk. Keep new charts inside `DashboardCharts.tsx` rather than adding more lazy entries.
+
+### Phase 5 decisions worth knowing
+
+- **PWA config lives in `vite.config.ts`** under `VitePWA`. Name "Learning OS", short name
+  "LearnOS", theme `#0D6570`, portrait, `display: standalone`, `registerType: "autoUpdate"`.
+- **Icons are generated PNGs in `public/icons/`**: 192, 512, a padded 512 `maskable`, a 180
+  apple-touch-icon and a 64 favicon. Three ascending bars, white on dark teal, no text and no
+  emoji so they stay legible at 48px. Regenerate all sizes from one source if the mark changes —
+  iOS ignores the manifest and uses `apple-touch-icon` from `index.html`.
+- **`maximumFileSizeToCacheInBytes` is raised to 4MB** so the ~308 kB Recharts chunk is precached.
+  Without it workbox skips large files and the Thống kê tab breaks offline.
+- **Offline was verified by killing the server, not by trusting the config.** Reload with the
+  origin dead: all five tabs render and the lazy chart chunk still loads.
+- **The service worker only runs in a production build** (`devOptions.enabled: false`). Test PWA
+  behaviour with `npm run build && npx vite preview`, never with `npm run dev`.
+- **`__BUILD_DATE__` is injected by `define` in `vite.config.ts`** and shown in Settings, so the
+  owner can tell whether an update actually landed. It must be `JSON.stringify`-ed or Vite pastes
+  it in as a bare identifier.
+- **`autoUpdate` means a new deploy is picked up on the next cold start.** If the version line
+  looks stale, fully close the installed app and reopen it.
 
 ## 8. Commands
 

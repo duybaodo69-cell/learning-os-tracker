@@ -27,3 +27,4 @@ dev-server.log
 # Vercel
 .vercel
 .gstack/
+preview.log

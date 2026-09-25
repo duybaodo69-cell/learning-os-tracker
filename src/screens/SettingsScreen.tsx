@@ -146,9 +146,19 @@ export default function SettingsScreen() {
       {/* ---------- Thí nghiệm ---------- */}
       <ExperimentsManager />
 
-      <p className="pb-4 text-center text-xs text-slate-400">
-        PWA và cài vào màn hình chính: Phase 5
-      </p>
+      {/* ---------- Phiên bản ---------- */}
+      <Card className="mb-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-slate-600">Phiên bản</span>
+          <span className="font-semibold text-slate-900 tabular-nums">{__BUILD_DATE__}</span>
+        </div>
+        <p className="mt-1 text-xs text-slate-400">
+          Ngày đóng gói bản đang chạy. App tự cập nhật khi có bản mới — nếu số này cũ hơn ngày mình
+          vừa deploy, đóng hẳn app rồi mở lại.
+        </p>
+      </Card>
+
+      <div className="pb-4" />
 
       {/* ---------- Xác nhận xoá (luật số 4) ---------- */}
       <ConfirmDialog
