@@ -210,7 +210,16 @@ npm run preview         # preview the production build
 ## 9. Deployment
 
 - **GitHub repo (private):** https://github.com/duybaodo69-cell/learning-os-tracker
-- **Production URL (Vercel):** _to be filled in after the first import_
+- **Production URL (Vercel):** https://learning-os-tracker-bao-dd5a.vercel.app
+  This is the stable alias — it always points at the newest `main` deployment. Vercel also prints a
+  per-deployment URL like `learning-os-tracker-93hgd7w5i-bao-dd5a.vercel.app`; that one is frozen to
+  a single build and changes every push, so never bookmark it on the phone.
+  Note: `learning-os-tracker.vercel.app` (no scope suffix) belongs to an unrelated project owned by
+  someone else. It is not this app.
+- **Deployment Protection must stay OFF.** Vercel enables "Vercel Authentication" by default, which
+  redirects every visitor to a Vercel login page — that makes the app unusable on the phone. It lives
+  in Settings -> Deployment Protection. Turning it off is safe here because the build contains no
+  secrets and no user data; all data sits in the phone's IndexedDB and never reaches Vercel.
 - **Auto-deploy:** Vercel is connected to the `main` branch. Every `git push` to `main`
   builds and deploys automatically — there is no manual deploy step.
 - Vercel auto-detects Vite: build command `npm run build`, output directory `dist`.
