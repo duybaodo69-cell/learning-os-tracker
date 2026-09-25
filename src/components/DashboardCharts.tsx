@@ -35,10 +35,10 @@ function shortDate(iso: string): string {
 
 const AXIS = { fontSize: 10, fill: "#94a3b8" };
 
-/* ==================== 1. Giấc ngủ vs deep work hôm sau ==================== */
+/* ==================== 1. Giấc ngủ vs deep work cùng ngày ==================== */
 
 export function SleepVsFocusChart({ points }: { points: SleepVsFocusPoint[] }) {
-  const hasData = points.some((p) => p.sleepHours !== null || p.nextDayMinutes > 0);
+  const hasData = points.some((p) => p.sleepHours !== null || p.sameDayMinutes > 0);
   if (!hasData) return <NoData />;
 
   return (
@@ -62,8 +62,8 @@ export function SleepVsFocusChart({ points }: { points: SleepVsFocusPoint[] }) {
           <Line
             yAxisId="focus"
             type="monotone"
-            dataKey="nextDayMinutes"
-            name="Deep work hôm sau (phút)"
+            dataKey="sameDayMinutes"
+            name="Deep work (phút)"
             stroke="#1d4ed8"
             strokeWidth={2}
             dot={false}

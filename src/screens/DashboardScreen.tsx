@@ -19,7 +19,7 @@ import {
   BASELINE_TO,
   baselineFinished,
   baselineMetrics,
-  buildSleepVsNextDayFocus,
+  buildSleepVsSameDayFocus,
   buildWeeklyByArea,
   buildWeeklyRetention,
   compareMetric,
@@ -37,7 +37,7 @@ const Charts = lazy(() => import("../components/DashboardCharts").then((m) => ({
   default: function All(props: ChartProps) {
     return (
       <>
-        <ChartCard title="Giấc ngủ và deep work hôm sau" hint="28 ngày gần nhất">
+        <ChartCard title="Giấc ngủ và deep work cùng ngày" hint="28 ngày gần nhất">
           <m.SleepVsFocusChart points={props.sleepPoints} />
         </ChartCard>
         <ChartCard title="Deep work mỗi tuần theo area" hint="8 tuần gần nhất">
@@ -52,7 +52,7 @@ const Charts = lazy(() => import("../components/DashboardCharts").then((m) => ({
 })));
 
 type ChartProps = {
-  sleepPoints: ReturnType<typeof buildSleepVsNextDayFocus>;
+  sleepPoints: ReturnType<typeof buildSleepVsSameDayFocus>;
   weeklyPoints: ReturnType<typeof buildWeeklyByArea>["points"];
   areas: string[];
   retentionPoints: ReturnType<typeof buildWeeklyRetention>;
@@ -183,7 +183,7 @@ export default function DashboardScreen() {
         }
       >
         <Charts
-          sleepPoints={buildSleepVsNextDayFocus(checkins, focusBlocks, today, 28)}
+          sleepPoints={buildSleepVsSameDayFocus(checkins, focusBlocks, today, 28)}
           weeklyPoints={buildWeeklyByArea(focusBlocks, today, 8).points}
           areas={buildWeeklyByArea(focusBlocks, today, 8).areas}
           retentionPoints={buildWeeklyRetention(reviewLogs, today, 8)}

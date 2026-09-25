@@ -227,17 +227,23 @@ export function consistency(checkins: DailyCheckin[], today: string, days = 14):
 export type SleepVsFocusPoint = {
   date: string;
   sleepHours: number | null;
-  /** Số phút deep work của NGÀY HÔM SAU. */
-  nextDayMinutes: number;
+  /** Số phút deep work của CHÍNH ngày đó. */
+  sameDayMinutes: number;
 };
 
 /**
- * Giấc ngủ đêm nay so với deep work NGÀY HÔM SAU.
+ * Giấc ngủ và deep work của CÙNG MỘT NGÀY.
  *
- * Lệch một ngày là cố ý: ngủ đêm nay ảnh hưởng tới ngày mai, không phải
- * hôm nay. So cùng ngày sẽ đo nhầm chiều nhân quả.
+ * Vì sao cùng ngày chứ không lệch một ngày:
+ * check-in ngày D được điền vào buổi sáng ngày D, và nó mô tả đêm
+ * TRƯỚC ĐÓ (đi ngủ tối D-1, thức dậy sáng D). Nói cách khác, giấc ngủ
+ * ghi ở ngày D chính là giấc ngủ nạp năng lượng CHO ngày D.
+ * Vậy nên nó phải đi cùng số phút deep work của ngày D.
+ *
+ * Bản đầu tiên ghép với ngày D+1, tức là đem giấc ngủ đêm nay so với
+ * công việc của ngày kia — lệch đúng một ngày và làm mọi kết luận sai.
  */
-export function buildSleepVsNextDayFocus(
+export function buildSleepVsSameDayFocus(
   checkins: DailyCheckin[],
   blocks: FocusBlock[],
   today: string,
@@ -254,7 +260,7 @@ export function buildSleepVsNextDayFocus(
   return daysBetween(from, today).map((date) => ({
     date,
     sleepHours: sleepByDate.get(date) ?? null,
-    nextDayMinutes: minutesByDate.get(addDays(date, 1)) ?? 0,
+    sameDayMinutes: minutesByDate.get(date) ?? 0,
   }));
 }
 

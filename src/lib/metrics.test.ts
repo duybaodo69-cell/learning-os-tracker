@@ -13,7 +13,7 @@ import {
   RETENTION_MIN_INTERVAL,
   baselineFinished,
   buildExperimentResult,
-  buildSleepVsNextDayFocus,
+  buildSleepVsSameDayFocus,
   buildWeeklyByArea,
   buildWeeklyRetention,
   compareMetric,
@@ -266,36 +266,51 @@ describe("consistency — đếm ngày, không phải chuỗi liên tiếp", () 
   });
 });
 
-describe("buildSleepVsNextDayFocus", () => {
-  it("ghép giấc ngủ đêm nay với deep work NGÀY HÔM SAU", () => {
-    const points = buildSleepVsNextDayFocus(
-      [checkin("2026-09-24", 8)],
+describe("buildSleepVsSameDayFocus", () => {
+  it("ghép giấc ngủ với deep work CÙNG NGÀY", () => {
+    // Check-in ngày 25 mô tả đêm 24->25, tức là giấc ngủ nạp cho ngày 25.
+    // Nên nó phải đi với deep work của chính ngày 25.
+    const points = buildSleepVsSameDayFocus(
+      [checkin("2026-09-25", 8)],
       [block("2026-09-25", 120)],
+      "2026-09-25",
+      2
+    );
+    const d25 = points.find((p) => p.date === "2026-09-25")!;
+    expect(d25.sleepHours).toBe(8);
+    expect(d25.sameDayMinutes).toBe(120);
+  });
+
+  it("KHÔNG kéo deep work của ngày hôm sau vào", () => {
+    // Đây chính là lỗi lệch một ngày của bản đầu tiên.
+    const points = buildSleepVsSameDayFocus(
+      [checkin("2026-09-24", 8)],
+      [block("2026-09-25", 120)], // block ở NGÀY KHÁC
       "2026-09-25",
       2
     );
     const d24 = points.find((p) => p.date === "2026-09-24")!;
     expect(d24.sleepHours).toBe(8);
-    expect(d24.nextDayMinutes).toBe(120); // của ngày 25, đúng ý đồ
+    expect(d24.sameDayMinutes).toBe(0); // ngày 24 không có block nào
   });
 
   it("trả về đủ số ngày yêu cầu, ngày trống vẫn có mặt", () => {
-    const points = buildSleepVsNextDayFocus([], [], "2026-09-25", 28);
+    const points = buildSleepVsSameDayFocus([], [], "2026-09-25", 28);
     expect(points).toHaveLength(28);
     expect(points[0].date).toBe("2026-08-29");
     expect(points[27].date).toBe("2026-09-25");
     expect(points[0].sleepHours).toBeNull();
-    expect(points[0].nextDayMinutes).toBe(0);
+    expect(points[0].sameDayMinutes).toBe(0);
   });
 
   it("cộng dồn nhiều block trong cùng một ngày", () => {
-    const points = buildSleepVsNextDayFocus(
-      [checkin("2026-09-24", 7)],
+    const points = buildSleepVsSameDayFocus(
+      [checkin("2026-09-25", 7)],
       [block("2026-09-25", 60), block("2026-09-25", 30)],
       "2026-09-25",
       2
     );
-    expect(points.find((p) => p.date === "2026-09-24")!.nextDayMinutes).toBe(90);
+    expect(points.find((p) => p.date === "2026-09-25")!.sameDayMinutes).toBe(90);
   });
 });
 
