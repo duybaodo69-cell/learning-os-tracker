@@ -174,7 +174,8 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] Phase 1 — step 1: scaffold + dependencies
 - [x] Phase 1 — step 2: CLAUDE.md
 - [x] Phase 1 — step 3: bottom tab navigation with 5 empty screens
-- [ ] Phase 1 — step 4: daily check-in + focus block forms + real Today screen
+- [x] Phase 1 — step 4: daily check-in + focus block forms + real Today screen
+- [x] **Phase 1 COMPLETE.** Next up is Phase 2 (brain dump + spaced-review cards).
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
 
@@ -192,14 +193,46 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 
 ```
 src/
-  components/    # reusable UI pieces (BottomNav, ...)
-  screens/       # one file per tab
-  db/            # Dexie database + types (from Phase 1 step 4)
-  lib/           # helpers (dates, formatting)
-  App.tsx        # holds which tab is active
-  main.tsx       # React entry point
-  index.css      # Tailwind + global styles
+  components/
+    ui.tsx             # Card, Button, Field, RatingRow, ChipGroup, Counter, Toggle, inputs
+    BottomNav.tsx      # the 5-tab bar
+    ScreenShell.tsx    # sticky header + scrollable body, used by every screen
+    ConfirmDialog.tsx  # the rule-4 delete confirmation
+    ProtocolBanner.tsx
+    CheckinForm.tsx
+    FocusBlockForm.tsx
+  screens/             # one file per tab
+  config/
+    protocolPhases.ts  # EDIT HERE to change the 12-week schedule
+  db/
+    types.ts           # Area, Rating, DailyCheckin, FocusBlock
+    db.ts              # Dexie; picks the real or the demo database
+    demoData.ts        # sample data, demo database only
+  lib/
+    dates.ts           # Asia/Ho_Chi_Minh dates, sleep hours, formatting, ids
+    timer.ts           # start/stop timer backed by a stored timestamp
+    prefs.ts           # remembers the last-used area
+  App.tsx              # holds which tab is active
+  main.tsx             # React entry point
+  index.css            # Tailwind + .tap-target
 ```
+
+### Phase 1 decisions worth knowing
+
+- **Sleep across midnight.** `computeSleepHours` adds 24h when the wake time is at or before the
+  bed time, so 23:30 -> 06:30 is 7h, not -17h. Verified against 8 cases including 00:00 and 12:00.
+- **The timer stores a start timestamp, never a ticking counter.** Browsers freeze timers in
+  background tabs, so counting seconds would lose time whenever the phone is locked or the user
+  switches apps. Elapsed time is always `now - startedAt`. The on-screen clock is display only.
+- **Demo mode is a second Dexie database** (`learning-os-demo`), not a flag on the rows. Toggling
+  it reloads the page because the database is chosen once at startup. Real data is never touched,
+  and every sample note is tagged `[MẪU]`.
+- **`useLiveQuery` (dexie-react-hooks)** re-renders screens automatically when data changes; there
+  is no manual refresh anywhere.
+- **New tables need a new `this.version(n).stores({...})`** in `db.ts`. Never edit version 1 in
+  place — that breaks existing installs. Phase 2 adds `brainDumps`, `cards`, `reviewLogs` this way.
+- **The protocol schedule starts 2026-09-28.** Before that date `findProtocolPhase` returns null
+  and the banner is intentionally hidden.
 
 ## 8. Commands
 
