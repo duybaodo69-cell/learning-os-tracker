@@ -241,7 +241,7 @@ Do **not** use the personal Gmail address here — it is not registered on the G
 Check attribution at any time with:
 
 ```bash
-gh api repos/duybaodo69-cell/learning-os-tracker/commits   --jq '.[] | "\(.sha[0:7])  \(.author.login // "UNLINKED")"'
+gh api repos/duybaodo69-cell/learning-os-tracker/commits --jq '.[] | "\(.sha[0:7])  \(.author.login // "UNLINKED")"'
 ```
 
 ### Everyday workflow
