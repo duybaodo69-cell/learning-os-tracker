@@ -11,7 +11,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 import { db } from "../db/db";
 import type { DailyCheckin, FocusBlock, Prediction, ReviewLog } from "../db/types";
-import { formatMinutes, todayISO } from "../lib/dates";
+import { formatMinutes } from "../lib/dates";
+import { useToday } from "../lib/useToday";
 import { addDays } from "../lib/scheduling";
 import {
   BASELINE_FROM,
@@ -88,7 +89,7 @@ const METRIC_SPECS: MetricSpec[] = [
 ];
 
 export default function DashboardScreen() {
-  const today = todayISO();
+  const today = useToday();
 
   const checkins = useLiveQuery(() => db.checkins.toArray(), [], [] as DailyCheckin[]);
   const focusBlocks = useLiveQuery(() => db.focusBlocks.toArray(), [], [] as FocusBlock[]);

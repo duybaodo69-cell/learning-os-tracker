@@ -13,14 +13,15 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db/db";
 import type { Area, BrainDump, Card } from "../db/types";
 import { AREAS } from "../db/types";
-import { formatDayLabel, newId, todayISO } from "../lib/dates";
+import { formatDayLabel, newId } from "../lib/dates";
+import { useToday } from "../lib/useToday";
 import { getLastArea, setLastArea } from "../lib/prefs";
 import { newCardState, splitGapsIntoFronts } from "../lib/scheduling";
 
 import { Button, Card as CardBox, ChipGroup, EmptyState, Field, TextArea } from "./ui";
 
 export default function BrainDumpView() {
-  const today = todayISO();
+  const today = useToday();
 
   const [area, setArea] = useState<Area>(getLastArea());
   const [recalled, setRecalled] = useState("");

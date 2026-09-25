@@ -10,7 +10,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 import { db } from "../db/db";
 import type { Prediction } from "../db/types";
-import { formatDayLabel, todayISO } from "../lib/dates";
+import { formatDayLabel } from "../lib/dates";
+import { useToday } from "../lib/useToday";
 import {
   BRIER_ALWAYS_FIFTY,
   MIN_RESOLVED_FOR_CONCLUSION,
@@ -37,7 +38,7 @@ import { Button, Card, EmptyState, Segmented } from "../components/ui";
 type View = "list" | "score";
 
 export default function PredictionsScreen() {
-  const today = todayISO();
+  const today = useToday();
 
   const [view, setView] = useState<View>("list");
   const [formOpen, setFormOpen] = useState(false);

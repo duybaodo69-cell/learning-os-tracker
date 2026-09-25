@@ -12,7 +12,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 import { db } from "../db/db";
 import type { Card, Grade } from "../db/types";
-import { newId, todayISO } from "../lib/dates";
+import { newId } from "../lib/dates";
+import { useToday } from "../lib/useToday";
 import { DAILY_LIMIT, addDays, buildQueue, scheduleNext } from "../lib/scheduling";
 
 import { Button, Card as CardBox, EmptyState, Toggle } from "./ui";
@@ -29,7 +30,7 @@ const GRADE_BUTTONS: { grade: Grade; label: string; className: string }[] = [
 ];
 
 export default function ReviewQueue() {
-  const today = todayISO();
+  const today = useToday();
 
   const allCards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
 

@@ -14,6 +14,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, isDemoMode } from "../db/db";
 import type { DailyCheckin, Experiment, ExperimentTag, FocusBlock, Prediction, ReviewLog, WeeklyReview } from "../db/types";
 import { formatMinutes, nowHHmm, todayISO, yesterdayISO } from "../lib/dates";
+import { useToday } from "../lib/useToday";
 import { clearTimer, elapsedClock, elapsedMinutes, getTimerStart, startTimer } from "../lib/timer";
 import { computeMetrics, isSunday, mondayOf } from "../lib/metrics";
 import { EXPORT_REMINDER_DAYS, daysSinceLastExport } from "../lib/backup";
@@ -35,7 +36,8 @@ export default function TodayScreen({
   /** Chuyển sang tab khác, kèm mục con — dùng cho nút tắt Brain dump. */
   onNavigate: (tab: TabId, view?: ReviewView) => void;
 }) {
-  const today = todayISO();
+  // Hook tự tính lại ngày khi qua nửa đêm — xem lib/useToday.ts.
+  const today = useToday();
 
   /* ----- Dữ liệu từ database -----
      useLiveQuery tự chạy lại và vẽ lại màn hình mỗi khi dữ liệu đổi.
@@ -121,12 +123,20 @@ export default function TodayScreen({
 
   /* ----- Lưu / xoá ----- */
   async function saveCheckin(value: DailyCheckin) {
-    await db.checkins.put(value);
+    // Tính lại ngày NGAY LÚC LƯU. Biến `today` ở trên là của lần vẽ gần nhất;
+    // nếu form mở từ 23:58 và bạn bấm Lưu lúc 00:01 thì nó đã cũ.
+    // Chỉ ghi đè khi đang tạo mới — đang SỬA một check-in cũ thì phải
+    // giữ nguyên ngày của bản ghi đó.
+    const stamped = editingCheckin ? value : { ...value, date: todayISO() };
+    await db.checkins.put(stamped);
     setEditingCheckin(false);
   }
 
   async function saveBlock(value: FocusBlock) {
-    await db.focusBlocks.put(value);
+    // Cùng lý do như saveCheckin: ngày lấy tại thời điểm bấm Lưu.
+    // Sửa block cũ thì giữ nguyên ngày gốc.
+    const stamped = editingBlock ? value : { ...value, date: todayISO() };
+    await db.focusBlocks.put(stamped);
     setBlockFormOpen(false);
     setEditingBlock(null);
     setTimerResult(null);
