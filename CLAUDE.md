@@ -1,0 +1,197 @@
+# Learning OS Tracker
+
+## 1. Mục đích dự án (Project purpose)
+
+A personal learning-tracker **PWA**, mobile-first, used on the owner's phone many times per day.
+Owner: a finance student. Goal: log study/deep-work data fast, review it with spaced repetition,
+practise calibrated forecasting, and see the numbers on a dashboard.
+
+**Hard requirement: every log action must take under 30 seconds.**
+
+- UI language: **Vietnamese**. Keep standard English terms as-is: "deep work", "retrieval",
+  "Brier score", "area", "PWA".
+- Code, comments, file names, type names: English.
+- No backend, no login, no account. All data lives on the device (IndexedDB).
+- Timezone: **Asia/Ho_Chi_Minh**. Dates are stored as plain `YYYY-MM-DD` strings in local time,
+  never as UTC timestamps, so a day never shifts.
+
+The owner has almost no coding experience. Therefore:
+- Keep the code **simple and well-commented**. Prefer plain, obvious code over clever code.
+- Explain each step briefly **in Vietnamese** in chat.
+- **Do not skip ahead** to features from a later phase.
+
+## 2. Tech stack (use exactly this unless something is broken)
+
+| Purpose        | Tool                                   |
+| -------------- | -------------------------------------- |
+| Build tool     | Vite                                   |
+| UI             | React + TypeScript                     |
+| Styling        | Tailwind CSS                           |
+| Local storage  | Dexie.js (IndexedDB wrapper)           |
+| Charts         | Recharts                               |
+| PWA            | vite-plugin-pwa                        |
+| Dates          | date-fns (timezone Asia/Ho_Chi_Minh)   |
+
+No other UI kit, no state-management library, no router library beyond what is already here.
+
+## 3. Data model
+
+These types are the contract for every phase. Add fields only when a phase needs them.
+
+```ts
+// A once-a-day check-in about sleep and energy.
+type DailyCheckin = {
+  date: string;        // "YYYY-MM-DD", unique (primary key)
+  bedTime: string;     // "HH:mm"
+  wakeTime: string;    // "HH:mm"
+  sleepHours: number;  // computed from bedTime + wakeTime
+  energy: 1 | 2 | 3 | 4 | 5;
+  note?: string;
+};
+
+// One session of deep work.
+type FocusBlock = {
+  id: string;
+  date: string;        // "YYYY-MM-DD"
+  startTime: string;   // "HH:mm"
+  minutes: number;
+  area: Area;
+  focusRating: 1 | 2 | 3 | 4 | 5;
+  distractions: number; // count
+  phoneAway: boolean;
+  resumeNote?: string;
+};
+
+type Area =
+  | "Internship VC"
+  | "IM/Memo"
+  | "Financial modeling"
+  | "IELTS"
+  | "EFM"
+  | "AFEP"
+  | "BFN"
+  | "Stock competition"
+  | "M&A sourcing"
+  | "Other";
+
+// Free-recall practice: write down what you remember, then what you missed.
+type BrainDump = {
+  id: string;
+  date: string;
+  area: Area;
+  recalled: string;  // text
+  gaps: string;      // text
+  minutes: number;
+};
+
+// A spaced-repetition flashcard.
+type Card = {
+  id: string;
+  front: string;
+  back: string;
+  area: Area;
+  createdAt: string;
+  dueDate: string;     // "YYYY-MM-DD"
+  intervalDays: number;
+  ease: number;
+  reps: number;
+  lapses: number;
+};
+
+type ReviewLog = {
+  id: string;
+  cardId: string;
+  date: string;
+  grade: "again" | "hard" | "good" | "easy";
+  intervalBefore: number;
+};
+
+// A forecast with a probability, later scored with the Brier score.
+type Prediction = {
+  id: string;
+  statement: string;
+  probability: number; // 1-99 (percent)
+  category: "Deal/VC" | "Market" | "Study" | "Personal";
+  createdAt: string;
+  resolveBy: string;              // "YYYY-MM-DD"
+  outcome: true | false | null;   // null = not resolved yet
+  resolvedAt?: string;
+  note?: string;
+};
+
+type WeeklyReview = {
+  weekStart: string;  // Monday, "YYYY-MM-DD" (primary key)
+  learnedWithoutNotes: string;
+  dataInsight: string;
+  oneChange: string;
+};
+
+// Marks a day as belonging to condition A or B of a personal experiment.
+type ExperimentTag = {
+  date: string;
+  experimentName: string;
+  condition: "A" | "B";
+};
+```
+
+## 4. Rules (non-negotiable)
+
+1. **Mobile-first.** Design for a phone screen first; desktop is an afterthought.
+2. **Large tap targets: minimum 44x44 px** for every button, tab, chip and input.
+   Use the `.tap-target` helper class.
+3. **Every log form must be completable in under 30 seconds.** Prefer taps over typing:
+   default values, +/- steppers, chips, 1-5 rating rows. Optional fields come last.
+4. **Never delete user data without an in-app confirmation step.** Every delete/reset/import-overwrite
+   shows a confirm dialog inside the app that names exactly what will be lost. No silent wipes,
+   no destructive migrations.
+5. No network calls with user data. Everything stays on device.
+
+## 5. Phase roadmap
+
+Work on **one phase at a time**, in order. Do not build a later phase early.
+
+- **Phase 1** — Check-in + focus blocks + Today screen.
+  *(Also includes: scaffold, CLAUDE.md, 5-tab bottom navigation.)*
+- **Phase 2** — Brain dump + spaced-review cards.
+- **Phase 3** — Predictions + Brier score + calibration.
+- **Phase 4** — Dashboard + weekly review + experiments + export/import.
+- **Phase 5** — PWA (installable + offline) + deploy to Vercel + install on phone.
+- **Phase 6** *(later)* — Claude weekly-analysis export + optional cloud sync.
+
+### Current status
+
+- [x] Phase 1 — step 1: scaffold + dependencies
+- [x] Phase 1 — step 2: CLAUDE.md
+- [x] Phase 1 — step 3: bottom tab navigation with 5 empty screens
+- [ ] Phase 1 — step 4: daily check-in + focus block forms + real Today screen
+
+## 6. The 5 screens
+
+| Tab | Vietnamese | English  | Purpose                                      |
+| --- | ---------- | -------- | -------------------------------------------- |
+| 1   | Hôm nay    | Today    | Daily check-in + focus blocks of today       |
+| 2   | Ôn tập     | Review   | Brain dump + due cards (Phase 2)             |
+| 3   | Dự đoán    | Predictions | Make and resolve predictions (Phase 3)    |
+| 4   | Thống kê   | Dashboard   | Charts and trends (Phase 4)               |
+| 5   | Cài đặt    | Settings | Export/import, experiments, reset (Phase 4)  |
+
+## 7. Project structure
+
+```
+src/
+  components/    # reusable UI pieces (BottomNav, ...)
+  screens/       # one file per tab
+  db/            # Dexie database + types (from Phase 1 step 4)
+  lib/           # helpers (dates, formatting)
+  App.tsx        # holds which tab is active
+  main.tsx       # React entry point
+  index.css      # Tailwind + global styles
+```
+
+## 8. Commands
+
+```bash
+npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
+npm run build           # type-check + production build
+npm run preview         # preview the production build
+```

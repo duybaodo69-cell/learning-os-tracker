@@ -1,0 +1,43 @@
+/* Nạp toàn bộ Tailwind CSS (phiên bản 4 chỉ cần 1 dòng import này). */
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------
+   Cài đặt chung cho toàn app.
+   Mục tiêu: dùng bằng 1 tay trên điện thoại, chữ dễ đọc.
+   --------------------------------------------------------------- */
+:root {
+  /* Chặn trình duyệt tự phóng to chữ khi xoay ngang màn hình. */
+  -webkit-text-size-adjust: 100%;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #f8fafc; /* xám rất nhạt, đỡ chói mắt */
+  color: #0f172a;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Không cho kéo ngang -> vuốt trên điện thoại mượt hơn. */
+  overscroll-behavior-y: none;
+}
+
+/* Bỏ hiệu ứng ô xanh khi chạm vào nút trên Android. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------------------------------------------------------------
+   .tap-target — QUY TẮC BẮT BUỘC của dự án:
+   mọi nút bấm phải cao & rộng tối thiểu 44px để ngón tay bấm trúng.
+   Dùng class này cho mọi button / tab / chip.
+   --------------------------------------------------------------- */
+@utility tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}

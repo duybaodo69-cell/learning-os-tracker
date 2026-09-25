@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- lang="vi": báo cho trình duyệt biết nội dung là tiếng Việt. -->
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+
+    <!--
+      viewport: bắt buộc cho mobile-first.
+      - width=device-width: rộng đúng bằng màn hình điện thoại
+      - viewport-fit=cover: dùng cả phần màn hình quanh "tai thỏ"
+      - maximum-scale=1: tránh iOS tự phóng to khi bấm vào ô nhập
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+
+    <!-- Màu thanh trạng thái khi cài app lên điện thoại. -->
+    <meta name="theme-color" content="#f8fafc" />
+
+    <title>Learning OS Tracker</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
