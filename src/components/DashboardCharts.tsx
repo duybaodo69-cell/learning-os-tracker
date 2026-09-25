@@ -35,6 +35,14 @@ function shortDate(iso: string): string {
 
 const AXIS = { fontSize: 10, fill: "#94a3b8" };
 
+/**
+ * LƯU Ý VỀ LỀ BIỂU ĐỒ:
+ * Trước đây dùng margin-left âm (-18) để biểu đồ trông rộng hơn, nhưng nó
+ * kéo trục Y ra ngoài khung vẽ nên nhãn dài như "300" hay "1080" bị cắt mất
+ * chữ số đầu trên màn hình 390px. Giờ lề để 0 và mỗi trục Y được cho đủ
+ * chiều rộng theo số chữ số lớn nhất nó có thể hiện.
+ */
+
 /* ==================== 1. Giấc ngủ vs deep work cùng ngày ==================== */
 
 export function SleepVsFocusChart({ points }: { points: SleepVsFocusPoint[] }) {
@@ -44,12 +52,12 @@ export function SleepVsFocusChart({ points }: { points: SleepVsFocusPoint[] }) {
   return (
     <div className="h-56 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+        <ComposedChart data={points} margin={{ top: 8, right: 14, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="date" tickFormatter={shortDate} tick={AXIS} interval={6} />
           {/* Hai trục dọc vì hai đơn vị khác nhau: giờ và phút. */}
-          <YAxis yAxisId="sleep" tick={AXIS} width={34} domain={[0, 12]} />
-          <YAxis yAxisId="focus" orientation="right" tick={AXIS} width={34} />
+          <YAxis yAxisId="sleep" tick={AXIS} width={30} domain={[0, 12]} />
+          <YAxis yAxisId="focus" orientation="right" tick={AXIS} width={44} />
           <Tooltip
             labelFormatter={(v) => shortDate(String(v))}
             formatter={(value, name) =>
@@ -88,10 +96,11 @@ export function WeeklyAreaChart({
   return (
     <div className="h-60 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+        <BarChart data={points} margin={{ top: 8, right: 14, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="weekStart" tickFormatter={shortDate} tick={AXIS} />
-          <YAxis tick={AXIS} width={34} />
+          {/* width 46: tổng phút cả tuần có thể tới 4 chữ số (vd 1080). */}
+          <YAxis tick={AXIS} width={46} />
           <Tooltip
             labelFormatter={(v) => `Tuần từ ${shortDate(String(v))}`}
             formatter={(value, name) => [`${value}p`, name]}
@@ -121,10 +130,10 @@ export function RetentionChart({ points }: { points: WeeklyRetentionPoint[] }) {
   return (
     <div className="h-48 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+        <LineChart data={points} margin={{ top: 8, right: 14, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="weekStart" tickFormatter={shortDate} tick={AXIS} />
-          <YAxis tick={AXIS} width={34} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} />
+          <YAxis tick={AXIS} width={36} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} />
           <Tooltip
             labelFormatter={(v) => `Tuần từ ${shortDate(String(v))}`}
             formatter={(value) => [`${Math.round(Number(value))}%`, "Tỷ lệ nhớ"]}
