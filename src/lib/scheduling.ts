@@ -75,7 +75,8 @@ function goodInterval(state: SchedulingState): number {
  * Bốn nút:
  *   Quên (again) → ôn lại NGÀY MAI, lapses +1, và reps về 0
  *                  (về 0 để thẻ đi lại từ nấc 1 ngày → 3 ngày, tức là học lại)
- *   Khó  (hard)  → khoảng cách × 1.2
+ *   Khó  (hard)  → ở nấc học đầu thì GIỮ NGUYÊN nấc; về sau × 1.2
+ *                  và không bao giờ vượt quá "Được"
  *   Được (good)  → nấc 1 ngày → 3 ngày → sau đó × ease
  *   Dễ   (easy)  → như "Được" rồi × 1.3, và luôn dài hơn "Được" ít nhất 1 ngày
  *
@@ -92,13 +93,32 @@ export function scheduleNext(state: SchedulingState, grade: Grade): SchedulingSt
         lapses: state.lapses + 1,
       };
 
-    case "hard":
+    case "hard": {
+      // Ở hai nấc học đầu (1 ngày, 3 ngày): GIỮ NGUYÊN nấc hiện tại.
+      // Nếu nhân 1.2 thì nấc 3 ngày thành round(3 × 1.2) = 4 ngày,
+      // tức là bấm "Khó" lại được hoãn XA HƠN bấm "Được" (3 ngày).
+      // Vô lý: nút Khó phải luôn cho khoảng cách ngắn hơn hoặc bằng Được.
+      if (state.reps < FIRST_INTERVALS.length) {
+        return {
+          intervalDays: FIRST_INTERVALS[state.reps],
+          ease: state.ease,
+          // reps KHÔNG tăng: trả lời khó nghĩa là chưa qua được nấc này.
+          reps: state.reps,
+          lapses: state.lapses,
+        };
+      }
+
+      // Từ nấc ba trở đi: nhân 1.2, nhưng chặn trên bằng "Được"
+      // để không bao giờ vượt qua nó.
+      const good = goodInterval(state);
+      const hard = Math.max(1, Math.round(baseInterval(state) * HARD_MULTIPLIER));
       return {
-        intervalDays: Math.max(1, Math.round(baseInterval(state) * HARD_MULTIPLIER)),
+        intervalDays: Math.min(hard, good),
         ease: state.ease,
         reps: state.reps + 1,
         lapses: state.lapses,
       };
+    }
 
     case "good":
       return {

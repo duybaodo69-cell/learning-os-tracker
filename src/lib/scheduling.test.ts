@@ -64,17 +64,61 @@ describe("scheduleNext — nút Được (good)", () => {
 describe("scheduleNext — nút Khó (hard)", () => {
   it("nhân 1.2, luôn tối thiểu 1 ngày", () => {
     const fromNew = scheduleNext(newCardState(), "hard");
-    expect(fromNew.intervalDays).toBe(1); // round(1 × 1.2) = 1
+    expect(fromNew.intervalDays).toBe(1);
 
     const s = scheduleNext({ intervalDays: 20, ease: 2.5, reps: 4, lapses: 0 }, "hard");
     expect(s.intervalDays).toBe(24); // round(20 × 1.2) = 24
   });
 
-  it("tăng chậm hơn hẳn nút Được", () => {
+  it("ở nấc học đầu thì GIỮ NGUYÊN nấc, không đẩy tới", () => {
+    // Nấc 1: giữ 1 ngày.
+    const n0 = scheduleNext({ intervalDays: 0, ease: 2.5, reps: 0, lapses: 0 }, "hard");
+    expect(n0.intervalDays).toBe(1);
+    expect(n0.reps).toBe(0); // chưa qua được nấc này
+
+    // Nấc 2: giữ 3 ngày. Bản cũ cho round(3 × 1.2) = 4 — XA HƠN cả "Được".
+    const n1 = scheduleNext({ intervalDays: 1, ease: 2.5, reps: 1, lapses: 0 }, "hard");
+    expect(n1.intervalDays).toBe(3);
+    expect(n1.reps).toBe(1);
+  });
+
+  it("KHÔNG BAO GIỜ xa hơn nút Được — kiểm tra mọi trạng thái hợp lý", () => {
+    // Đây là bất biến chính của lần sửa này.
+    for (let reps = 0; reps <= 8; reps++) {
+      for (const intervalDays of [0, 1, 3, 8, 20, 50, 120, 365]) {
+        for (const ease of [1.3, 2.0, 2.5, 3.0]) {
+          const state = { intervalDays, ease, reps, lapses: 0 };
+          const hard = scheduleNext(state, "hard").intervalDays;
+          const good = scheduleNext(state, "good").intervalDays;
+          expect(
+            hard,
+            `reps=${reps} interval=${intervalDays} ease=${ease}: Khó ${hard}d > Được ${good}d`
+          ).toBeLessThanOrEqual(good);
+        }
+      }
+    }
+  });
+
+  it("thứ tự bốn nút luôn là Quên <= Khó <= Được <= Dễ", () => {
+    for (let reps = 0; reps <= 6; reps++) {
+      for (const intervalDays of [0, 1, 3, 8, 20, 90]) {
+        const state = { intervalDays, ease: 2.5, reps, lapses: 0 };
+        const again = scheduleNext(state, "again").intervalDays;
+        const hard = scheduleNext(state, "hard").intervalDays;
+        const good = scheduleNext(state, "good").intervalDays;
+        const easy = scheduleNext(state, "easy").intervalDays;
+        expect(again).toBeLessThanOrEqual(hard);
+        expect(hard).toBeLessThanOrEqual(good);
+        expect(good).toBeLessThan(easy);
+      }
+    }
+  });
+
+  it("từ nấc ba trở đi thì tăng chậm hơn hẳn nút Được", () => {
     const state = { intervalDays: 20, ease: 2.5, reps: 4, lapses: 0 };
-    const hard = scheduleNext(state, "hard").intervalDays;
-    const good = scheduleNext(state, "good").intervalDays;
-    expect(hard).toBeLessThan(good);
+    expect(scheduleNext(state, "hard").intervalDays).toBeLessThan(
+      scheduleNext(state, "good").intervalDays
+    );
   });
 });
 
