@@ -26,13 +26,14 @@ export function getTimerStart(): number | null {
   }
 }
 
-/** Bắt đầu đếm từ bây giờ. */
+/** Bắt đầu đếm từ bây giờ. Đồng thời reset bộ đếm phân tâm về 0. */
 export function startTimer(): void {
   try {
     localStorage.setItem(TIMER_KEY, String(Date.now()));
   } catch {
     // Không lưu được thì bộ đếm không dùng được, nhưng app vẫn chạy.
   }
+  clearTimerDistractions();
 }
 
 /** Dừng và xoá mốc. */
@@ -55,4 +56,57 @@ export function elapsedClock(startedAt: number): string {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/* ==================== Đếm phân tâm trong lúc chạy ==================== */
+
+/**
+ * Số lần bị phân tâm, đếm NGAY TRONG LÚC bộ đếm đang chạy.
+ *
+ * Vì sao cần: ngồi xong 90 phút rồi mới cố nhớ "nãy mình bị phân tâm mấy
+ * lần" thì luôn nhớ thiếu. Bấm ngay lúc vừa bị phân tâm mới ra số thật.
+ *
+ * Lưu trong localStorage cùng chỗ với mốc bắt đầu, nên thoát app rồi quay
+ * lại vẫn còn.
+ */
+const DISTRACTION_KEY = "learning-os:timer-distractions";
+
+export function getTimerDistractions(): number {
+  try {
+    const raw = localStorage.getItem(DISTRACTION_KEY);
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Cộng thêm một lần phân tâm. Trả về số mới để màn hình cập nhật ngay. */
+export function addTimerDistraction(): number {
+  const next = getTimerDistractions() + 1;
+  try {
+    localStorage.setItem(DISTRACTION_KEY, String(next));
+  } catch {
+    /* bỏ qua */
+  }
+  return next;
+}
+
+/** Bớt một lần (bấm nhầm). Không xuống dưới 0. */
+export function removeTimerDistraction(): number {
+  const next = Math.max(0, getTimerDistractions() - 1);
+  try {
+    localStorage.setItem(DISTRACTION_KEY, String(next));
+  } catch {
+    /* bỏ qua */
+  }
+  return next;
+}
+
+export function clearTimerDistractions(): void {
+  try {
+    localStorage.removeItem(DISTRACTION_KEY);
+  } catch {
+    /* bỏ qua */
+  }
 }

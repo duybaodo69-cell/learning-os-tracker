@@ -15,7 +15,17 @@ import { db, isDemoMode } from "../db/db";
 import type { DailyCheckin, Experiment, ExperimentTag, FocusBlock, Prediction, ReviewLog, WeeklyReview } from "../db/types";
 import { formatMinutes, nowHHmm, todayISO, yesterdayISO } from "../lib/dates";
 import { useToday } from "../lib/useToday";
-import { clearTimer, elapsedClock, elapsedMinutes, getTimerStart, startTimer } from "../lib/timer";
+import {
+  addTimerDistraction,
+  clearTimer,
+  clearTimerDistractions,
+  elapsedClock,
+  elapsedMinutes,
+  getTimerDistractions,
+  getTimerStart,
+  removeTimerDistraction,
+  startTimer,
+} from "../lib/timer";
 import { computeMetrics, isSunday, mondayOf } from "../lib/metrics";
 import { EXPORT_REMINDER_DAYS, daysSinceLastExport } from "../lib/backup";
 
@@ -88,10 +98,16 @@ export default function TodayScreen({
   const [editingBlock, setEditingBlock] = useState<FocusBlock | null>(null);
   const [blockToDelete, setBlockToDelete] = useState<FocusBlock | null>(null);
   // Số phút và giờ bắt đầu do bộ đếm giờ cung cấp khi bấm Dừng.
-  const [timerResult, setTimerResult] = useState<{ minutes: number; startTime: string } | null>(null);
+  const [timerResult, setTimerResult] = useState<{
+    minutes: number;
+    startTime: string;
+    distractions: number;
+  } | null>(null);
 
   /* ----- Bộ đếm giờ ----- */
   const [timerStart, setTimerStart] = useState<number | null>(getTimerStart);
+  // Số lần phân tâm bấm được TRONG LÚC đang đếm.
+  const [liveDistractions, setLiveDistractions] = useState<number>(getTimerDistractions);
   const [, forceTick] = useState(0);
 
   // Khi bộ đếm đang chạy, cập nhật mặt đồng hồ mỗi giây.
@@ -103,8 +119,9 @@ export default function TodayScreen({
   }, [timerStart]);
 
   function handleStartTimer() {
-    startTimer();
+    startTimer(); // cũng reset bộ đếm phân tâm về 0
     setTimerStart(getTimerStart());
+    setLiveDistractions(0);
   }
 
   function handleStopTimer() {
@@ -114,9 +131,13 @@ export default function TodayScreen({
     const d = new Date(timerStart);
     const startTime = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
+    const distractions = getTimerDistractions();
+
     clearTimer();
+    clearTimerDistractions();
     setTimerStart(null);
-    setTimerResult({ minutes, startTime });
+    setLiveDistractions(0);
+    setTimerResult({ minutes, startTime, distractions });
     setEditingBlock(null);
     setBlockFormOpen(true);
   }
@@ -268,6 +289,34 @@ export default function TodayScreen({
         </div>
       )}
 
+      {/* Nút đếm phân tâm — chỉ hiện khi bộ đếm đang chạy.
+          Cố ý để TO và tách riêng: bấm được bằng một ngón, không cần nhìn kỹ,
+          ngay lúc vừa bị phân tâm. Nhớ lại sau buổi làm luôn ra số thấp hơn thật. */}
+      {timerStart !== null && !blockFormOpen && (
+        <div className="mb-4 flex items-stretch gap-2">
+          <button
+            type="button"
+            onClick={() => setLiveDistractions(addTimerDistraction())}
+            className="tap-target flex-1 rounded-2xl bg-amber-500 py-4 text-lg font-bold text-white active:bg-amber-600"
+          >
+            +1 phân tâm
+            <span className="ml-2 rounded-full bg-white/25 px-2.5 py-0.5 text-base tabular-nums">
+              {liveDistractions}
+            </span>
+          </button>
+          {liveDistractions > 0 && (
+            <button
+              type="button"
+              onClick={() => setLiveDistractions(removeTimerDistraction())}
+              className="tap-target rounded-2xl bg-slate-100 px-4 text-xl font-bold text-slate-500 active:bg-slate-200"
+              aria-label="Bớt một lần phân tâm"
+            >
+              −
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Một chạm sang Brain dump — không phải tự đi tìm trong tab Ôn tập. */}
       {!blockFormOpen && (
         <Button
@@ -300,6 +349,7 @@ export default function TodayScreen({
             existing={editingBlock ?? undefined}
             initialMinutes={timerResult?.minutes}
             initialStartTime={timerResult?.startTime ?? nowHHmm()}
+            initialDistractions={timerResult?.distractions}
             onSave={saveBlock}
             onCancel={() => {
               setBlockFormOpen(false);

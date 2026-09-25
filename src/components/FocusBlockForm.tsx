@@ -25,6 +25,8 @@ type FocusBlockFormProps = {
   initialMinutes?: number;
   /** Giờ bắt đầu điền sẵn (bộ đếm giờ truyền vào). */
   initialStartTime?: string;
+  /** Số lần phân tâm đã bấm trong lúc bộ đếm chạy. */
+  initialDistractions?: number;
   onSave: (block: FocusBlock) => void;
   onCancel: () => void;
 };
@@ -34,6 +36,7 @@ export default function FocusBlockForm({
   existing,
   initialMinutes,
   initialStartTime,
+  initialDistractions,
   onSave,
   onCancel,
 }: FocusBlockFormProps) {
@@ -41,7 +44,9 @@ export default function FocusBlockForm({
   const [minutes, setMinutes] = useState<number>(existing?.minutes ?? initialMinutes ?? 45);
   const [startTime, setStartTime] = useState(existing?.startTime ?? initialStartTime ?? nowHHmm());
   const [focusRating, setFocusRating] = useState<Rating | null>(existing?.focusRating ?? null);
-  const [distractions, setDistractions] = useState(existing?.distractions ?? 0);
+  const [distractions, setDistractions] = useState(
+    existing?.distractions ?? initialDistractions ?? 0
+  );
   const [phoneAway, setPhoneAway] = useState(existing?.phoneAway ?? false);
   const [resumeNote, setResumeNote] = useState(existing?.resumeNote ?? "");
 
@@ -117,7 +122,10 @@ export default function FocusBlockForm({
         />
       </Field>
 
-      <Field label="Số lần bị phân tâm">
+      <Field
+        label="Số lần bị phân tâm"
+        hint={initialDistractions ? "đã đếm sẵn khi chạy đồng hồ" : undefined}
+      >
         <Counter value={distractions} onChange={setDistractions} />
       </Field>
 
