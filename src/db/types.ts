@@ -86,3 +86,27 @@ export type ReviewLog = {
   grade: Grade;
   intervalBefore: number; // khoảng cách ngày TRƯỚC lần ôn này
 };
+
+/* ===================== Phase 3 ===================== */
+
+export const PREDICTION_CATEGORIES = ["Deal/VC", "Market", "Study", "Personal"] as const;
+export type PredictionCategory = (typeof PREDICTION_CATEGORIES)[number];
+
+/** Một dự đoán kèm xác suất, sau này chấm đúng/sai và tính Brier score. */
+export type Prediction = {
+  id: string;
+  statement: string;
+  probability: number;            // 1-99 (phần trăm)
+  category: PredictionCategory;
+  createdAt: string;              // "YYYY-MM-DD"
+  resolveBy: string;              // "YYYY-MM-DD" — hạn chót để chấm
+  outcome: true | false | null;   // null = chưa chấm
+  resolvedAt?: string;            // "YYYY-MM-DD" — ngày bấm chấm
+  note?: string;                  // vd: base rate đã dùng
+  /**
+   * Chỉ dùng cho category "Deal/VC".
+   * "Giả sử 3 năm sau khoản này thất bại — vì sao?"
+   * Viết TRƯỚC khi biết kết quả, để tự ép mình nghĩ mặt trái.
+   */
+  preMortem?: string;
+};

@@ -24,9 +24,10 @@ export default function SettingsScreen() {
   const dumpCount = useLiveQuery(() => db.brainDumps.count(), [], 0);
   const cardCount = useLiveQuery(() => db.cards.count(), [], 0);
   const logCount = useLiveQuery(() => db.reviewLogs.count(), [], 0);
+  const predictionCount = useLiveQuery(() => db.predictions.count(), [], 0);
 
   // Tổng mọi bản ghi — dùng để biết kho có trống hay không.
-  const totalCount = checkinCount + blockCount + dumpCount + cardCount + logCount;
+  const totalCount = checkinCount + blockCount + dumpCount + cardCount + logCount + predictionCount;
 
   const [confirmClear, setConfirmClear] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -119,6 +120,10 @@ export default function SettingsScreen() {
             <span className="text-slate-600">Lượt ôn đã ghi</span>
             <span className="font-semibold tabular-nums">{logCount}</span>
           </li>
+          <li className="flex justify-between">
+            <span className="text-slate-600">Dự đoán</span>
+            <span className="font-semibold tabular-nums">{predictionCount}</span>
+          </li>
         </ul>
       </Card>
 
@@ -147,7 +152,7 @@ export default function SettingsScreen() {
           <>
             <strong>
               {checkinCount} check-in, {blockCount} focus block, {dumpCount} brain dump,{" "}
-              {cardCount} thẻ và {logCount} lượt ôn
+              {cardCount} thẻ, {logCount} lượt ôn và {predictionCount} dự đoán
             </strong>{" "}
             trong kho dữ liệu mẫu sẽ bị xoá.
             <br />

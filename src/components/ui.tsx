@@ -327,3 +327,64 @@ export function EmptyState({ title, hint }: { title: string; hint?: string }) {
     </div>
   );
 }
+
+/* ---------------------------------------------------------- Slider */
+
+/**
+ * Thanh trượt chọn số.
+ * Con số hiện to ở trên để đọc được mà không cần nhìn kỹ vị trí nút trượt.
+ */
+export function Slider({
+  value,
+  onChange,
+  min,
+  max,
+  suffix = "",
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  suffix?: string;
+}) {
+  return (
+    <div>
+      <div className="mb-1 text-center text-3xl font-bold text-blue-700 tabular-nums">
+        {value}
+        {suffix}
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        // h-11 (44px) để vùng chạm đủ to theo quy tắc dự án.
+        className="h-11 w-full accent-blue-600"
+      />
+      <div className="flex justify-between text-xs text-slate-400">
+        <span>
+          {min}
+          {suffix}
+        </span>
+        <span>
+          {max}
+          {suffix}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------- DateInput */
+
+export function DateInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <input
+      type="date"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="tap-target w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-semibold"
+    />
+  );
+}

@@ -11,7 +11,7 @@
  * đụng tới dữ liệu thật.
  */
 import Dexie, { type Table } from "dexie";
-import type { BrainDump, Card, DailyCheckin, FocusBlock, ReviewLog } from "./types";
+import type { BrainDump, Card, DailyCheckin, FocusBlock, Prediction, ReviewLog } from "./types";
 
 /** Khoá lưu công tắc demo trong localStorage. */
 const DEMO_MODE_KEY = "learning-os:demo-mode";
@@ -45,6 +45,8 @@ class LearningDB extends Dexie {
   brainDumps!: Table<BrainDump, string>;
   cards!: Table<Card, string>;
   reviewLogs!: Table<ReviewLog, string>;
+  // Phase 3
+  predictions!: Table<Prediction, string>;
 
   constructor(databaseName: string) {
     super(databaseName);
@@ -65,6 +67,12 @@ class LearningDB extends Dexie {
       brainDumps: "id, date, area",
       cards: "id, area, dueDate",  // dueDate có index để lấy thẻ đến hạn cho nhanh
       reviewLogs: "id, cardId, date",
+    });
+
+    // version(3) — Phase 3 thêm bảng dự đoán.
+    // Lại nhắc: KHÔNG sửa version(1) hay (2) ở trên, chỉ thêm version mới.
+    this.version(3).stores({
+      predictions: "id, resolveBy, category",
     });
   }
 }

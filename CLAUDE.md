@@ -177,7 +177,8 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] Phase 1 — step 4: daily check-in + focus block forms + real Today screen
 - [x] **Phase 1 COMPLETE.**
 - [x] **Phase 2 COMPLETE** — brain dump, cards, review queue, 10-minute mode.
-- [ ] Next: Phase 3 (predictions + Brier score + calibration).
+- [x] **Phase 3 COMPLETE** — predictions, Brier score, calibration chart, pre-mortem.
+- [ ] Next: Phase 4 (dashboard + weekly review + experiments + export/import).
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
 
@@ -268,6 +269,26 @@ src/
   is the part that teaches; the Cards tab surfaces the count of unfilled backs.
 - **Both countdowns (focus timer, 10-minute review) derive from a stored start timestamp.** Never
   reintroduce a per-second accumulator: background tabs freeze and the count drifts.
+
+### Phase 3 decisions worth knowing
+
+- **All prediction maths lives in `src/lib/calibration.ts`**, covered by `calibration.test.ts`
+  (34 tests). Brier and calibration answer different questions: Brier is accuracy, calibration is
+  whether the stated number is trustworthy. Someone who always says 50% is perfectly calibrated
+  and useless, which is why both are shown.
+- **Empty averages return `null`, never 0.** A Brier of 0 means flawless, so defaulting to 0 would
+  read as a perfect score when nothing has been graded.
+- **Bucket edges are lower-inclusive, upper-exclusive, except the last bucket includes 100.** Every
+  probability lands in exactly one bucket; the boundary cases are tested.
+- **`buildCalibration` always returns all five buckets**, empty ones included, so the chart and
+  table never reshuffle columns as data arrives.
+- **Recharts is lazy-loaded** (`lazy(() => import(...))` in PredictionsScreen). Loading it eagerly
+  put the main bundle at 720 kB for a screen most opens never touch; it is now a 321 kB chunk
+  fetched only when the Điểm số tab opens. Do the same for Phase 4 dashboard charts.
+- **The under-20 note is a nudge, not a lock.** Charts still render below the threshold; the note
+  only warns against drawing conclusions from a small sample.
+- **Pre-mortem only renders for category "Deal/VC"**, and switching category away clears the field
+  on save so no orphan text survives.
 
 ## 8. Commands
 

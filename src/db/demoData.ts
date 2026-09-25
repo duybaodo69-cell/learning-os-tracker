@@ -8,7 +8,7 @@
  * Mọi nội dung mẫu đều có chữ "[MẪU]" để không nhầm với dữ liệu thật.
  */
 import { db } from "./db";
-import type { Area, BrainDump, Card, DailyCheckin, FocusBlock, Grade, ReviewLog, Rating } from "./types";
+import type { Area, BrainDump, Card, DailyCheckin, FocusBlock, Grade, Prediction, PredictionCategory, ReviewLog, Rating } from "./types";
 import { newId } from "../lib/dates";
 import { START_EASE, addDays } from "../lib/scheduling";
 
@@ -143,12 +143,81 @@ export async function loadDemoData(today: string): Promise<void> {
     }
   });
 
+  /* ---------- Dự đoán ----------
+     Cố ý tạo một người HƠI QUÁ TỰ TIN: ở khoảng 80-100% thì nói cao hơn
+     thực tế, còn khoảng thấp thì khá chuẩn. Nhờ vậy biểu đồ calibration
+     có hình dạng đọc được chứ không phải một đống chấm ngẫu nhiên.
+     Tạo 24 dự đoán ĐÃ CHẤM để vượt ngưỡng 20 và tắt được câu
+     "chưa đủ dữ liệu". */
+  const predictions: Prediction[] = [];
+  const CATS: PredictionCategory[] = ["Deal/VC", "Market", "Study", "Personal"];
+
+  // [xác suất, số lần đúng, tổng số lần] cho từng nhóm.
+  const RESOLVED_PATTERN: [number, number, number][] = [
+    [10, 0, 4],  // nói 10% -> thực tế 0%   (khá chuẩn)
+    [30, 1, 4],  // nói 30% -> thực tế 25%  (khá chuẩn)
+    [50, 2, 4],  // nói 50% -> thực tế 50%  (chuẩn)
+    [70, 3, 6],  // nói 70% -> thực tế 50%  (hơi quá tự tin)
+    [90, 3, 6],  // nói 90% -> thực tế 50%  (quá tự tin rõ rệt)
+  ];
+
+  let n = 0;
+  for (const [prob, hits, total] of RESOLVED_PATTERN) {
+    for (let k = 0; k < total; k++) {
+      const cat = CATS[n % CATS.length];
+      predictions.push({
+        id: newId(),
+        statement: `[MẪU] Dự đoán ${prob}% số ${k + 1} — ${cat}`,
+        probability: prob,
+        category: cat,
+        createdAt: minusDays(today, 40 + n),
+        resolveBy: minusDays(today, 10 + (n % 20)),
+        outcome: k < hits,
+        // Rải ngày chấm: một nửa trong 30 ngày gần đây, một nửa cũ hơn,
+        // để hai con số Brier (tất cả / 30 ngày) khác nhau.
+        resolvedAt: minusDays(today, n % 2 === 0 ? (n % 25) : 40 + n),
+        note: "[MẪU] base rate tham khảo",
+        preMortem: cat === "Deal/VC" ? "[MẪU] Thất bại vì team không giữ được nhịp tăng trưởng." : undefined,
+      });
+      n++;
+    }
+  }
+
+  // 2 dự đoán ĐẾN HẠN CHẤM (quá hạn, chưa có kết quả).
+  for (let k = 0; k < 2; k++) {
+    predictions.push({
+      id: newId(),
+      statement: `[MẪU] Dự đoán đã tới hạn, cần chấm — số ${k + 1}`,
+      probability: k === 0 ? 65 : 35,
+      category: CATS[k % CATS.length],
+      createdAt: minusDays(today, 30),
+      resolveBy: minusDays(today, k + 1),
+      outcome: null,
+      preMortem: CATS[k % CATS.length] === "Deal/VC" ? "[MẪU] Rủi ro lớn nhất là định giá quá cao." : undefined,
+    });
+  }
+
+  // 3 dự đoán ĐANG MỞ (hạn trong tương lai).
+  for (let k = 0; k < 3; k++) {
+    predictions.push({
+      id: newId(),
+      statement: `[MẪU] Dự đoán đang mở — số ${k + 1}`,
+      probability: [25, 55, 80][k],
+      category: CATS[(k + 1) % CATS.length],
+      createdAt: today,
+      resolveBy: addDays(today, (k + 1) * 14),
+      outcome: null,
+      note: "[MẪU] chưa tới hạn",
+    });
+  }
+
   // bulkPut = thêm mới hoặc ghi đè nếu trùng khoá.
   await db.checkins.bulkPut(checkins);
   await db.focusBlocks.bulkPut(blocks);
   await db.brainDumps.bulkPut(dumps);
   await db.cards.bulkPut(cards);
   await db.reviewLogs.bulkPut(logs);
+  await db.predictions.bulkPut(predictions);
 }
 
 /** Xoá sạch database demo. Chỉ ảnh hưởng chế độ demo. */
@@ -158,4 +227,5 @@ export async function clearDemoData(): Promise<void> {
   await db.brainDumps.clear();
   await db.cards.clear();
   await db.reviewLogs.clear();
+  await db.predictions.clear();
 }
