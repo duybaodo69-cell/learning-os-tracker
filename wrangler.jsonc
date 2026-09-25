@@ -1,0 +1,22 @@
+{
+  // Cấu hình cho Cloudflare Workers.
+  // File này nói cho Cloudflare biết: "đây là một trang tĩnh, hãy phục vụ thư mục dist".
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // Tên project trên Cloudflare — cũng là phần đầu của URL.
+  "name": "learning-os-tracker",
+
+  // Ngày "chốt" hành vi của Cloudflare. Giữ nguyên để lần deploy sau
+  // không bị đổi hành vi ngoài ý muốn.
+  "compatibility_date": "2026-09-25",
+
+  "assets": {
+    // Thư mục chứa file đã build (Vite sinh ra sau `npm run build`).
+    "directory": "./dist",
+
+    // Quan trọng cho app một-trang (SPA):
+    // nếu người dùng mở một đường dẫn lạ, trả về index.html
+    // thay vì báo lỗi 404, để React tự xử lý.
+    "not_found_handling": "single-page-application"
+  }
+}
