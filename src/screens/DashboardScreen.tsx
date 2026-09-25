@@ -13,7 +13,6 @@ import { db } from "../db/db";
 import type { DailyCheckin, FocusBlock, Prediction, ReviewLog } from "../db/types";
 import { formatMinutes } from "../lib/dates";
 import { useToday } from "../lib/useToday";
-import { addDays } from "../lib/scheduling";
 import {
   BASELINE_FROM,
   BASELINE_TO,
@@ -25,7 +24,9 @@ import {
   compareMetric,
   computeMetrics,
   consistency,
+  daysBetween,
   mondayOf,
+  sameSpanLastWeek,
 } from "../lib/metrics";
 import type { MetricKey, MetricSet, MetricsInput } from "../lib/metrics";
 
@@ -100,10 +101,15 @@ export default function DashboardScreen() {
 
   // Tuần này = Thứ Hai tới hôm nay (chưa hết tuần thì chưa tính cả tuần).
   const thisMonday = mondayOf(today);
-  const lastMonday = addDays(thisMonday, -7);
+
+  // Tuần trước lấy ĐÚNG BẰNG số ngày, không lấy trọn 7 ngày —
+  // xem ghi chú ở sameSpanLastWeek.
+  const lastSpan = sameSpanLastWeek(thisMonday, today);
 
   const thisWeek = computeMetrics(input, thisMonday, today);
-  const lastWeek = computeMetrics(input, lastMonday, addDays(lastMonday, 6));
+  const lastWeek = computeMetrics(input, lastSpan.from, lastSpan.to);
+
+  const daysThisWeek = daysBetween(thisMonday, today).length;
 
   const showBaseline = baselineFinished(today);
   const baseline = showBaseline ? baselineMetrics(input) : null;
@@ -128,8 +134,14 @@ export default function DashboardScreen() {
     <ScreenShell title="Thống kê" subtitle={`Tuần từ ${thisMonday.slice(8)}/${thisMonday.slice(5, 7)}`}>
       {/* ---------- 1. Bảng chỉ số ---------- */}
       <Card className="mb-4">
-        <div className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase">
-          Tuần này so với tuần trước
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <span className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+            Tuần này so với tuần trước
+          </span>
+          {/* Nói rõ đang so cùng số ngày, để bạn không nghi ngờ con số. */}
+          <span className="text-xs text-slate-400">
+            so cùng số ngày ({daysThisWeek})
+          </span>
         </div>
 
         <div className="divide-y divide-slate-100">

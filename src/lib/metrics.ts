@@ -44,6 +44,20 @@ export function weekRange(iso: string): { from: string; to: string } {
   return { from, to: addDays(from, 6) };
 }
 
+/**
+ * Khoảng tương ứng của TUẦN TRƯỚC, cùng số ngày với khoảng tuần này.
+ *
+ * Vì sao cần: hôm nay là Thứ Tư thì "tuần này" mới có 3 ngày, còn tuần
+ * trước có đủ 7. Đem 3 ngày so với 7 ngày thì tổng giờ deep work tuần
+ * này lúc nào cũng trông như tụt thảm hại — sai hoàn toàn.
+ *
+ * Cách làm: lùi đúng 7 ngày cho cả hai đầu. Thứ Hai -> Thứ Tư tuần này
+ * sẽ so với Thứ Hai -> Thứ Tư tuần trước.
+ */
+export function sameSpanLastWeek(from: string, to: string): { from: string; to: string } {
+  return { from: addDays(from, -7), to: addDays(to, -7) };
+}
+
 /** Danh sách ngày liên tiếp từ `from` đến `to`, tính cả hai đầu. */
 export function daysBetween(from: string, to: string): string[] {
   const out: string[] = [];

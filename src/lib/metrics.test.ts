@@ -6,6 +6,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { DailyCheckin, ExperimentTag, FocusBlock, ReviewLog } from "../db/types";
+import { addDays } from "./scheduling";
 import {
   BASELINE_FROM,
   BASELINE_TO,
@@ -24,6 +25,7 @@ import {
   isSunday,
   mean,
   mondayOf,
+  sameSpanLastWeek,
   standardDeviation,
   weekRange,
 } from "./metrics";
@@ -85,6 +87,45 @@ describe("isSunday", () => {
 describe("weekRange", () => {
   it("Thứ Hai đến Chủ Nhật", () => {
     expect(weekRange("2026-09-30")).toEqual({ from: "2026-09-28", to: "2026-10-04" });
+  });
+});
+
+describe("sameSpanLastWeek — so cùng số ngày", () => {
+  it("giữa tuần: 3 ngày so với 3 ngày, không phải 3 so với 7", () => {
+    // Thứ Hai 28/09 -> Thứ Tư 30/09 (3 ngày)
+    expect(sameSpanLastWeek("2026-09-28", "2026-09-30")).toEqual({
+      from: "2026-09-21",
+      to: "2026-09-23",
+    });
+    expect(daysBetween("2026-09-21", "2026-09-23")).toHaveLength(3);
+  });
+
+  it("tuần đã trọn vẹn thì vẫn là 7 so với 7", () => {
+    const span = sameSpanLastWeek("2026-09-28", "2026-10-04");
+    expect(span).toEqual({ from: "2026-09-21", to: "2026-09-27" });
+    expect(daysBetween(span.from, span.to)).toHaveLength(7);
+  });
+
+  it("ngày đầu tuần: 1 ngày so với 1 ngày", () => {
+    const span = sameSpanLastWeek("2026-09-28", "2026-09-28");
+    expect(daysBetween(span.from, span.to)).toHaveLength(1);
+  });
+
+  it("hai khoảng luôn bằng nhau về số ngày", () => {
+    for (let i = 0; i < 7; i++) {
+      const to = addDays("2026-09-28", i);
+      const span = sameSpanLastWeek("2026-09-28", to);
+      expect(daysBetween(span.from, span.to).length).toBe(
+        daysBetween("2026-09-28", to).length
+      );
+    }
+  });
+
+  it("qua mốc đổi tháng vẫn đúng", () => {
+    expect(sameSpanLastWeek("2026-10-05", "2026-10-07")).toEqual({
+      from: "2026-09-28",
+      to: "2026-09-30",
+    });
   });
 });
 
