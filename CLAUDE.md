@@ -145,8 +145,9 @@ type ExperimentTag = {
    shows a confirm dialog inside the app that names exactly what will be lost. No silent wipes,
    no destructive migrations.
 5. No network calls with user data. Everything stays on device.
-6. **Real data is only entered on the production Vercel URL; the local dev URL is for testing only.**
-   IndexedDB is per-origin, so `localhost:5173` and the Vercel URL hold two completely separate
+6. **Real data is only entered on the production URL; the local dev URL is for testing only.**
+   Production is https://learning-os-tracker.duybaodo69.workers.dev
+   IndexedDB is per-origin, so `localhost:5173` and the production URL hold two completely separate
    databases. Anything typed into the dev server is throwaway test data and will never appear in the
    real app. When demonstrating or testing a feature, use obvious fake values on the dev URL.
 7. **Weekly JSON backup.** Once export exists (Phase 4), the owner exports a JSON backup once a week
@@ -164,7 +165,8 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - **Phase 2** — Brain dump + spaced-review cards.
 - **Phase 3** — Predictions + Brier score + calibration.
 - **Phase 4** — Dashboard + weekly review + experiments + export/import.
-- **Phase 5** — PWA (installable + offline) + deploy to Vercel + install on phone.
+- **Phase 5** — PWA (installable + offline) + install on phone.
+  *(Hosting is already done — see section 9. Only the PWA half of this phase is left.)*
 - **Phase 6** *(later)* — Claude weekly-analysis export + optional cloud sync.
 
 ### Current status
@@ -173,7 +175,7 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] Phase 1 — step 2: CLAUDE.md
 - [x] Phase 1 — step 3: bottom tab navigation with 5 empty screens
 - [ ] Phase 1 — step 4: daily check-in + focus block forms + real Today screen
-- [x] Out-of-order: deployed to Vercel early (see section 9) so the app is usable on the phone
+- [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
 
 ## 6. The 5 screens
@@ -209,21 +211,41 @@ npm run preview         # preview the production build
 
 ## 9. Deployment
 
+- **Host:** Cloudflare Workers (static assets). **Not Vercel** — see "Why not Vercel" below.
+- **Production URL:** https://learning-os-tracker.duybaodo69.workers.dev
 - **GitHub repo (private):** https://github.com/duybaodo69-cell/learning-os-tracker
-- **Production URL (Vercel):** https://learning-os-tracker-bao-dd5a.vercel.app
-  This is the stable alias — it always points at the newest `main` deployment. Vercel also prints a
-  per-deployment URL like `learning-os-tracker-93hgd7w5i-bao-dd5a.vercel.app`; that one is frozen to
-  a single build and changes every push, so never bookmark it on the phone.
-  Note: `learning-os-tracker.vercel.app` (no scope suffix) belongs to an unrelated project owned by
-  someone else. It is not this app.
-- **Deployment Protection must stay OFF.** Vercel enables "Vercel Authentication" by default, which
-  redirects every visitor to a Vercel login page — that makes the app unusable on the phone. It lives
-  in Settings -> Deployment Protection. Turning it off is safe here because the build contains no
-  secrets and no user data; all data sits in the phone's IndexedDB and never reaches Vercel.
-- **Auto-deploy:** Vercel is connected to the `main` branch. Every `git push` to `main`
-  builds and deploys automatically — there is no manual deploy step.
-- Vercel auto-detects Vite: build command `npm run build`, output directory `dist`.
-  There is no `vercel.json` and none is needed.
+- **Auto-deploy:** Cloudflare is connected to the `main` branch. Every `git push` to `main`
+  runs `npm run build` then `npx wrangler deploy`. There is no manual deploy step.
+- **Config:** `wrangler.jsonc` serves `./dist` with `not_found_handling: single-page-application`,
+  so an unknown path returns `index.html` instead of a 404.
+- **`.nvmrc` pins Node 22.** Build hosts default to Node 18, but Vite 8 requires
+  `^20.19.0 || >=22.12.0`. Deleting `.nvmrc` breaks every future build.
+- **Never enable "Protect with Cloudflare Access"** on this project. It puts a login wall in front
+  of the app, which makes it unusable on the phone and will break offline mode in Phase 5.
+  The app holds no secrets and no user data, so it does not need one.
+
+### Why not Vercel
+
+The first deployment went to Vercel and had to be abandoned. Vercel's "Deployment Protection ->
+Vercel Authentication" was on by default and covered the production alias, redirecting every
+visitor to a Vercel login page. On this account the setting was locked behind a paid plan, so it
+could not be turned off. If Vercel is ever reconsidered, verify that production is publicly
+reachable *before* relying on it.
+
+Do not reuse `learning-os-tracker.vercel.app` — that domain belongs to an unrelated project owned
+by someone else, not this app.
+
+### Verifying a deploy
+
+Check the site the way a stranger would — from outside, with no cookies — not from a browser that
+is already logged in to the host. A logged-in browser hides exactly the login-wall problem that
+killed the Vercel attempt.
+
+```bash
+curl -s -o /dev/null -w "%{http_code} %{redirect_url}
+"   https://learning-os-tracker.duybaodo69.workers.dev/
+# 200 and no redirect = genuinely public. A 3xx to a login page = blocked.
+```
 
 ### Git identity
 
@@ -251,12 +273,12 @@ npm run dev -- --host   # 1. build and test locally (throwaway data only — see
 npm run build           # 2. make sure it compiles before pushing
 git add -A
 git commit -m "..."     # 3.
-git push                # 4. Vercel deploys in ~1 minute
+git push                # 4. Cloudflare builds and deploys in ~2 minutes
 ```
 
-If a push produces a broken deploy, the previous deployment is still live in Vercel's
-"Deployments" list and can be promoted back with **Instant Rollback** — the production URL
-never has to stay broken.
+If a push produces a broken deploy, roll back in the Cloudflare dashboard under the project's
+**Deployments** tab, or just fix the code and push again — the production URL never has to stay
+broken. Running `npm run build` locally before pushing catches most breakage first.
 
 **Note:** deploying does not back up the data. The data lives in the phone's IndexedDB,
-not on Vercel. See rule 7.
+not on the host. See rule 7.
