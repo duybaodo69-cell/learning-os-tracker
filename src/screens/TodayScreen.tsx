@@ -29,8 +29,17 @@ export default function TodayScreen() {
   /* ----- Dữ liệu từ database -----
      useLiveQuery tự chạy lại và vẽ lại màn hình mỗi khi dữ liệu đổi.
      Không cần tự gọi "tải lại" ở đâu cả. */
-  const checkin = useLiveQuery(() => db.checkins.get(today), [today]);
-  const yesterdayCheckin = useLiveQuery(() => db.checkins.get(yesterdayISO()), [today]);
+  /* CẨN THẬN chỗ này:
+     - db.checkins.get() trả về `undefined` khi KHÔNG CÓ bản ghi
+     - useLiveQuery trả về `undefined` khi ĐANG ĐỌC database
+     Hai tình huống khác hẳn nhau nhưng cùng một giá trị -> rất dễ nhầm.
+     Nên ở đây đổi "không có" thành `null`, để:
+        undefined = đang đọc   |   null = chưa check-in   |   object = đã có */
+  const checkin = useLiveQuery(async () => (await db.checkins.get(today)) ?? null, [today]);
+  const yesterdayCheckin = useLiveQuery(
+    async () => (await db.checkins.get(yesterdayISO())) ?? null,
+    [today]
+  );
   const blocks = useLiveQuery(
     () => db.focusBlocks.where("date").equals(today).toArray(),
     [today],
@@ -131,7 +140,7 @@ export default function TodayScreen() {
           <CheckinForm
             date={today}
             previous={yesterdayCheckin ?? undefined}
-            existing={editingCheckin ? checkin : undefined}
+            existing={editingCheckin && checkin ? checkin : undefined}
             onSave={saveCheckin}
             onCancel={editingCheckin ? () => setEditingCheckin(false) : undefined}
           />

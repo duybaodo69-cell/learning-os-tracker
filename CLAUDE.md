@@ -229,6 +229,11 @@ src/
   and every sample note is tagged `[MẪU]`.
 - **`useLiveQuery` (dexie-react-hooks)** re-renders screens automatically when data changes; there
   is no manual refresh anywhere.
+- **`useLiveQuery` returns `undefined` while loading, and `Table.get()` resolves to `undefined`
+  when the row is missing.** Those are different states sharing one value, and conflating them
+  shipped a bug where the check-in form never rendered. Always map "missing" to `null`:
+  `useLiveQuery(async () => (await db.checkins.get(d)) ?? null, [d])`, then
+  `undefined` = loading, `null` = absent, object = found.
 - **New tables need a new `this.version(n).stores({...})`** in `db.ts`. Never edit version 1 in
   place — that breaks existing installs. Phase 2 adds `brainDumps`, `cards`, `reviewLogs` this way.
 - **The protocol schedule starts 2026-09-28.** Before that date `findProtocolPhase` returns null
