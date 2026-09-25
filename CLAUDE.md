@@ -145,6 +145,15 @@ type ExperimentTag = {
    shows a confirm dialog inside the app that names exactly what will be lost. No silent wipes,
    no destructive migrations.
 5. No network calls with user data. Everything stays on device.
+6. **Real data is only entered on the production Vercel URL; the local dev URL is for testing only.**
+   IndexedDB is per-origin, so `localhost:5173` and the Vercel URL hold two completely separate
+   databases. Anything typed into the dev server is throwaway test data and will never appear in the
+   real app. When demonstrating or testing a feature, use obvious fake values on the dev URL.
+7. **Weekly JSON backup.** Once export exists (Phase 4), the owner exports a JSON backup once a week
+   and saves it off-device. Reason: the data lives only in one phone's browser storage — clearing
+   site data, uninstalling the PWA, or losing the phone destroys it with no server copy.
+   Until Phase 4 ships, remind the owner that there is still no way to back up, so the data at risk
+   is whatever has been logged so far.
 
 ## 5. Phase roadmap
 
@@ -164,6 +173,8 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] Phase 1 — step 2: CLAUDE.md
 - [x] Phase 1 — step 3: bottom tab navigation with 5 empty screens
 - [ ] Phase 1 — step 4: daily check-in + focus block forms + real Today screen
+- [x] Out-of-order: deployed to Vercel early (see section 9) so the app is usable on the phone
+      without the laptop. PWA/offline/icons stay in Phase 5 as planned.
 
 ## 6. The 5 screens
 
@@ -195,3 +206,29 @@ npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # type-check + production build
 npm run preview         # preview the production build
 ```
+
+## 9. Deployment
+
+- **GitHub repo (private):** https://github.com/duybaodo69-cell/learning-os-tracker
+- **Production URL (Vercel):** _to be filled in after the first import_
+- **Auto-deploy:** Vercel is connected to the `main` branch. Every `git push` to `main`
+  builds and deploys automatically — there is no manual deploy step.
+- Vercel auto-detects Vite: build command `npm run build`, output directory `dist`.
+  There is no `vercel.json` and none is needed.
+
+### Everyday workflow
+
+```bash
+npm run dev -- --host   # 1. build and test locally (throwaway data only — see rule 6)
+npm run build           # 2. make sure it compiles before pushing
+git add -A
+git commit -m "..."     # 3.
+git push                # 4. Vercel deploys in ~1 minute
+```
+
+If a push produces a broken deploy, the previous deployment is still live in Vercel's
+"Deployments" list and can be promoted back with **Instant Rollback** — the production URL
+never has to stay broken.
+
+**Note:** deploying does not back up the data. The data lives in the phone's IndexedDB,
+not on Vercel. See rule 7.
