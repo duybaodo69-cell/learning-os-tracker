@@ -9,6 +9,7 @@
 import { useRef, useState } from "react";
 
 import { todayISO } from "../lib/dates";
+import { isDemoMode } from "../db/db";
 import {
   TABLE_LABELS,
   TABLE_NAMES,
@@ -26,6 +27,7 @@ import { Button, Card } from "./ui";
 
 export default function BackupSection() {
   const today = todayISO();
+  const demo = isDemoMode();
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [busy, setBusy] = useState(false);
@@ -47,10 +49,14 @@ export default function BackupSection() {
     setMessage(null);
     try {
       const how = await exportBackup(today);
-      setMessage(
+      const base =
         how === "share"
           ? "Đã mở bảng chia sẻ. Lưu file vào Files, iCloud hoặc gửi cho chính mình."
-          : "Đã tải file JSON về máy."
+          : "Đã tải file JSON về máy.";
+      setMessage(
+        demo
+          ? `${base} Đây là file DỮ LIỆU MẪU (tên có chữ DEMO) — không phải bản sao lưu dữ liệu thật.`
+          : base
       );
     } catch (err) {
       // Người dùng bấm Huỷ trên bảng chia sẻ — không phải lỗi.
@@ -113,6 +119,13 @@ export default function BackupSection() {
         Dữ liệu chỉ nằm trong trình duyệt của <strong>máy này</strong>. Xuất một bản{" "}
         <strong>mỗi tuần</strong> và cất ra ngoài máy.
       </p>
+
+      {demo && (
+        <p className="mb-3 rounded-xl bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-900">
+          Đang ở chế độ dữ liệu mẫu. Xuất bây giờ chỉ ra file mẫu, và KHÔNG được
+          tính là đã sao lưu dữ liệu thật.
+        </p>
+      )}
 
       <div className="mb-3 rounded-xl bg-slate-50 px-3 py-2 text-sm">
         {lastExport === null ? (

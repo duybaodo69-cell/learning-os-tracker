@@ -8,7 +8,7 @@
  * một file rác thì toàn bộ dữ liệu bị xoá và thay bằng rác.
  */
 import { describe, expect, it } from "vitest";
-import { BACKUP_FORMAT_VERSION, TABLE_NAMES, parseBackup } from "./backup";
+import { BACKUP_FORMAT_VERSION, TABLE_NAMES, backupFileName, parseBackup } from "./backup";
 
 function validFile(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
@@ -96,5 +96,26 @@ describe("parseBackup — từ chối file không dùng được", () => {
 
   it("file rỗng", () => {
     expect(() => parseBackup("")).toThrow();
+  });
+});
+
+describe("backupFileName", () => {
+  it("dữ liệu thật: tên bình thường", () => {
+    expect(backupFileName("2026-09-26", false)).toBe("learning-os-2026-09-26.json");
+  });
+
+  it("chế độ demo: có chữ DEMO trong tên", () => {
+    expect(backupFileName("2026-09-26", true)).toBe("learning-os-DEMO-2026-09-26.json");
+  });
+
+  it("hai tên không bao giờ trùng nhau trong cùng một ngày", () => {
+    // Nếu trùng, mở thư mục ra sẽ không phân biệt nổi file nào là thật.
+    expect(backupFileName("2026-09-26", true)).not.toBe(backupFileName("2026-09-26", false));
+  });
+
+  it("luôn là đuôi .json", () => {
+    for (const demo of [true, false]) {
+      expect(backupFileName("2026-01-01", demo).endsWith(".json")).toBe(true);
+    }
   });
 });

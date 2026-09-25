@@ -8,7 +8,7 @@
  * Định dạng file cố ý để dạng JSON đọc được bằng mắt, không nén, không mã hoá:
  * mười năm nữa mở ra vẫn hiểu được, không cần app này.
  */
-import { db } from "../db/db";
+import { db, isDemoMode } from "../db/db";
 import type {
   BrainDump,
   Card,
@@ -105,6 +105,17 @@ export function daysSinceLastExport(today: string): number | null {
 /** Quá bao nhiêu ngày thì nhắc trên màn hình Hôm nay. */
 export const EXPORT_REMINDER_DAYS = 7;
 
+/**
+ * Tên file sao lưu.
+ *
+ * Ở chế độ dữ liệu mẫu, chèn thêm "DEMO" vào tên. Nếu không, vài tháng sau
+ * mở thư mục ra bạn sẽ thấy hai file trông y hệt nhau và không biết cái nào
+ * là dữ liệu thật — rồi có thể nhập nhầm file mẫu đè lên dữ liệu thật.
+ */
+export function backupFileName(todayISO: string, demo: boolean): string {
+  return demo ? `learning-os-DEMO-${todayISO}.json` : `learning-os-${todayISO}.json`;
+}
+
 /* ==================== Xuất ==================== */
 
 /** Đọc toàn bộ dữ liệu ra một object. */
@@ -159,12 +170,17 @@ export async function collectBackup(): Promise<BackupFile> {
  *   2. Thẻ <a download> — Android và máy tính tải thẳng về.
  *
  * Trả về cách đã dùng để màn hình Cài đặt báo lại cho đúng.
+ *
+ * Ở chế độ demo: file được đặt tên khác và ngày sao lưu KHÔNG được cập nhật.
  */
 export async function exportBackup(todayISO: string): Promise<"share" | "download"> {
+  // Đang ở chế độ demo thì đây KHÔNG phải bản sao lưu dữ liệu thật.
+  const demo = isDemoMode();
+
   const backup = await collectBackup();
   // Xuống dòng cho dễ đọc khi mở file bằng mắt.
   const text = JSON.stringify(backup, null, 2);
-  const fileName = `learning-os-${todayISO}.json`;
+  const fileName = backupFileName(todayISO, demo);
 
   const file = new File([text], fileName, { type: "application/json" });
 
@@ -178,7 +194,9 @@ export async function exportBackup(todayISO: string): Promise<"share" | "downloa
   if (canShareFiles) {
     try {
       await navigator.share({ files: [file], title: fileName });
-      setLastExportDate(todayISO);
+      // KHÔNG ghi ngày sao lưu khi đang ở chế độ demo: xuất dữ liệu mẫu
+      // không bảo vệ được gì, mà lại làm tắt lời nhắc sao lưu thật.
+      if (!demo) setLastExportDate(todayISO);
       return "share";
     } catch (err) {
       // Người dùng bấm Huỷ trên bảng chia sẻ -> KHÔNG coi là đã sao lưu,
@@ -201,7 +219,7 @@ export async function exportBackup(todayISO: string): Promise<"share" | "downloa
   // Thu hồi URL sau một nhịp, nếu thu ngay có trình duyệt huỷ luôn việc tải.
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-  setLastExportDate(todayISO);
+  if (!demo) setLastExportDate(todayISO);
   return "download";
 }
 
