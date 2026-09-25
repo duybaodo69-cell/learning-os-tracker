@@ -4,12 +4,14 @@
  * Phase 1 mới có: công tắc "Dữ liệu mẫu".
  * Xuất / nhập dữ liệu sẽ làm ở Phase 4.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { db, isDemoMode, setDemoMode } from "../db/db";
 import { clearDemoData, loadDemoData } from "../db/demoData";
 import { todayISO } from "../lib/dates";
+import { checkPersistence, describePersistence } from "../lib/persistence";
+import type { PersistenceStatus } from "../lib/persistence";
 
 import ScreenShell from "../components/ScreenShell";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -35,6 +37,12 @@ export default function SettingsScreen() {
     checkinCount + blockCount + dumpCount + cardCount + logCount + predictionCount + reviewCount + tagCount;
 
   const [confirmClear, setConfirmClear] = useState(false);
+
+  // Mức bảo vệ dữ liệu của trình duyệt — chỉ đọc, không xin lại ở đây.
+  const [persistence, setPersistence] = useState<PersistenceStatus>("checking");
+  useEffect(() => {
+    void checkPersistence().then(setPersistence);
+  }, []);
   const [busy, setBusy] = useState(false);
 
   /**
@@ -146,6 +154,9 @@ export default function SettingsScreen() {
       {/* ---------- Thí nghiệm ---------- */}
       <ExperimentsManager />
 
+      {/* ---------- Mức bảo vệ dữ liệu ---------- */}
+      <PersistenceCard status={persistence} />
+
       {/* ---------- Phiên bản ---------- */}
       <Card className="mb-4">
         <div className="flex items-center justify-between">
@@ -180,5 +191,26 @@ export default function SettingsScreen() {
         onCancel={() => setConfirmClear(false)}
       />
     </ScreenShell>
+  );
+}
+
+/** Ô hiện trình duyệt có cam kết giữ dữ liệu hay không. */
+function PersistenceCard({ status }: { status: PersistenceStatus }) {
+  const d = describePersistence(status);
+  const style =
+    d.tone === "good"
+      ? "border-green-200 bg-green-50"
+      : d.tone === "warn"
+        ? "border-amber-200 bg-amber-50"
+        : "";
+
+  return (
+    <Card className={`mb-4 ${style}`}>
+      <div className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+        Bảo vệ dữ liệu
+      </div>
+      <div className="mt-1 text-sm font-bold text-slate-900">{d.title}</div>
+      {d.detail && <p className="mt-1 text-sm text-slate-600">{d.detail}</p>}
+    </Card>
   );
 }
