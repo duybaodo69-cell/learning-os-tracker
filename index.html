@@ -12,9 +12,14 @@
       viewport: bắt buộc cho mobile-first.
       - width=device-width: rộng đúng bằng màn hình điện thoại
       - viewport-fit=cover: dùng cả phần màn hình quanh "tai thỏ"
-      - maximum-scale=1: tránh iOS tự phóng to khi bấm vào ô nhập
+
+      CỐ Ý KHÔNG có maximum-scale=1 / user-scalable=no.
+      Hai thứ đó chặn luôn cả thao tác chụm ngón tay phóng to của người dùng —
+      ai mắt kém hoặc cần đọc kỹ một con số nhỏ sẽ không phóng được.
+      Việc iOS tự phóng to khi chạm vào ô nhập được xử lý ở src/index.css
+      bằng cách đặt sàn cỡ chữ 16px cho input/select/textarea.
     -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- Màu thanh trạng thái khi cài app lên điện thoại (dark teal). -->
     <meta name="theme-color" content="#0D6570" />

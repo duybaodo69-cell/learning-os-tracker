@@ -139,6 +139,13 @@ type ExperimentTag = {
 1. **Mobile-first.** Design for a phone screen first; desktop is an afterthought.
 2. **Large tap targets: minimum 44x44 px** for every button, tab, chip and input.
    Use the `.tap-target` helper class.
+   **Never add `maximum-scale=1` or `user-scalable=no` to the viewport meta.** It stops iOS
+   zooming on focused inputs, but it also blocks the user's own pinch-to-zoom, which is an
+   accessibility failure. `src/index.css` sets `font-size: max(16px, 1em)` on every
+   `input`/`select`/`textarea` instead — iOS only zooms when a control is under 16px.
+   That rule sits outside every `@layer`, so it beats Tailwind size utilities in both
+   directions: `text-xs` on a control is ignored, and so is `text-lg`. To make a control
+   larger, set the font size on its wrapper and `1em` inherits it.
 3. **Every log form must be completable in under 30 seconds.** Prefer taps over typing:
    default values, +/- steppers, chips, 1-5 rating rows. Optional fields come last.
 4. **Never delete user data without an in-app confirmation step.** Every delete/reset/import-overwrite

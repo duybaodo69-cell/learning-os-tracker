@@ -41,3 +41,30 @@ body {
   min-height: 44px;
   min-width: 44px;
 }
+
+/* ---------------------------------------------------------------
+   SÀN CỠ CHỮ 16px CHO MỌI Ô NHẬP
+
+   Safari trên iOS tự phóng to cả trang khi bạn chạm vào một ô nhập
+   có cỡ chữ NHỎ HƠN 16px, rồi không tự thu lại. Rất khó chịu.
+
+   Cách chữa phổ biến là thêm maximum-scale=1 vào thẻ viewport, nhưng
+   như thế chặn luôn thao tác chụm ngón tay phóng to của NGƯỜI DÙNG —
+   ai mắt kém thì chịu. Đây là lỗi tiếp cận, không phải giải pháp.
+
+   Cách đúng: đảm bảo ô nhập không bao giờ nhỏ hơn 16px.
+   max(16px, 1em) = lấy 16px, trừ khi cỡ chữ THỪA KẾ TỪ THẺ CHA lớn hơn
+   thì lấy cái lớn hơn.
+
+   LƯU Ý CHO NGƯỜI SỬA SAU — quy tắc này nằm NGOÀI mọi @layer, nên theo
+   luật cascade layers nó THẮNG mọi class của Tailwind. Hệ quả:
+     - đặt text-xs / text-sm lên input  -> bị bỏ qua, vẫn 16px (đúng ý đồ)
+     - đặt text-lg / text-2xl lên input -> CŨNG bị bỏ qua, vẫn 16px
+   Muốn ô nhập to hơn 16px thì đặt font-size lên thẻ BỌC NGOÀI nó,
+   `1em` sẽ thừa kế và ô nhập to theo. Đã kiểm chứng: cha 22px -> ô 22px.
+   --------------------------------------------------------------- */
+input,
+select,
+textarea {
+  font-size: max(16px, 1em);
+}
