@@ -150,11 +150,10 @@ type ExperimentTag = {
    IndexedDB is per-origin, so `localhost:5173` and the production URL hold two completely separate
    databases. Anything typed into the dev server is throwaway test data and will never appear in the
    real app. When demonstrating or testing a feature, use obvious fake values on the dev URL.
-7. **Weekly JSON backup.** Once export exists (Phase 4), the owner exports a JSON backup once a week
-   and saves it off-device. Reason: the data lives only in one phone's browser storage — clearing
+7. **Weekly JSON backup.** Settings -> "Xuất dữ liệu (JSON)". The owner exports once a week and
+   saves the file off-device. Reason: the data lives only in one phone's browser storage — clearing
    site data, uninstalling the PWA, or losing the phone destroys it with no server copy.
-   Until Phase 4 ships, remind the owner that there is still no way to back up, so the data at risk
-   is whatever has been logged so far.
+   The Today screen nags after 7 days without an export.
 
 ## 5. Phase roadmap
 
@@ -178,7 +177,8 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] **Phase 1 COMPLETE.**
 - [x] **Phase 2 COMPLETE** — brain dump, cards, review queue, 10-minute mode.
 - [x] **Phase 3 COMPLETE** — predictions, Brier score, calibration chart, pre-mortem.
-- [ ] Next: Phase 4 (dashboard + weekly review + experiments + export/import).
+- [x] **Phase 4 COMPLETE** — dashboard, weekly review, experiments, JSON export/import.
+- [ ] Next: Phase 5 (PWA: installable + offline).
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
 
@@ -289,6 +289,31 @@ src/
   only warns against drawing conclusions from a small sample.
 - **Pre-mortem only renders for category "Deal/VC"**, and switching category away clears the field
   on save so no orphan text survives.
+
+### Phase 4 decisions worth knowing
+
+- **All dashboard maths lives in `src/lib/metrics.ts`** (tested) and backup parsing in
+  `src/lib/backup.ts` (tested). 120 tests total across the four lib files.
+- **Empty means `null`, missing means 0.** Averages return `null` when there is nothing to average;
+  only genuine sums return 0. Mixing them up draws charts that lie.
+- **`mondayOf` handles Sunday correctly.** `getDay()` returns 0 for Sunday, so a naive `day - 1`
+  pushes Sunday into the *next* week. Sunday goes back 6 days. This is tested.
+- **Sleep is paired with the NEXT day's deep work**, not the same day. Last night's sleep affects
+  tomorrow, and matching same-day measures the wrong direction of causation.
+- **Retention only counts reviews where `intervalBefore >= 3`.** Cards resurfacing after one day
+  are remembered by everyone and would inflate the number.
+- **Consistency counts days, never streaks.** A streak that resets to zero after one missed day
+  punishes the owner and is how habit trackers get abandoned.
+- **Baseline comparison is per-week normalised.** The baseline window is 14 days; comparing its
+  totals against a 7-day week would make every week look like a regression.
+- **Export tries `navigator.share` first, then falls back to `<a download>`.** On iOS the share
+  sheet is effectively the only way to get a file out of an installed PWA. A cancelled share is
+  not treated as a successful backup.
+- **Import is the only destructive path in the app.** It shows a per-table preview of existing vs
+  incoming counts, then a confirm dialog naming both totals, and runs inside one Dexie transaction
+  so a failure leaves the old data intact.
+- **Recharts is shared between the calibration and dashboard charts** and Vite splits it into its
+  own chunk. Keep new charts inside `DashboardCharts.tsx` rather than adding more lazy entries.
 
 ## 8. Commands
 

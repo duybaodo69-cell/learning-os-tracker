@@ -110,3 +110,32 @@ export type Prediction = {
    */
   preMortem?: string;
 };
+
+/* ===================== Phase 4 ===================== */
+
+/** Tổng kết tuần — mỗi tuần một bản ghi, khoá là ngày Thứ Hai. */
+export type WeeklyReview = {
+  weekStart: string;            // Thứ Hai, "YYYY-MM-DD" (khoá chính)
+  learnedWithoutNotes: string;  // học được gì mà làm lại được không cần tài liệu
+  dataInsight: string;          // dữ liệu cho thấy gì
+  oneChange: string;            // một điều chỉnh duy nhất cho tuần tới
+};
+
+/** Một thí nghiệm cá nhân: so sánh hai cách làm A và B. */
+export type Experiment = {
+  id: string;
+  name: string;       // vd: "Vị trí điện thoại"
+  labelA: string;     // vd: "Điện thoại phòng khác"
+  labelB: string;     // vd: "Trên bàn"
+  createdAt: string;
+  active: boolean;    // chỉ thí nghiệm đang chạy mới hiện chip ở màn hình Hôm nay
+};
+
+/** Đánh dấu một ngày thuộc nhánh A hay B của một thí nghiệm. */
+export type ExperimentTag = {
+  /** Khoá ghép "date|experimentId" — mỗi thí nghiệm mỗi ngày chỉ một nhãn. */
+  key: string;
+  date: string;
+  experimentId: string;
+  condition: "A" | "B";
+};

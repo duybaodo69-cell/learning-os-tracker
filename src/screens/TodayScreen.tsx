@@ -12,9 +12,11 @@ import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { db, isDemoMode } from "../db/db";
-import type { DailyCheckin, FocusBlock } from "../db/types";
+import type { DailyCheckin, Experiment, ExperimentTag, FocusBlock, Prediction, ReviewLog, WeeklyReview } from "../db/types";
 import { formatMinutes, nowHHmm, todayISO, yesterdayISO } from "../lib/dates";
 import { clearTimer, elapsedClock, elapsedMinutes, getTimerStart, startTimer } from "../lib/timer";
+import { computeMetrics, isSunday, mondayOf } from "../lib/metrics";
+import { EXPORT_REMINDER_DAYS, daysSinceLastExport } from "../lib/backup";
 
 import ScreenShell from "../components/ScreenShell";
 import ProtocolBanner from "../components/ProtocolBanner";
@@ -22,6 +24,8 @@ import CheckinForm from "../components/CheckinForm";
 import FocusBlockForm from "../components/FocusBlockForm";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { Button, Card } from "../components/ui";
+import WeeklyReviewCard from "../components/WeeklyReviewCard";
+import ExperimentChip from "../components/ExperimentChip";
 import type { TabId } from "../components/BottomNav";
 import type { ReviewView } from "./ReviewScreen";
 
@@ -52,6 +56,29 @@ export default function TodayScreen({
     [today],
     [] as FocusBlock[]
   );
+
+  // Phase 4: dữ liệu cho thẻ tổng kết tuần và chip thí nghiệm.
+  const experiments = useLiveQuery(() => db.experiments.toArray(), [], [] as Experiment[]);
+  const experimentTags = useLiveQuery(() => db.experimentTags.toArray(), [], [] as ExperimentTag[]);
+  const allCheckins = useLiveQuery(() => db.checkins.toArray(), [], [] as DailyCheckin[]);
+  const allBlocks = useLiveQuery(() => db.focusBlocks.toArray(), [], [] as FocusBlock[]);
+  const allLogs = useLiveQuery(() => db.reviewLogs.toArray(), [], [] as ReviewLog[]);
+  const allPredictions = useLiveQuery(() => db.predictions.toArray(), [], [] as Prediction[]);
+
+  const thisMonday = mondayOf(today);
+  const weeklyReview = useLiveQuery(
+    async () => (await db.weeklyReviews.get(thisMonday)) ?? null,
+    [thisMonday]
+  );
+
+  // Chủ Nhật mới hiện thẻ tổng kết.
+  const showWeeklyReview = isSunday(today);
+
+  // Nhắc sao lưu nếu đã quá 7 ngày (hoặc chưa xuất bao giờ mà đã có dữ liệu).
+  const sinceExport = daysSinceLastExport(today);
+  const hasData = allCheckins.length > 0 || allBlocks.length > 0;
+  const remindBackup =
+    hasData && (sinceExport === null || sinceExport > EXPORT_REMINDER_DAYS);
 
   /* ----- Trạng thái giao diện ----- */
   const [editingCheckin, setEditingCheckin] = useState(false);
@@ -138,6 +165,36 @@ export default function TodayScreen({
 
       <ProtocolBanner date={today} />
 
+      {/* Nhắc sao lưu — luật số 7. */}
+      {remindBackup && (
+        <div className="mb-4 rounded-xl bg-amber-100 px-4 py-2 text-sm text-amber-900">
+          {sinceExport === null
+            ? "Chưa sao lưu lần nào. Vào Cài đặt để xuất file JSON."
+            : `Đã ${sinceExport} ngày chưa sao lưu. Vào Cài đặt để xuất file JSON.`}
+        </div>
+      )}
+
+      {/* Tổng kết tuần — chỉ Chủ Nhật. */}
+      {showWeeklyReview && weeklyReview !== undefined && (
+        <WeeklyReviewCard
+          weekStart={thisMonday}
+          metrics={computeMetrics(
+            {
+              checkins: allCheckins,
+              focusBlocks: allBlocks,
+              reviewLogs: allLogs,
+              predictions: allPredictions,
+            },
+            thisMonday,
+            today
+          )}
+          existing={weeklyReview ?? undefined}
+          onSave={(r: WeeklyReview) => {
+            void db.weeklyReviews.put(r);
+          }}
+        />
+      )}
+
       {/* ---------- 1. Check-in sáng ---------- */}
       {loadingCheckin ? null : !checkin || editingCheckin ? (
         <Card className="mb-4">
@@ -210,6 +267,10 @@ export default function TodayScreen({
         >
           Brain dump
         </Button>
+      )}
+
+      {!blockFormOpen && (
+        <ExperimentChip experiments={experiments} tags={experimentTags} today={today} />
       )}
 
       {timerStart !== null && (

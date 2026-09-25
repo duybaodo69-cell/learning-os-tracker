@@ -14,6 +14,8 @@ import { todayISO } from "../lib/dates";
 import ScreenShell from "../components/ScreenShell";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { Button, Card, Toggle } from "../components/ui";
+import BackupSection from "../components/BackupSection";
+import ExperimentsManager from "../components/ExperimentsManager";
 
 export default function SettingsScreen() {
   const demo = isDemoMode();
@@ -25,9 +27,12 @@ export default function SettingsScreen() {
   const cardCount = useLiveQuery(() => db.cards.count(), [], 0);
   const logCount = useLiveQuery(() => db.reviewLogs.count(), [], 0);
   const predictionCount = useLiveQuery(() => db.predictions.count(), [], 0);
+  const reviewCount = useLiveQuery(() => db.weeklyReviews.count(), [], 0);
+  const tagCount = useLiveQuery(() => db.experimentTags.count(), [], 0);
 
   // Tổng mọi bản ghi — dùng để biết kho có trống hay không.
-  const totalCount = checkinCount + blockCount + dumpCount + cardCount + logCount + predictionCount;
+  const totalCount =
+    checkinCount + blockCount + dumpCount + cardCount + logCount + predictionCount + reviewCount + tagCount;
 
   const [confirmClear, setConfirmClear] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -124,24 +129,25 @@ export default function SettingsScreen() {
             <span className="text-slate-600">Dự đoán</span>
             <span className="font-semibold tabular-nums">{predictionCount}</span>
           </li>
+          <li className="flex justify-between">
+            <span className="text-slate-600">Tổng kết tuần</span>
+            <span className="font-semibold tabular-nums">{reviewCount}</span>
+          </li>
+          <li className="flex justify-between">
+            <span className="text-slate-600">Nhãn thí nghiệm</span>
+            <span className="font-semibold tabular-nums">{tagCount}</span>
+          </li>
         </ul>
       </Card>
 
-      {/* ---------- Nhắc sao lưu (luật số 7) ---------- */}
-      <Card className="mb-4 border-amber-200 bg-amber-50">
-        <div className="text-sm font-bold text-amber-900">Chưa có cách sao lưu</div>
-        <p className="mt-1 text-sm text-amber-800">
-          Dữ liệu chỉ nằm trong bộ nhớ trình duyệt của <strong>chiếc điện thoại này</strong>. Xoá
-          site data, gỡ app hoặc mất máy là mất hết — không có bản nào trên server.
-        </p>
-        <p className="mt-2 text-sm text-amber-800">
-          Nút xuất file JSON sẽ có ở <strong>Phase 4</strong>. Từ lúc đó, hãy xuất một bản sao lưu{" "}
-          <strong>mỗi tuần một lần</strong> và cất ra ngoài máy.
-        </p>
-      </Card>
+      {/* ---------- Sao lưu (luật số 7) ---------- */}
+      <BackupSection />
+
+      {/* ---------- Thí nghiệm ---------- */}
+      <ExperimentsManager />
 
       <p className="pb-4 text-center text-xs text-slate-400">
-        Xuất / nhập dữ liệu và experiments: Phase 4
+        PWA và cài vào màn hình chính: Phase 5
       </p>
 
       {/* ---------- Xác nhận xoá (luật số 4) ---------- */}
@@ -152,7 +158,7 @@ export default function SettingsScreen() {
           <>
             <strong>
               {checkinCount} check-in, {blockCount} focus block, {dumpCount} brain dump,{" "}
-              {cardCount} thẻ, {logCount} lượt ôn và {predictionCount} dự đoán
+              {cardCount} thẻ, {logCount} lượt ôn, {predictionCount} dự đoán, {reviewCount} tổng kết tuần và {tagCount} nhãn thí nghiệm
             </strong>{" "}
             trong kho dữ liệu mẫu sẽ bị xoá.
             <br />

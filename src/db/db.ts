@@ -11,7 +11,17 @@
  * đụng tới dữ liệu thật.
  */
 import Dexie, { type Table } from "dexie";
-import type { BrainDump, Card, DailyCheckin, FocusBlock, Prediction, ReviewLog } from "./types";
+import type {
+  BrainDump,
+  Card,
+  DailyCheckin,
+  Experiment,
+  ExperimentTag,
+  FocusBlock,
+  Prediction,
+  ReviewLog,
+  WeeklyReview,
+} from "./types";
 
 /** Khoá lưu công tắc demo trong localStorage. */
 const DEMO_MODE_KEY = "learning-os:demo-mode";
@@ -47,6 +57,10 @@ class LearningDB extends Dexie {
   reviewLogs!: Table<ReviewLog, string>;
   // Phase 3
   predictions!: Table<Prediction, string>;
+  // Phase 4
+  weeklyReviews!: Table<WeeklyReview, string>;
+  experiments!: Table<Experiment, string>;
+  experimentTags!: Table<ExperimentTag, string>;
 
   constructor(databaseName: string) {
     super(databaseName);
@@ -73,6 +87,13 @@ class LearningDB extends Dexie {
     // Lại nhắc: KHÔNG sửa version(1) hay (2) ở trên, chỉ thêm version mới.
     this.version(3).stores({
       predictions: "id, resolveBy, category",
+    });
+
+    // version(4) — Phase 4.
+    this.version(4).stores({
+      weeklyReviews: "weekStart",
+      experiments: "id, active",
+      experimentTags: "key, date, experimentId",
     });
   }
 }

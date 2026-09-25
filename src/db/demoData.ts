@@ -8,9 +8,10 @@
  * Mọi nội dung mẫu đều có chữ "[MẪU]" để không nhầm với dữ liệu thật.
  */
 import { db } from "./db";
-import type { Area, BrainDump, Card, DailyCheckin, FocusBlock, Grade, Prediction, PredictionCategory, ReviewLog, Rating } from "./types";
+import type { Area, BrainDump, Card, DailyCheckin, Experiment, ExperimentTag, FocusBlock, Grade, Prediction, PredictionCategory, ReviewLog, Rating, WeeklyReview } from "./types";
 import { newId } from "../lib/dates";
 import { START_EASE, addDays } from "../lib/scheduling";
+import { experimentTagKey, mondayOf } from "../lib/metrics";
 
 /** Trừ đi n ngày từ một chuỗi "YYYY-MM-DD". */
 function minusDays(iso: string, n: number): string {
@@ -211,6 +212,38 @@ export async function loadDemoData(today: string): Promise<void> {
     });
   }
 
+  /* ---------- Thí nghiệm ----------
+     Một thí nghiệm đang chạy, gắn nhãn xen kẽ A/B cho 14 ngày.
+     Mỗi nhánh 7 ngày -> dưới ngưỡng 10, nên phần kết quả sẽ hiện đúng
+     câu "chưa đủ ngày". Đó là trạng thái thật mà bạn sẽ gặp lúc đầu. */
+  const experiment: Experiment = {
+    id: "demo-experiment-1",
+    name: "[MẪU] Vị trí điện thoại",
+    labelA: "Phòng khác",
+    labelB: "Trên bàn",
+    createdAt: minusDays(today, 13),
+    active: true,
+  };
+  const experimentTags: ExperimentTag[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const date = minusDays(today, i);
+    const condition: "A" | "B" = i % 2 === 0 ? "A" : "B";
+    experimentTags.push({
+      key: experimentTagKey(date, experiment.id),
+      date,
+      experimentId: experiment.id,
+      condition,
+    });
+  }
+
+  /* ---------- Tổng kết tuần ---------- */
+  const weeklyReviews: WeeklyReview[] = [1, 2].map((weeksAgo) => ({
+    weekStart: mondayOf(minusDays(today, weeksAgo * 7)),
+    learnedWithoutNotes: "[MẪU] Dựng được mô hình DCF từ đầu mà không mở template.",
+    dataInsight: "[MẪU] Ngày ngủ dưới 7h thì deep work hôm sau giảm rõ.",
+    oneChange: "[MẪU] Tuần tới đặt giờ đi ngủ cố định 23:15.",
+  }));
+
   // bulkPut = thêm mới hoặc ghi đè nếu trùng khoá.
   await db.checkins.bulkPut(checkins);
   await db.focusBlocks.bulkPut(blocks);
@@ -218,6 +251,9 @@ export async function loadDemoData(today: string): Promise<void> {
   await db.cards.bulkPut(cards);
   await db.reviewLogs.bulkPut(logs);
   await db.predictions.bulkPut(predictions);
+  await db.experiments.bulkPut([experiment]);
+  await db.experimentTags.bulkPut(experimentTags);
+  await db.weeklyReviews.bulkPut(weeklyReviews);
 }
 
 /** Xoá sạch database demo. Chỉ ảnh hưởng chế độ demo. */
@@ -228,4 +264,7 @@ export async function clearDemoData(): Promise<void> {
   await db.cards.clear();
   await db.reviewLogs.clear();
   await db.predictions.clear();
+  await db.experiments.clear();
+  await db.experimentTags.clear();
+  await db.weeklyReviews.clear();
 }
