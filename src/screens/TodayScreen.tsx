@@ -22,8 +22,15 @@ import CheckinForm from "../components/CheckinForm";
 import FocusBlockForm from "../components/FocusBlockForm";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { Button, Card } from "../components/ui";
+import type { TabId } from "../components/BottomNav";
+import type { ReviewView } from "./ReviewScreen";
 
-export default function TodayScreen() {
+export default function TodayScreen({
+  onNavigate,
+}: {
+  /** Chuyển sang tab khác, kèm mục con — dùng cho nút tắt Brain dump. */
+  onNavigate: (tab: TabId, view?: ReviewView) => void;
+}) {
   const today = todayISO();
 
   /* ----- Dữ liệu từ database -----
@@ -192,6 +199,17 @@ export default function TodayScreen() {
             </Button>
           )}
         </div>
+      )}
+
+      {/* Một chạm sang Brain dump — không phải tự đi tìm trong tab Ôn tập. */}
+      {!blockFormOpen && (
+        <Button
+          variant="secondary"
+          onClick={() => onNavigate("review", "braindump")}
+          className="mb-4 w-full text-base"
+        >
+          Brain dump
+        </Button>
       )}
 
       {timerStart !== null && (

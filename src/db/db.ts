@@ -11,7 +11,7 @@
  * đụng tới dữ liệu thật.
  */
 import Dexie, { type Table } from "dexie";
-import type { DailyCheckin, FocusBlock } from "./types";
+import type { BrainDump, Card, DailyCheckin, FocusBlock, ReviewLog } from "./types";
 
 /** Khoá lưu công tắc demo trong localStorage. */
 const DEMO_MODE_KEY = "learning-os:demo-mode";
@@ -41,6 +41,10 @@ class LearningDB extends Dexie {
   // Dấu `!` nói với TypeScript: "Dexie sẽ gán giá trị, đừng lo".
   checkins!: Table<DailyCheckin, string>;
   focusBlocks!: Table<FocusBlock, string>;
+  // Phase 2
+  brainDumps!: Table<BrainDump, string>;
+  cards!: Table<Card, string>;
+  reviewLogs!: Table<ReviewLog, string>;
 
   constructor(databaseName: string) {
     super(databaseName);
@@ -51,6 +55,16 @@ class LearningDB extends Dexie {
     this.version(1).stores({
       checkins: "date",              // mỗi ngày 1 bản ghi
       focusBlocks: "id, date, area", // tìm theo ngày và theo area
+    });
+
+    // version(2) — Phase 2 thêm 3 bảng.
+    // QUY TẮC: KHÔNG BAO GIỜ sửa version(1) ở trên. Muốn thêm bảng thì
+    // thêm một version mới, nếu không máy nào đã cài app sẽ hỏng database.
+    // Dexie chỉ cần liệt kê bảng MỚI; các bảng cũ tự giữ nguyên.
+    this.version(2).stores({
+      brainDumps: "id, date, area",
+      cards: "id, area, dueDate",  // dueDate có index để lấy thẻ đến hạn cho nhanh
+      reviewLogs: "id, cardId, date",
     });
   }
 }

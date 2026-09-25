@@ -48,3 +48,41 @@ export type FocusBlock = {
   phoneAway: boolean;   // điện thoại có ở phòng khác không
   resumeNote?: string;  // "làm tiếp từ đâu"
 };
+
+/* ===================== Phase 2 ===================== */
+
+/** Brain dump: viết lại những gì nhớ được, rồi đối chiếu tìm chỗ hổng. */
+export type BrainDump = {
+  id: string;
+  date: string;   // "YYYY-MM-DD"
+  area: Area;
+  recalled: string; // nhớ được gì (không mở tài liệu)
+  gaps: string;     // chỗ hổng / sai khi đối chiếu
+  minutes: number;
+};
+
+/** Điểm khi ôn một thẻ. */
+export type Grade = "again" | "hard" | "good" | "easy";
+
+/** Một thẻ ôn tập (spaced repetition). */
+export type Card = {
+  id: string;
+  front: string;
+  back: string;
+  area: Area;
+  createdAt: string;   // "YYYY-MM-DD"
+  dueDate: string;     // "YYYY-MM-DD" — đến hạn khi dueDate <= hôm nay
+  intervalDays: number;
+  ease: number;
+  reps: number;        // số lần ôn đúng liên tiếp
+  lapses: number;      // số lần bấm "Quên"
+};
+
+/** Nhật ký mỗi lần ôn — không bao giờ sửa, chỉ ghi thêm. */
+export type ReviewLog = {
+  id: string;
+  cardId: string;
+  date: string;
+  grade: Grade;
+  intervalBefore: number; // khoảng cách ngày TRƯỚC lần ôn này
+};

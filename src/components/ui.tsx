@@ -253,3 +253,77 @@ export function TextInput({
     />
   );
 }
+
+/* ---------------------------------------------------------- TextArea */
+
+/** Ô nhập nhiều dòng, dùng cho brain dump và nội dung thẻ. */
+export function TextArea({
+  value,
+  onChange,
+  placeholder,
+  rows = 5,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  rows?: number;
+}) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={rows}
+      // text-base (16px): chữ nhỏ hơn thì iOS tự phóng to trang khi bấm vào ô.
+      className="w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-base leading-relaxed"
+    />
+  );
+}
+
+/* ---------------------------------------------------------- Segmented */
+
+/** Thanh chuyển giữa các mục con trong cùng một màn hình. */
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { id: T; label: string; badge?: number }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="mb-4 flex gap-1 rounded-xl bg-slate-100 p-1">
+      {options.map((opt) => (
+        <button
+          key={opt.id}
+          type="button"
+          onClick={() => onChange(opt.id)}
+          className={
+            "tap-target flex-1 rounded-lg px-2 text-sm font-semibold " +
+            (value === opt.id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")
+          }
+        >
+          {opt.label}
+          {opt.badge !== undefined && opt.badge > 0 && (
+            <span className="ml-1 rounded-full bg-blue-600 px-1.5 py-0.5 text-[11px] text-white">
+              {opt.badge}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------- EmptyState */
+
+/** Thông báo khi chưa có dữ liệu. */
+export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+      <p className="text-base font-semibold text-slate-600">{title}</p>
+      {hint && <p className="mt-1 text-sm text-slate-400">{hint}</p>}
+    </div>
+  );
+}

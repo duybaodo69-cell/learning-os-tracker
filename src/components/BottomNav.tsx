@@ -76,11 +76,12 @@ const TABS: { id: TabId; label: string; Icon: (p: IconProps) => React.ReactEleme
 ];
 
 type BottomNavProps = {
-  activeTab: TabId;                 // tab đang mở
+  activeTab: TabId;                  // tab đang mở
   onTabChange: (tab: TabId) => void; // hàm gọi khi bấm sang tab khác
+  reviewBadge?: number;              // số thẻ đến hạn, hiện trên tab "Ôn tập"
 };
 
-export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+export default function BottomNav({ activeTab, onTabChange, reviewBadge = 0 }: BottomNavProps) {
   return (
     <nav
       className="border-t border-slate-200 bg-white"
@@ -104,7 +105,15 @@ export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 // Cho trình đọc màn hình biết tab nào đang mở.
                 aria-current={active ? "page" : undefined}
               >
-                <Icon active={active} />
+                {/* Bọc icon để đặt con số nhỏ ở góc trên phải. */}
+                <span className="relative">
+                  <Icon active={active} />
+                  {id === "review" && reviewBadge > 0 && (
+                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] rounded-full bg-red-600 px-1 text-[10px] leading-[18px] font-bold text-white">
+                      {reviewBadge}
+                    </span>
+                  )}
+                </span>
                 <span className={"text-[11px] leading-none " + (active ? "font-semibold" : "font-medium")}>
                   {label}
                 </span>

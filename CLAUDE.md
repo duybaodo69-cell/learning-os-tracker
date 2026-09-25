@@ -175,7 +175,9 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] Phase 1 — step 2: CLAUDE.md
 - [x] Phase 1 — step 3: bottom tab navigation with 5 empty screens
 - [x] Phase 1 — step 4: daily check-in + focus block forms + real Today screen
-- [x] **Phase 1 COMPLETE.** Next up is Phase 2 (brain dump + spaced-review cards).
+- [x] **Phase 1 COMPLETE.**
+- [x] **Phase 2 COMPLETE** — brain dump, cards, review queue, 10-minute mode.
+- [ ] Next: Phase 3 (predictions + Brier score + calibration).
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
 
@@ -239,11 +241,39 @@ src/
 - **The protocol schedule starts 2026-09-28.** Before that date `findProtocolPhase` returns null
   and the banner is intentionally hidden.
 
+### Phase 2 decisions worth knowing
+
+- **All scheduling lives in `src/lib/scheduling.ts`** as pure functions, covered by
+  `scheduling.test.ts` (28 tests, `npm test`). Change intervals there and nowhere else.
+  Wrong intervals fail silently — the card still appears, just on the wrong day — so the tests
+  are the safety net.
+- **Ease is currently fixed at 2.5.** The four rules specified were interval-only, so no grade
+  changes ease. Real SM-2 lowers ease on a lapse; the constants at the top of the file are where
+  that would go.
+- **`again` resets `reps` to 0**, so a forgotten card walks the 1-day/3-day ladder again instead of
+  jumping back to a long interval. This was an addition to the stated rules, kept because the
+  ladder is meaningless without it.
+- **`easy` is floored at `good + 1` day.** Without it, `round(1 x 2.5 x 1.3)` and the first ladder
+  step collide and the Easy button does nothing on a new card.
+- **The review queue is frozen when the session starts** (`queueIds`), not recomputed per render.
+  A live query would drop each card the moment it is graded and reshuffle the order mid-session.
+- **Grading writes the card and the ReviewLog in one Dexie transaction** so history can never
+  disagree with the card's state.
+- **Editing a card's text never touches its schedule.** Fixing a typo must not reset weeks of
+  spaced repetition.
+- **Deleting a card keeps its ReviewLogs** so Phase 4 statistics still reflect work actually done.
+- **Cards made from brain-dump gaps have an empty back on purpose.** Writing the answer yourself
+  is the part that teaches; the Cards tab surfaces the count of unfilled backs.
+- **Both countdowns (focus timer, 10-minute review) derive from a stored start timestamp.** Never
+  reintroduce a per-second accumulator: background tabs freeze and the count drifts.
+
 ## 8. Commands
 
 ```bash
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # type-check + production build
+npm test                # unit tests (scheduling logic)
+npm run lint            # oxlint
 npm run preview         # preview the production build
 ```
 
