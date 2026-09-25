@@ -23,7 +23,9 @@ import {
   elapsedMinutes,
   getTimerDistractions,
   getTimerStart,
+  isSuspiciousDuration,
   removeTimerDistraction,
+  SUSPICIOUS_MINUTES,
   startTimer,
 } from "../lib/timer";
 import { computeMetrics, isSunday, mondayOf } from "../lib/metrics";
@@ -97,6 +99,12 @@ export default function TodayScreen({
   const [blockFormOpen, setBlockFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FocusBlock | null>(null);
   const [blockToDelete, setBlockToDelete] = useState<FocusBlock | null>(null);
+  // Buổi đếm dài bất thường, đang chờ bạn xác nhận.
+  const [longSession, setLongSession] = useState<{
+    minutes: number;
+    startTime: string;
+    distractions: number;
+  } | null>(null);
   // Số phút và giờ bắt đầu do bộ đếm giờ cung cấp khi bấm Dừng.
   const [timerResult, setTimerResult] = useState<{
     minutes: number;
@@ -137,7 +145,22 @@ export default function TodayScreen({
     clearTimerDistractions();
     setTimerStart(null);
     setLiveDistractions(0);
-    setTimerResult({ minutes, startTime, distractions });
+
+    const result = { minutes, startTime, distractions };
+
+    // Quá 3 tiếng: hỏi lại trước khi điền vào form. Gần như luôn là
+    // quên bấm Dừng, và một con số 600 phút sẽ bóp méo mọi biểu đồ.
+    if (isSuspiciousDuration(minutes)) {
+      setLongSession(result);
+      return;
+    }
+
+    openFormWith(result);
+  }
+
+  /** Mở form block với số liệu từ bộ đếm. */
+  function openFormWith(result: { minutes: number; startTime: string; distractions: number }) {
+    setTimerResult(result);
     setEditingBlock(null);
     setBlockFormOpen(true);
   }
@@ -429,6 +452,29 @@ export default function TodayScreen({
           ))}
         </div>
       )}
+
+      {/* ---------- Buổi đếm dài bất thường ---------- */}
+      <ConfirmDialog
+        open={longSession !== null}
+        title="Buổi này dài bất thường"
+        detail={
+          longSession && (
+            <>
+              Bộ đếm chạy <strong>{formatMinutes(longSession.minutes)}</strong>, bắt đầu lúc{" "}
+              {longSession.startTime}.
+              <br />
+              Quá {formatMinutes(SUSPICIOUS_MINUTES)} thường là do quên bấm Dừng. Nếu ghi vào,
+              con số này sẽ làm lệch thống kê deep work.
+            </>
+          )
+        }
+        confirmLabel="Vẫn dùng số này"
+        onConfirm={() => {
+          if (longSession) openFormWith(longSession);
+          setLongSession(null);
+        }}
+        onCancel={() => setLongSession(null)}
+      />
 
       {/* ---------- Hộp xác nhận xoá (luật số 4) ---------- */}
       <ConfirmDialog

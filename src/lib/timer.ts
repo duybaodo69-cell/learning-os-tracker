@@ -50,6 +50,19 @@ export function elapsedMinutes(startedAt: number): number {
   return Math.max(0, Math.floor((Date.now() - startedAt) / 60000));
 }
 
+/**
+ * Quá số phút này thì nhiều khả năng bạn QUÊN BẤM DỪNG chứ không phải
+ * ngồi liền một mạch. Hỏi lại trước khi điền vào form, nếu không một
+ * buổi bỏ quên qua đêm sẽ ghi thành 600 phút deep work và làm hỏng
+ * toàn bộ thống kê.
+ */
+export const SUSPICIOUS_MINUTES = 180;
+
+/** Số phút này có đáng ngờ không? */
+export function isSuspiciousDuration(minutes: number): boolean {
+  return minutes > SUSPICIOUS_MINUTES;
+}
+
 /** Chuỗi "MM:SS" để hiện đồng hồ đang chạy. */
 export function elapsedClock(startedAt: number): string {
   const totalSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));

@@ -13,6 +13,8 @@ import {
   getTimerDistractions,
   getTimerStart,
   removeTimerDistraction,
+  isSuspiciousDuration,
+  SUSPICIOUS_MINUTES,
   startTimer,
 } from "./timer";
 
@@ -95,5 +97,29 @@ describe("bộ đếm phân tâm", () => {
     expect(getTimerDistractions()).toBe(0);
     localStorage.setItem("learning-os:timer-distractions", "abc");
     expect(getTimerDistractions()).toBe(0);
+  });
+});
+
+describe("isSuspiciousDuration", () => {
+  it("ngưỡng là 180 phút", () => {
+    expect(SUSPICIOUS_MINUTES).toBe(180);
+  });
+
+  it("buổi làm bình thường thì không đáng ngờ", () => {
+    for (const m of [25, 45, 60, 90, 120, 179, 180]) {
+      expect(isSuspiciousDuration(m)).toBe(false);
+    }
+  });
+
+  it("quá 180 phút thì hỏi lại", () => {
+    // Thường là quên bấm Dừng rồi đi ngủ.
+    for (const m of [181, 240, 600, 1440]) {
+      expect(isSuspiciousDuration(m)).toBe(true);
+    }
+  });
+
+  it("đúng 180 KHÔNG bị hỏi — biên phải rõ ràng", () => {
+    expect(isSuspiciousDuration(180)).toBe(false);
+    expect(isSuspiciousDuration(181)).toBe(true);
   });
 });
