@@ -95,6 +95,14 @@ class LearningDB extends Dexie {
       experiments: "id, active",
       experimentTags: "key, date, experimentId",
     });
+
+    // version(5) — thêm trường FocusBlock.capturedNotes (string[], không bắt buộc).
+    // Trường này KHÔNG có index nên cấu trúc bảng giữ nguyên; khai báo version
+    // mới để lịch sử database ghi nhận thời điểm đổi dữ liệu, đúng quy tắc
+    // "không bao giờ sửa version cũ". Block cũ không có trường này vẫn hợp lệ.
+    this.version(5).stores({
+      focusBlocks: "id, date, area",
+    });
   }
 }
 

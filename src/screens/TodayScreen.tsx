@@ -8,26 +8,13 @@
  *   4. Tổng số phút deep work hôm nay, tách theo area
  *   5. Danh sách các khối đã log (bấm để sửa, có nút xoá kèm xác nhận)
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { db, isDemoMode } from "../db/db";
 import type { DailyCheckin, Experiment, ExperimentTag, FocusBlock, Prediction, ReviewLog, WeeklyReview } from "../db/types";
 import { formatDayLabel, formatMinutes, todayISO, yesterdayISO } from "../lib/dates";
 import { useToday } from "../lib/useToday";
-import {
-  addTimerDistraction,
-  clearTimer,
-  clearTimerDistractions,
-  elapsedClock,
-  elapsedMinutes,
-  getTimerDistractions,
-  getTimerStart,
-  isSuspiciousDuration,
-  removeTimerDistraction,
-  SUSPICIOUS_MINUTES,
-  startTimer,
-} from "../lib/timer";
 import { computeMetrics, isSunday, mondayOf } from "../lib/metrics";
 import { EXPORT_REMINDER_DAYS, daysSinceLastExport } from "../lib/backup";
 import { getLastArea, setLastArea } from "../lib/prefs";
@@ -48,9 +35,12 @@ import type { ReviewView } from "./ReviewScreen";
 
 export default function TodayScreen({
   onNavigate,
+  onStartTimer,
 }: {
   /** Chuyển sang tab khác, kèm mục con — dùng cho nút tắt Brain dump. */
   onNavigate: (tab: TabId, view?: ReviewView) => void;
+  /** Bắt đầu phiên tập trung — App sẽ chuyển sang màn hình phiên. */
+  onStartTimer: () => void;
 }) {
   // Hook tự tính lại ngày khi qua nửa đêm — xem lib/useToday.ts.
   const today = useToday();
@@ -106,72 +96,6 @@ export default function TodayScreen({
   const [blockFormOpen, setBlockFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FocusBlock | null>(null);
   const [blockToDelete, setBlockToDelete] = useState<FocusBlock | null>(null);
-  // Buổi đếm dài bất thường, đang chờ bạn xác nhận.
-  const [longSession, setLongSession] = useState<{
-    minutes: number;
-    startTime: string;
-    distractions: number;
-  } | null>(null);
-  // Số phút và giờ bắt đầu do bộ đếm giờ cung cấp khi bấm Dừng.
-  const [timerResult, setTimerResult] = useState<{
-    minutes: number;
-    startTime: string;
-    distractions: number;
-  } | null>(null);
-
-  /* ----- Bộ đếm giờ ----- */
-  const [timerStart, setTimerStart] = useState<number | null>(getTimerStart);
-  // Số lần phân tâm bấm được TRONG LÚC đang đếm.
-  const [liveDistractions, setLiveDistractions] = useState<number>(getTimerDistractions);
-  const [, forceTick] = useState(0);
-
-  // Khi bộ đếm đang chạy, cập nhật mặt đồng hồ mỗi giây.
-  // Đây CHỈ để hiển thị — số phút thật luôn tính từ mốc bắt đầu.
-  useEffect(() => {
-    if (timerStart === null) return;
-    const id = setInterval(() => forceTick((n) => n + 1), 1000);
-    return () => clearInterval(id);
-  }, [timerStart]);
-
-  function handleStartTimer() {
-    startTimer(); // cũng reset bộ đếm phân tâm về 0
-    setTimerStart(getTimerStart());
-    setLiveDistractions(0);
-  }
-
-  function handleStopTimer() {
-    if (timerStart === null) return;
-    const minutes = Math.max(1, elapsedMinutes(timerStart));
-    // Giờ bắt đầu = mốc bấm Bắt đầu, đổi sang "HH:mm".
-    const d = new Date(timerStart);
-    const startTime = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-
-    const distractions = getTimerDistractions();
-
-    clearTimer();
-    clearTimerDistractions();
-    setTimerStart(null);
-    setLiveDistractions(0);
-
-    const result = { minutes, startTime, distractions };
-
-    // Quá 3 tiếng: hỏi lại trước khi điền vào form. Gần như luôn là
-    // quên bấm Dừng, và một con số 600 phút sẽ bóp méo mọi biểu đồ.
-    if (isSuspiciousDuration(minutes)) {
-      setLongSession(result);
-      return;
-    }
-
-    openFormWith(result);
-  }
-
-  /** Mở form block với số liệu từ bộ đếm. */
-  function openFormWith(result: { minutes: number; startTime: string; distractions: number }) {
-    setTimerResult(result);
-    setEditingBlock(null);
-    setBlockFormOpen(true);
-  }
-
   /* ----- Lưu / xoá ----- */
   async function saveCheckin(value: DailyCheckin) {
     // Tính lại ngày NGAY LÚC LƯU. Biến `today` ở trên là của lần vẽ gần nhất;
@@ -190,7 +114,6 @@ export default function TodayScreen({
     await db.focusBlocks.put(stamped);
     setBlockFormOpen(false);
     setEditingBlock(null);
-    setTimerResult(null);
   }
 
   async function confirmDeleteBlock() {
@@ -279,7 +202,7 @@ export default function TodayScreen({
       )}
 
       {/* ---------- 2. Bắt đầu làm việc ---------- */}
-      {!blockFormOpen && timerStart === null && (
+      {!blockFormOpen && (
         <Card className="mb-4">
           <SectionLabel right="chọn 1">Lĩnh vực</SectionLabel>
           <ChipGroup
@@ -290,7 +213,7 @@ export default function TodayScreen({
               setLastArea(a);
             }}
           />
-          <Button onClick={handleStartTimer} className="mt-4 w-full py-3 text-base">
+          <Button onClick={onStartTimer} className="mt-4 w-full py-3 text-base">
             Bắt đầu đếm
           </Button>
           <div className="mt-2 grid grid-cols-2 gap-2">
@@ -298,7 +221,6 @@ export default function TodayScreen({
               variant="secondary"
               onClick={() => {
                 setEditingBlock(null);
-                setTimerResult(null);
                 setBlockFormOpen(true);
               }}
               className="text-sm"
@@ -317,35 +239,6 @@ export default function TodayScreen({
         </Card>
       )}
 
-      {/* Bộ đếm đang chạy (sẽ chuyển sang màn hình phiên riêng) */}
-      {timerStart !== null && !blockFormOpen && (
-        <Card className="mb-4">
-          <Button variant="danger" onClick={handleStopTimer} className="w-full text-base">
-            Dừng · <span className="font-num">{elapsedClock(timerStart)}</span>
-          </Button>
-          <div className="mt-2 flex items-stretch gap-2">
-            <button
-              type="button"
-              onClick={() => setLiveDistractions(addTimerDistraction())}
-              className="tap-target flex-1 rounded-lg border border-warn/50 bg-warn/15 py-4 text-lg font-bold text-warn active:bg-warn/25"
-            >
-              +1 phân tâm
-              <span className="ml-2 font-num">{liveDistractions}</span>
-            </button>
-            {liveDistractions > 0 && (
-              <button
-                type="button"
-                onClick={() => setLiveDistractions(removeTimerDistraction())}
-                className="tap-target rounded-lg border border-line bg-surface-2 px-4 text-xl font-bold text-ink-2"
-                aria-label="Bớt một lần phân tâm"
-              >
-                −
-              </button>
-            )}
-          </div>
-        </Card>
-      )}
-
       {/* ---------- 3. Form thêm / sửa block ---------- */}
       {blockFormOpen && (
         <Card className="mb-4">
@@ -353,18 +246,13 @@ export default function TodayScreen({
           <FocusBlockForm
             date={today}
             existing={editingBlock ?? undefined}
-            initialMinutes={timerResult?.minutes}
-            initialStartTime={
-              // CHỈ truyền khi có mốc thật từ bộ đếm. Bấm "+ Block" bằng tay thì để
-              // trống, để form tự tính "bây giờ trừ số phút" (sửa 10).
-              timerResult?.startTime
-            }
-            initialDistractions={timerResult?.distractions}
+            // Không truyền giờ bắt đầu: block log tay để form tự tính
+            // "bây giờ trừ số phút" (sửa 10). Block từ bộ đếm được lưu ở
+            // màn hình Phiên tập trung.
             onSave={saveBlock}
             onCancel={() => {
               setBlockFormOpen(false);
               setEditingBlock(null);
-              setTimerResult(null);
             }}
           />
         </Card>
@@ -415,7 +303,6 @@ export default function TodayScreen({
                   type="button"
                   onClick={() => {
                     setEditingBlock(block);
-                    setTimerResult(null);
                     setBlockFormOpen(true);
                   }}
                   className="min-w-0 flex-1 text-left"
@@ -439,6 +326,15 @@ export default function TodayScreen({
                   </div>
                   {block.resumeNote && (
                     <div className="mt-1 text-xs text-ink-2">↪ {block.resumeNote}</div>
+                  )}
+                  {block.capturedNotes && block.capturedNotes.length > 0 && (
+                    <ul className="mt-1.5 space-y-0.5 border-l-2 border-line pl-2">
+                      {block.capturedNotes.map((note, i) => (
+                        <li key={i} className="text-xs text-ink-2">
+                          {note}
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </button>
                 <button
@@ -464,30 +360,6 @@ export default function TodayScreen({
             : `Đã ${sinceExport} ngày chưa sao lưu. Vào Cài đặt để xuất file JSON.`}
         </div>
       )}
-
-      {/* ---------- Buổi đếm dài bất thường ---------- */}
-      <ConfirmDialog
-        open={longSession !== null}
-        title="Buổi này dài bất thường"
-        detail={
-          longSession && (
-            <>
-              Bộ đếm chạy <strong>{formatMinutes(longSession.minutes)}</strong>, bắt đầu lúc{" "}
-              {longSession.startTime}.
-              <br />
-              Quá {formatMinutes(SUSPICIOUS_MINUTES)} thường là do quên bấm Dừng. Nếu ghi vào,
-              con số này sẽ làm lệch thống kê deep work.
-            </>
-          )
-        }
-        confirmLabel="Vẫn dùng số này"
-        destructive={false}
-        onConfirm={() => {
-          if (longSession) openFormWith(longSession);
-          setLongSession(null);
-        }}
-        onCancel={() => setLongSession(null)}
-      />
 
       {/* ---------- Hộp xác nhận xoá (luật số 4) ---------- */}
       <ConfirmDialog

@@ -34,6 +34,7 @@ export function startTimer(): void {
     // Không lưu được thì bộ đếm không dùng được, nhưng app vẫn chạy.
   }
   clearTimerDistractions();
+  clearTimerCaptures();
 }
 
 /** Dừng và xoá mốc. */
@@ -64,8 +65,8 @@ export function isSuspiciousDuration(minutes: number): boolean {
 }
 
 /** Chuỗi "MM:SS" để hiện đồng hồ đang chạy. */
-export function elapsedClock(startedAt: number): string {
-  const totalSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+export function elapsedClock(startedAt: number, now: number = Date.now()): string {
+  const totalSeconds = Math.max(0, Math.floor((now - startedAt) / 1000));
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
@@ -122,4 +123,63 @@ export function clearTimerDistractions(): void {
   } catch {
     /* bỏ qua */
   }
+}
+
+/* ==================== Việc chen ngang trong lúc chạy ==================== */
+
+/**
+ * Ghi nhanh những thứ chen vào đầu trong lúc đang làm ("nhớ gửi mail cho
+ * anh X", "kiểm tra lại beta"). Viết ra để khỏi phải giữ trong đầu, rồi
+ * quay lại việc chính.
+ *
+ * MỖI ghi chú cũng tính là một lần phân tâm: đầu óc đã rời khỏi việc chính
+ * đủ lâu để nghĩ ra và gõ nó.
+ *
+ * Lưu trong localStorage cạnh mốc bắt đầu, nên thoát app vẫn còn.
+ */
+const CAPTURE_KEY = "learning-os:timer-captures";
+
+export function getTimerCaptures(): string[] {
+  try {
+    const raw = localStorage.getItem(CAPTURE_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    // Chỉ giữ chuỗi — dữ liệu hỏng thì coi như rỗng, không làm vỡ app.
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Thêm một việc chen ngang. Chuỗi rỗng bị bỏ qua.
+ * Trả về danh sách mới VÀ số phân tâm mới, để màn hình cập nhật cả hai.
+ */
+export function addTimerCapture(text: string): { captures: string[]; distractions: number } {
+  const clean = text.trim();
+  if (clean === "") {
+    return { captures: getTimerCaptures(), distractions: getTimerDistractions() };
+  }
+  const captures = [...getTimerCaptures(), clean];
+  try {
+    localStorage.setItem(CAPTURE_KEY, JSON.stringify(captures));
+  } catch {
+    /* bỏ qua */
+  }
+  return { captures, distractions: addTimerDistraction() };
+}
+
+export function clearTimerCaptures(): void {
+  try {
+    localStorage.removeItem(CAPTURE_KEY);
+  } catch {
+    /* bỏ qua */
+  }
+}
+
+/** Dọn sạch mọi thứ của một phiên: mốc bắt đầu, số phân tâm, việc chen ngang. */
+export function clearSession(): void {
+  clearTimer();
+  clearTimerDistractions();
+  clearTimerCaptures();
 }

@@ -47,6 +47,12 @@ export type FocusBlock = {
   distractions: number; // số lần bị phân tâm
   phoneAway: boolean;   // điện thoại có ở phòng khác không
   resumeNote?: string;  // "làm tiếp từ đâu"
+  /**
+   * "Việc chen ngang" ghi nhanh TRONG LÚC phiên đang chạy (ý nghĩ nảy ra,
+   * việc cần làm sau...). Mỗi ghi chú cũng tính là một lần phân tâm.
+   * Không bắt buộc: block cũ và block log tay không có trường này.
+   */
+  capturedNotes?: string[];
 };
 
 /* ===================== Phase 2 ===================== */

@@ -27,6 +27,8 @@ type FocusBlockFormProps = {
   initialStartTime?: string;
   /** Số lần phân tâm đã bấm trong lúc bộ đếm chạy. */
   initialDistractions?: number;
+  /** Việc chen ngang ghi trong lúc chạy bộ đếm. */
+  initialCapturedNotes?: string[];
   onSave: (block: FocusBlock) => void;
   onCancel: () => void;
 };
@@ -37,6 +39,7 @@ export default function FocusBlockForm({
   initialMinutes,
   initialStartTime,
   initialDistractions,
+  initialCapturedNotes,
   onSave,
   onCancel,
 }: FocusBlockFormProps) {
@@ -91,6 +94,12 @@ export default function FocusBlockForm({
       distractions,
       phoneAway,
       resumeNote: resumeNote.trim() === "" ? undefined : resumeNote.trim(),
+      // Giữ nguyên ghi chú khi SỬA block cũ; block mới lấy từ phiên vừa chạy.
+      // Không có gì thì bỏ trường đi cho dữ liệu gọn.
+      capturedNotes: (() => {
+        const notes = existing?.capturedNotes ?? initialCapturedNotes ?? [];
+        return notes.length > 0 ? notes : undefined;
+      })(),
     });
   }
 
@@ -130,7 +139,10 @@ export default function FocusBlockForm({
         </div>
       </Field>
 
-      <Field label="Bắt đầu lúc" hint="tự tính lùi theo số phút">
+      <Field
+        label="Bắt đầu lúc"
+        hint={!existing && !initialStartTime ? "tự tính lùi theo số phút" : undefined}
+      >
         <TimeInput
           value={startTime}
           onChange={(v) => {
@@ -164,6 +176,19 @@ export default function FocusBlockForm({
           description="Dùng để so sánh ở Phase 4"
         />
       </div>
+
+      {/* Cho thấy việc chen ngang sẽ được lưu kèm block — không lưu ngầm. */}
+      {(existing?.capturedNotes ?? initialCapturedNotes ?? []).length > 0 && (
+        <Field label="Việc chen ngang" hint="lưu kèm block">
+          <ul className="space-y-1 border-l-2 border-line pl-3">
+            {(existing?.capturedNotes ?? initialCapturedNotes ?? []).map((n, i) => (
+              <li key={i} className="text-sm text-ink-2">
+                {n}
+              </li>
+            ))}
+          </ul>
+        </Field>
+      )}
 
       <Field label="Làm tiếp từ đâu" hint="không bắt buộc">
         <TextInput

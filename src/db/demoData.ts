@@ -64,6 +64,8 @@ export async function loadDemoData(today: string): Promise<void> {
         distractions: (i + b) % 4,
         phoneAway: (i + b) % 2 === 0,
         resumeNote: b === 0 ? "[MẪU] ghi chú xem thử" : undefined,
+        // Vài block có "việc chen ngang" để thấy cách nó hiện ở màn hình Hôm nay.
+        capturedNotes: b === 0 && i % 3 === 0 ? ["[MẪU] nhớ gửi mail", "[MẪU] kiểm tra lại beta"] : undefined,
       });
     }
 

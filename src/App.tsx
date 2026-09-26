@@ -18,16 +18,28 @@ import type { ReviewView } from "./screens/ReviewScreen";
 import PredictionsScreen from "./screens/PredictionsScreen";
 import DashboardScreen from "./screens/DashboardScreen";
 import SettingsScreen from "./screens/SettingsScreen";
+import FocusSession from "./screens/FocusSession";
 
 import { db } from "./db/db";
 import type { Card } from "./db/types";
 import { todayISO } from "./lib/dates";
 import { dueCount as countDue } from "./lib/scheduling";
+import { getTimerStart, startTimer } from "./lib/timer";
 
 export default function App() {
   // Mở app lên là vào thẳng tab "Hôm nay" vì đây là tab dùng nhiều nhất.
   const [activeTab, setActiveTab] = useState<TabId>("today");
   const [reviewView, setReviewView] = useState<ReviewView>("queue");
+
+  // Mốc bắt đầu của phiên đang chạy (null = không có phiên nào).
+  // Đọc từ localStorage lúc mở app, nên đóng app giữa phiên rồi mở lại
+  // vẫn quay về đúng màn hình phiên.
+  const [timerStart, setTimerStart] = useState<number | null>(getTimerStart);
+
+  function handleStartTimer() {
+    startTimer();
+    setTimerStart(getTimerStart());
+  }
 
   // Số thẻ đến hạn — hiện thành con số nhỏ trên tab "Ôn tập".
   // Tính ở đây (không phải trong màn hình) để badge luôn đúng kể cả khi
@@ -44,7 +56,7 @@ export default function App() {
   function renderScreen() {
     switch (activeTab) {
       case "today":
-        return <TodayScreen onNavigate={navigate} />;
+        return <TodayScreen onNavigate={navigate} onStartTimer={handleStartTimer} />;
       case "review":
         return (
           <ReviewScreen view={reviewView} onViewChange={setReviewView} dueCount={dueCount} />
@@ -56,6 +68,15 @@ export default function App() {
       case "settings":
         return <SettingsScreen />;
     }
+  }
+
+  // Đang có phiên -> màn hình phiên chiếm trọn, KHÔNG có thanh tab.
+  if (timerStart !== null) {
+    return (
+      <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
+        <FocusSession startedAt={timerStart} onExit={() => setTimerStart(null)} />
+      </div>
+    );
   }
 
   return (

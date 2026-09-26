@@ -5,6 +5,9 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  addTimerCapture,
+  clearSession,
+  getTimerCaptures,
   addTimerDistraction,
   clearTimer,
   clearTimerDistractions,
@@ -50,6 +53,14 @@ describe("bộ đếm giờ", () => {
   it("giá trị rác trong localStorage không làm vỡ app", () => {
     localStorage.setItem("learning-os:timer-started-at", "không phải số");
     expect(getTimerStart()).toBeNull();
+  });
+});
+
+describe("elapsedClock nhận mốc 'bây giờ' từ ngoài", () => {
+  it("dùng được với giá trị now truyền vào, không phụ thuộc đồng hồ thật", () => {
+    const start = 1_000_000;
+    expect(elapsedClock(start, start + 125_000)).toBe("02:05");
+    expect(elapsedClock(start, start - 5_000)).toBe("00:00"); // không âm
   });
 });
 
@@ -121,5 +132,59 @@ describe("isSuspiciousDuration", () => {
   it("đúng 180 KHÔNG bị hỏi — biên phải rõ ràng", () => {
     expect(isSuspiciousDuration(180)).toBe(false);
     expect(isSuspiciousDuration(181)).toBe(true);
+  });
+});
+
+describe("việc chen ngang", () => {
+  it("mặc định rỗng", () => {
+    expect(getTimerCaptures()).toEqual([]);
+  });
+
+  it("mỗi ghi chú được lưu lại theo thứ tự", () => {
+    addTimerCapture("gửi mail anh X");
+    const r = addTimerCapture("kiểm tra beta");
+    expect(r.captures).toEqual(["gửi mail anh X", "kiểm tra beta"]);
+    expect(getTimerCaptures()).toEqual(["gửi mail anh X", "kiểm tra beta"]);
+  });
+
+  it("MỖI ghi chú cũng cộng một lần phân tâm", () => {
+    addTimerDistraction(); // bấm +1 một lần
+    const r1 = addTimerCapture("ý nghĩ A");
+    const r2 = addTimerCapture("ý nghĩ B");
+    expect(r1.distractions).toBe(2);
+    expect(r2.distractions).toBe(3);
+    expect(getTimerDistractions()).toBe(3);
+  });
+
+  it("chuỗi rỗng hoặc toàn khoảng trắng bị bỏ qua, không cộng phân tâm", () => {
+    const r = addTimerCapture("   ");
+    expect(r.captures).toEqual([]);
+    expect(r.distractions).toBe(0);
+  });
+
+  it("cắt khoảng trắng hai đầu", () => {
+    expect(addTimerCapture("  gọi lại  ").captures).toEqual(["gọi lại"]);
+  });
+
+  it("bắt đầu phiên mới thì xoá ghi chú của phiên trước", () => {
+    addTimerCapture("cũ");
+    startTimer();
+    expect(getTimerCaptures()).toEqual([]);
+  });
+
+  it("clearSession dọn cả mốc giờ, phân tâm và ghi chú", () => {
+    startTimer();
+    addTimerCapture("x");
+    clearSession();
+    expect(getTimerStart()).toBeNull();
+    expect(getTimerDistractions()).toBe(0);
+    expect(getTimerCaptures()).toEqual([]);
+  });
+
+  it("dữ liệu hỏng trong localStorage không làm vỡ app", () => {
+    localStorage.setItem("learning-os:timer-captures", "{không phải json");
+    expect(getTimerCaptures()).toEqual([]);
+    localStorage.setItem("learning-os:timer-captures", JSON.stringify(["ok", 5, null]));
+    expect(getTimerCaptures()).toEqual(["ok"]);
   });
 });

@@ -60,6 +60,7 @@ type FocusBlock = {
   distractions: number; // count
   phoneAway: boolean;
   resumeNote?: string;
+  capturedNotes?: string[]; // "Việc chen ngang" typed during a timed session (Dexie v5)
 };
 
 type Area =
@@ -360,6 +361,12 @@ src/
 - **Demo-mode exports are `learning-os-DEMO-<date>.json`** and do not update the last-export date.
 - **Timer extras:** a "+1 phân tâm" button counts distractions live (stored beside the start
   timestamp, reset by `startTimer`); runs over 180 min ask for confirmation before prefilling.
+- **A running timer takes over the whole app** (`src/screens/FocusSession.tsx`, chosen in
+  `App.tsx` when `getTimerStart()` is set) and hides the tab bar. The finish form is a bottom
+  sheet opened only by "Hoàn thành phiên"; closing it leaves the timer running. "Huỷ phiên"
+  confirms, then `clearSession()` wipes timestamp, distractions and captures.
+- **"Việc chen ngang" captures** live in localStorage during the session, each one also adds a
+  distraction, and they are saved to `FocusBlock.capturedNotes`. Editing a block keeps them.
 - **Manual "+ Block" start time defaults to now minus the selected minutes**, following the
   minute chips until the user edits the time field.
 - **Component tests use happy-dom** via `// @vitest-environment happy-dom` at the top of the file.
