@@ -23,6 +23,7 @@ import {
   daysBetween,
   earliestDate,
   energyToDeepWork,
+  experimentProgressText,
   ENERGY_MIN_DAYS,
   pearson,
   periodRanges,
@@ -604,5 +605,27 @@ describe("normalisePerWeek", () => {
   });
   it("0 ngày thì trả nguyên, không chia cho 0", () => {
     expect(normalisePerWeek(base, 0)).toEqual(base);
+  });
+});
+
+describe("experimentProgressText", () => {
+  function tagN(prefix: string, n: number, cond: "A" | "B"): ExperimentTag[] {
+    return Array.from({ length: n }, (_, i) => ({
+      key: `${prefix}${i}|e1`,
+      date: `2026-${prefix}-${String(i + 1).padStart(2, "0")}`,
+      experimentId: "e1",
+      condition: cond,
+    }));
+  }
+
+  it("đúng định dạng yêu cầu", () => {
+    const r = buildExperimentResult([...tagN("08", 7, "A"), ...tagN("09", 4, "B")], [], "e1");
+    expect(experimentProgressText(r)).toBe("Chưa đủ ngày: A 7/10 · B 4/10");
+  });
+
+  it("nhánh đã đủ thì hiện 10/10, không vượt quá", () => {
+    const r = buildExperimentResult([...tagN("07", 12, "A"), ...tagN("09", 3, "B")], [], "e1");
+    expect(experimentProgressText(r)).toBe("Chưa đủ ngày: A 10/10 · B 3/10");
+    expect(r.enough).toBe(false);
   });
 });

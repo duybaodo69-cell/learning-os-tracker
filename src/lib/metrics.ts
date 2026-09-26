@@ -548,3 +548,15 @@ export function normalisePerWeek(m: MetricSet, days: number): MetricSet {
     cardsReviewed: (m.cardsReviewed / days) * 7,
   };
 }
+
+/**
+ * Câu hiện thay cho kết quả khi thí nghiệm chưa đủ ngày.
+ * Ví dụ: "Chưa đủ ngày: A 7/10 · B 4/10".
+ *
+ * Chưa đủ ngày thì KHÔNG hiện số trung bình của hai nhánh: nhìn thấy
+ * "3.2 vs 2.9" người ta sẽ tự rút kết luận, dù chênh lệch đó chỉ là nhiễu.
+ */
+export function experimentProgressText(r: ExperimentResult): string {
+  const cap = (n: number) => Math.min(n, EXPERIMENT_MIN_DAYS);
+  return `Chưa đủ ngày: A ${cap(r.a.days)}/${EXPERIMENT_MIN_DAYS} · B ${cap(r.b.days)}/${EXPERIMENT_MIN_DAYS}`;
+}

@@ -10,7 +10,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db/db";
 import type { Experiment, ExperimentTag, FocusBlock } from "../db/types";
 import { formatMinutes, newId, todayISO } from "../lib/dates";
-import { EXPERIMENT_MIN_DAYS, buildExperimentResult } from "../lib/metrics";
+import { buildExperimentResult, experimentProgressText } from "../lib/metrics";
 import type { ConditionResult } from "../lib/metrics";
 
 import ConfirmDialog from "./ConfirmDialog";
@@ -37,8 +37,8 @@ export default function ExperimentsManager() {
   return (
     <Card className="mb-4">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
-          Thí nghiệm
+        <span className="text-xs font-semibold tracking-wider text-ink-2 uppercase">
+          Đang có {experiments.length}
         </span>
         {!formOpen && (
           <Button variant="secondary" onClick={() => setFormOpen(true)} className="text-sm">
@@ -60,7 +60,7 @@ export default function ExperimentsManager() {
         {experiments.map((exp) => {
           const result = buildExperimentResult(tags, blocks, exp.id);
           return (
-            <div key={exp.id} className="rounded-lg border border-line p-3">
+            <div key={exp.id} className="rounded-lg border border-line bg-surface-2/40 p-3">
               <div className="flex items-start justify-between gap-2">
                 <span className="text-sm font-bold text-ink">{exp.name}</span>
                 <button
@@ -82,36 +82,41 @@ export default function ExperimentsManager() {
                 />
               </div>
 
-              {/* Bảng so sánh hai nhánh */}
-              <table className="mt-3 w-full text-sm">
-                <thead>
-                  <tr className="text-xs text-ink-3">
-                    <th className="py-1 text-left font-semibold"> </th>
-                    <th className="py-1 text-right font-semibold">{exp.labelA}</th>
-                    <th className="py-1 text-right font-semibold">{exp.labelB}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <Row label="Số ngày" a={String(result.a.days)} b={String(result.b.days)} />
-                  <Row label="Tập trung TB" a={focusText(result.a)} b={focusText(result.b)} />
-                  <Row
-                    label="Phân tâm / block"
-                    a={num(result.a.distractionsPerBlock)}
-                    b={num(result.b.distractionsPerBlock)}
-                  />
-                  <Row
-                    label="Deep work"
-                    a={formatMinutes(result.a.deepWorkMinutes)}
-                    b={formatMinutes(result.b.deepWorkMinutes)}
-                  />
-                </tbody>
-              </table>
-
-              {!result.enough && (
-                <p className="mt-2 rounded-lg bg-surface-2 px-2 py-1.5 text-xs text-ink-2">
-                  Chưa đủ ngày — cần ít nhất {EXPERIMENT_MIN_DAYS} ngày mỗi nhánh (đang có{" "}
-                  {result.a.days} và {result.b.days}). Chênh lệch bây giờ chủ yếu là ngẫu nhiên.
-                </p>
+              {/* Chưa đủ 10 ngày mỗi nhánh: KHÔNG hiện số trung bình, chỉ hiện tiến độ.
+                  Không bao giờ hiện p-value hay "có ý nghĩa thống kê". */}
+              {!result.enough ? (
+                <div className="mt-3 rounded-lg border border-line bg-surface-2 px-3 py-2.5">
+                  <p className="font-num text-sm font-semibold text-ink">
+                    {experimentProgressText(result)}
+                  </p>
+                  <p className="mt-1 text-xs text-ink-2">
+                    A = {exp.labelA} · B = {exp.labelB}. Kết quả hiện khi cả hai nhánh đủ 10 ngày.
+                  </p>
+                </div>
+              ) : (
+                <table className="mt-3 w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-ink-2">
+                      <th className="py-1 text-left font-semibold"> </th>
+                      <th className="py-1 text-right font-semibold">A · {exp.labelA}</th>
+                      <th className="py-1 text-right font-semibold">B · {exp.labelB}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <Row label="Số ngày" a={String(result.a.days)} b={String(result.b.days)} />
+                    <Row label="Tập trung TB (khoảng)" a={focusText(result.a)} b={focusText(result.b)} />
+                    <Row
+                      label="Phân tâm / block"
+                      a={num(result.a.distractionsPerBlock)}
+                      b={num(result.b.distractionsPerBlock)}
+                    />
+                    <Row
+                      label="Deep work"
+                      a={formatMinutes(result.a.deepWorkMinutes)}
+                      b={formatMinutes(result.b.deepWorkMinutes)}
+                    />
+                  </tbody>
+                </table>
               )}
             </div>
           );
@@ -152,8 +157,8 @@ function Row({ label, a, b }: { label: string; a: string; b: string }) {
   return (
     <tr className="border-t border-line">
       <td className="py-1.5 text-ink-2">{label}</td>
-      <td className="py-1.5 text-right font-semibold tabular-nums">{a}</td>
-      <td className="py-1.5 text-right font-semibold tabular-nums">{b}</td>
+      <td className="py-1.5 text-right font-semibold font-num">{a}</td>
+      <td className="py-1.5 text-right font-semibold font-num">{b}</td>
     </tr>
   );
 }
