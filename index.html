@@ -30,6 +30,20 @@
     <meta name="apple-mobile-web-app-title" content="LearnOS" />
 
     <title>Learning OS Tracker</title>
+
+    <!--
+      Áp theme đã lưu NGAY trước khi trang hiện ra, để người dùng chọn theme
+      sáng không bị chớp màn hình tối mỗi lần mở app. Phải khớp với
+      src/lib/theme.ts (khoá "learning-os:theme" và màu thanh trạng thái).
+    -->
+    <script>
+      try {
+        if (localStorage.getItem("learning-os:theme") === "light") {
+          document.documentElement.dataset.theme = "light";
+          document.querySelector('meta[name="theme-color"]').setAttribute("content", "#f8fafc");
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

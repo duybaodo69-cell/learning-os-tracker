@@ -384,8 +384,17 @@ src/
   `on-accent`, `indigo`, `indigo-ink`, `good`, `warn`, `bad`, `bad-ink`. Use these class names
   (`bg-surface`, `text-ink-2`...), never raw Tailwind palette colours. A light theme later only
   needs to override the variables.
+- **Two themes, one set of variable names.** Dark (Quantitative Protocol) is the default;
+  `:root[data-theme="light"]` in `src/index.css` restores the previous white/blue palette. The
+  switch is "Chế độ tối" in Settings (`src/lib/theme.ts`, saved in localStorage as a per-device
+  preference, not in backups). An inline script in `index.html` applies the saved theme before
+  first paint to avoid a dark flash; keep its key and colours in sync with `theme.ts`. Any new
+  colour must be added to BOTH blocks.
 - **Contrast is measured, not eyeballed.** `ink-3` is `#8792a5` (>= 5.3:1 on every surface)
-  instead of the design's `#475569`, which measured 2.2-2.55:1. Red text uses `bad-ink`, indigo
+  instead of the design's `#475569`, which measured 2.2-2.55:1. The light theme likewise swaps
+  the old slate-400 / green-600 / amber-600 text colours (2.3-3.3:1) for `#5b6678`, green-700 and
+  amber-700. A full-page text scan of all five tabs gave a minimum of 4.58:1 (light) and 5.26:1
+  (dark). Red text uses `bad-ink`, indigo
   text uses `indigo-ink`. Chart bars must reach 3:1; Recharts legends are forced to `ink-2`
   because by default they inherit the series colour.
 - **Minimum text size is 12px** everywhere, including chart axes and legends. No `text-[10px]`
@@ -409,7 +418,7 @@ src/
 ```bash
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # type-check + production build
-npm test                # unit tests (220: lib/ logic + useToday hook)
+npm test                # unit tests (226: lib/ logic, useToday, theme)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

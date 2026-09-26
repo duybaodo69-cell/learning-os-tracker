@@ -14,6 +14,8 @@ import { db, isDemoMode, setDemoMode } from "../db/db";
 import { clearDemoData, loadDemoData } from "../db/demoData";
 import { todayISO } from "../lib/dates";
 import { checkPersistence, describePersistence } from "../lib/persistence";
+import { getTheme, setTheme } from "../lib/theme";
+import type { Theme } from "../lib/theme";
 import type { PersistenceStatus } from "../lib/persistence";
 
 import ScreenShell from "../components/ScreenShell";
@@ -49,6 +51,14 @@ export default function SettingsScreen() {
   }, []);
   const [busy, setBusy] = useState(false);
 
+  // Chế độ tối / sáng — đổi ngay, không cần tải lại trang.
+  const [theme, setThemeState] = useState<Theme>(getTheme);
+  function toggleTheme(dark: boolean) {
+    const next: Theme = dark ? "dark" : "light";
+    setTheme(next);
+    setThemeState(next);
+  }
+
   /**
    * Bật/tắt chế độ demo.
    * Phải tải lại trang vì database được chọn một lần lúc app khởi động.
@@ -74,6 +84,17 @@ export default function SettingsScreen() {
 
   return (
     <ScreenShell title="Cài đặt">
+      {/* ================= Giao diện ================= */}
+      <GroupHeading>Giao diện</GroupHeading>
+      <Card className="mb-6">
+        <Toggle
+          label="Chế độ tối"
+          description={theme === "dark" ? "Đang dùng giao diện tối" : "Đang dùng giao diện sáng (bản trước)"}
+          checked={theme === "dark"}
+          onChange={toggleTheme}
+        />
+      </Card>
+
       {/* ================= 1. Sao lưu & dữ liệu ================= */}
       <GroupHeading>Sao lưu & dữ liệu</GroupHeading>
 

@@ -57,6 +57,37 @@
   color-scheme: dark;
 }
 
+/* ---------------------------------------------------------------
+   THEME SÁNG — bảng màu của thiết kế trước (nền trắng, nhấn xanh dương).
+   Bật bằng công tắc "Chế độ tối" trong Cài đặt (src/lib/theme.ts).
+
+   Giữ đúng tông cũ, NHƯNG các màu chữ đã được đo lại và lùi xuống một bậc
+   cho đạt tương phản >= 4.5:1. Bản cũ dùng slate-400 cho chữ mờ (chỉ 2.3-2.6)
+   và green-600 / amber-600 cho chữ (khoảng 3:1) — đều không đạt.
+   --------------------------------------------------------------- */
+:root[data-theme="light"] {
+  --canvas: #f8fafc;      /* slate-50 */
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;   /* slate-100 */
+  --line: #e2e8f0;        /* slate-200 */
+
+  --ink: #0f172a;         /* slate-900 */
+  --ink-2: #475569;       /* slate-600 — 6.9:1 */
+  --ink-3: #5b6678;       /* thay slate-400 — >= 5.3:1 */
+
+  --accent: #2563eb;      /* blue-600 — 4.7:1 */
+  --on-accent: #ffffff;   /* chữ trắng trên xanh — 5.2:1 */
+  --indigo: #6366f1;
+  --indigo-ink: #4338ca;  /* indigo-700 */
+
+  --good: #15803d;        /* green-700 (green-600 chỉ 3.0) */
+  --warn: #b45309;        /* amber-700 (amber-600 chỉ 2.9) */
+  --bad: #dc2626;         /* red-600 */
+  --bad-ink: #b91c1c;     /* red-700 */
+
+  color-scheme: light;
+}
+
 @theme inline {
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
