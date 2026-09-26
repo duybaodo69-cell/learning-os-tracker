@@ -166,10 +166,48 @@ export function hasEnoughToConclude(predictions: ScorablePrediction[]): boolean 
 
 /** Một câu tiếng Việt giải thích con số Brier đang ở mức nào. */
 export function describeBrier(score: number | null): string {
-  if (score === null) return "Chưa chấm dự đoán nào";
+  // Ranh giới với mốc 0.25 dùng CHUNG fiftyVerdict với phần tóm tắt, để một
+  // điểm hiện ra là "0.250" không bị gọi là "tốt hơn" ở chỗ này.
+  const v = fiftyVerdict(score);
+  if (score === null || v === null) return "Chưa chấm dự đoán nào";
+  if (v === "equal") return "Ngang với việc luôn nói 50%";
+  if (v === "worse") return "Kém hơn việc luôn nói 50% — có thể đang quá tự tin";
   if (score < 0.1) return "Rất tốt";
   if (score < 0.18) return "Tốt";
-  if (score < BRIER_ALWAYS_FIFTY) return "Khá — tốt hơn việc luôn nói 50%";
-  if (score === BRIER_ALWAYS_FIFTY) return "Ngang với việc luôn nói 50%";
-  return "Kém hơn việc luôn nói 50% — có thể đang quá tự tin";
+  return "Khá — tốt hơn việc luôn nói 50%";
+}
+
+/**
+ * Câu so sánh ngắn với mốc "luôn đoán 50%" (0.25), dùng ở phần tóm tắt.
+ *
+ * Mốc 0.25 là thước đo có ý nghĩa nhất: một người không biết gì, cứ nói
+ * 50% cho mọi thứ, sẽ luôn được đúng 0.25. Thấp hơn nghĩa là con số bạn
+ * nói có mang thông tin; cao hơn nghĩa là tự tin sai nhiều hơn là đúng.
+ */
+export function compareToFifty(score: number | null): string {
+  switch (fiftyVerdict(score)) {
+    case null:
+      return "Chưa chấm dự đoán nào";
+    case "better":
+      return "Tốt hơn mức luôn đoán 50% (0.25)";
+    case "worse":
+      return "Kém hơn mức luôn đoán 50% (0.25)";
+    case "equal":
+      return "Ngang mức luôn đoán 50% (0.25)";
+  }
+}
+
+/**
+ * Phán định DUY NHẤT: điểm này tốt hơn, kém hơn hay ngang mốc 0.25.
+ * Cả câu chữ lẫn màu số đều phải dựa vào hàm này — nếu mỗi nơi tự so sánh
+ * thì 0.2499999 (hiện ra là "0.250") sẽ bị tô xanh trong khi chữ ghi "ngang".
+ * So sánh ở mức 3 chữ số thập phân, đúng bằng độ chính xác đang hiển thị.
+ */
+export function fiftyVerdict(score: number | null): "better" | "worse" | "equal" | null {
+  if (score === null) return null;
+  const shown = Math.round(score * 1000);
+  const fifty = Math.round(BRIER_ALWAYS_FIFTY * 1000);
+  if (shown < fifty) return "better";
+  if (shown > fifty) return "worse";
+  return "equal";
 }

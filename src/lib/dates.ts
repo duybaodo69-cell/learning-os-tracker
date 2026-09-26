@@ -104,3 +104,22 @@ export function newId(): string {
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
+
+/**
+ * Số ngày từ `from` đến `to` (cả hai là "YYYY-MM-DD").
+ * Dương = còn bao nhiêu ngày nữa, 0 = hôm nay, âm = đã quá hạn.
+ * Tính bằng UTC để không bị lệch một ngày do giờ mùa hè hay múi giờ.
+ */
+export function daysUntil(from: string, to: string): number {
+  const toNum = (iso: string) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return Math.round(Date.UTC(y, m - 1, d) / 86400000);
+  };
+  return toNum(to) - toNum(from);
+}
+
+/** "2026-12-31" -> "31/12/2026". */
+export function formatShortDate(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}

@@ -10,7 +10,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 import { db } from "../db/db";
 import type { Prediction } from "../db/types";
-import { formatDayLabel } from "../lib/dates";
+import { daysUntil, formatShortDate } from "../lib/dates";
 import { useToday } from "../lib/useToday";
 import {
   BRIER_ALWAYS_FIFTY,
@@ -19,6 +19,8 @@ import {
   averageBrierLastDays,
   brierScore,
   buildCalibration,
+  compareToFifty,
+  fiftyVerdict,
   describeBrier,
   hasEnoughToConclude,
   resolvedOnly,
@@ -33,7 +35,7 @@ import PredictionForm from "../components/PredictionForm";
  * bạn thực sự mở tab "Điểm số".
  */
 const CalibrationChart = lazy(() => import("../components/CalibrationChart"));
-import { Button, Card, EmptyState, Segmented } from "../components/ui";
+import { Button, Card, EmptyState, SectionLabel, Segmented, Tag } from "../components/ui";
 
 type View = "list" | "score";
 
@@ -104,7 +106,7 @@ export default function PredictionsScreen() {
         onChange={setView}
         options={[
           { id: "list" as View, label: "Dự đoán", badge: dueToScore.length },
-          { id: "score" as View, label: "Điểm số" },
+          { id: "score" as View, label: "Điểm số · Calibration" },
         ]}
       />
 
@@ -153,6 +155,18 @@ export default function PredictionsScreen() {
 
 /* ==================== Danh sách ==================== */
 
+/**
+ * Màu cho con số Brier: tốt hơn 0.25 thì xanh, kém hơn thì đỏ, ngang thì
+ * trung tính. Dùng CHUNG phán định với câu chữ (fiftyVerdict), nên màu và
+ * chữ không bao giờ nói ngược nhau.
+ */
+function brierTone(score: number): string {
+  const v = fiftyVerdict(score);
+  if (v === "better") return "text-good";
+  if (v === "worse") return "text-bad-ink";
+  return "text-ink";
+}
+
 function ListView({
   today,
   all,
@@ -174,17 +188,44 @@ function ListView({
   onResolve: (p: Prediction, outcome: boolean) => void;
   onDelete: (p: Prediction) => void;
 }) {
+  const overall = averageBrier(all);
+
   return (
     <div className="pb-4">
-      <Button onClick={onNew} className="mb-4 w-full text-base">
-        + Dự đoán
-      </Button>
+      {/* ---------- Tóm tắt ---------- */}
+      {all.length > 0 && (
+        <div className="mb-5 grid grid-cols-2 gap-2">
+          <Card className="p-3">
+            <SectionLabel>Brier (tất cả)</SectionLabel>
+            <div className={`font-num text-3xl font-semibold ${overall === null ? "text-ink-3" : brierTone(overall)}`}>
+              {overall === null ? "—" : overall.toFixed(3)}
+            </div>
+            <p className="mt-1 text-xs text-ink-2">{compareToFifty(overall)}</p>
+          </Card>
+          <Card className="p-3">
+            <SectionLabel>Tiến độ</SectionLabel>
+            <p className="text-base leading-snug text-ink">
+              Đã chấm <span className="font-num font-semibold">{resolved.length}</span>
+              <span className="text-ink-3"> · </span>
+              Chờ chấm{" "}
+              <span className={`font-num font-semibold ${dueToScore.length > 0 ? "text-warn" : ""}`}>
+                {dueToScore.length}
+              </span>
+            </p>
+            <p className="mt-1 text-xs text-ink-2">
+              <span className="font-num">{open.length}</span> đang mở
+            </p>
+          </Card>
+        </div>
+      )}
 
       {all.length === 0 && (
-        <EmptyState
-          title="Chưa có dự đoán nào"
-          hint="Viết một dự đoán kèm xác suất, sau đó chấm đúng/sai khi tới hạn"
-        />
+        <div className="mb-4">
+          <EmptyState
+            title="Chưa có dự đoán nào"
+            hint="Viết một dự đoán kèm xác suất, sau đó chấm đúng/sai khi tới hạn"
+          />
+        </div>
       )}
 
       {/* ---------- Đến hạn chấm ---------- */}
@@ -194,18 +235,18 @@ function ListView({
             <Card key={p.id} className="border-warn/40">
               <Statement p={p} today={today} />
               {/* Hai nút to, bấm một phát là xong. */}
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => onResolve(p, true)}
-                  className="tap-target flex-1 rounded-lg bg-good/15 border border-good/40 font-bold text-good active:bg-good/25"
+                  className="tap-target rounded-lg border border-good/40 bg-good/12 font-bold text-good active:bg-good/25"
                 >
                   Đúng
                 </button>
                 <button
                   type="button"
                   onClick={() => onResolve(p, false)}
-                  className="tap-target flex-1 rounded-lg bg-bad/15 border border-bad/40 font-bold text-bad-ink active:bg-bad/20"
+                  className="tap-target rounded-lg border border-bad/40 bg-bad/12 font-bold text-bad-ink active:bg-bad/20"
                 >
                   Sai
                 </button>
@@ -215,12 +256,16 @@ function ListView({
         </Section>
       )}
 
+      <Button onClick={onNew} className="mb-5 w-full py-3 text-base">
+        + Tạo dự đoán mới
+      </Button>
+
       {/* ---------- Đang mở ---------- */}
       {open.length > 0 && (
         <Section title="Đang mở" count={open.length}>
           {open.map((p) => (
-            <Card key={p.id} className="flex items-start justify-between gap-2">
-              <button type="button" onClick={() => onEdit(p)} className="flex-1 text-left">
+            <Card key={p.id} className="flex items-start gap-2">
+              <button type="button" onClick={() => onEdit(p)} className="min-w-0 flex-1 text-left">
                 <Statement p={p} today={today} />
               </button>
               <DeleteButton onClick={() => onDelete(p)} />
@@ -231,28 +276,34 @@ function ListView({
 
       {/* ---------- Đã chấm ---------- */}
       {resolved.length > 0 && (
-        <Section title="Đã chấm" count={resolved.length}>
-          {resolved.map((p) => (
-            <Card key={p.id} className="flex items-start justify-between gap-2">
-              <button type="button" onClick={() => onEdit(p)} className="flex-1 text-left">
-                <Statement p={p} today={today} />
-                <div className="mt-1.5 flex items-center gap-2">
-                  <span
-                    className={
-                      "rounded-full px-2 py-0.5 text-xs font-bold " +
-                      (p.outcome ? "bg-good/15 text-good" : "bg-bad/15 text-bad-ink")
-                    }
-                  >
-                    {p.outcome ? "Đúng" : "Sai"}
-                  </span>
-                  <span className="text-xs text-ink-3">
-                    Brier {brierScore(p.probability, p.outcome as boolean).toFixed(2)}
-                  </span>
+        <Section title="Đã chấm gần đây" count={resolved.length}>
+          <Card className="divide-y divide-line px-0 py-0">
+            {resolved.map((p) => {
+              const score = brierScore(p.probability, p.outcome as boolean);
+              return (
+                <div key={p.id} className="flex items-center gap-2 px-4 py-3">
+                  <button type="button" onClick={() => onEdit(p)} className="min-w-0 flex-1 text-left">
+                    <div className="truncate text-sm font-medium text-ink">{p.statement}</div>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-2">
+                      <span>
+                        Dự đoán <span className="font-num text-ink">{p.probability}%</span>
+                      </span>
+                      <Tag tone={p.outcome ? "good" : "bad"}>
+                        Thực tế: {p.outcome ? "Đúng" : "Sai"}
+                      </Tag>
+                    </div>
+                  </button>
+                  <div className="shrink-0 text-right">
+                    <div className={`font-num text-lg font-semibold ${brierTone(score)}`}>
+                      {score.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-ink-3">Brier</div>
+                  </div>
+                  <DeleteButton onClick={() => onDelete(p)} />
                 </div>
-              </button>
-              <DeleteButton onClick={() => onDelete(p)} />
-            </Card>
-          ))}
+              );
+            })}
+          </Card>
         </Section>
       )}
     </div>
@@ -272,38 +323,55 @@ function Section({
 }) {
   return (
     <div className="mb-5">
-      <div
-        className={
-          "mb-2 px-1 text-xs font-semibold tracking-wide uppercase " +
-          (tone === "urgent" ? "text-warn" : "text-ink-3")
-        }
-      >
-        {title} · {count}
+      <div className="mb-2 flex items-center gap-2 px-1">
+        <span
+          className={"h-1.5 w-1.5 rounded-full " + (tone === "urgent" ? "bg-warn" : "bg-accent")}
+          aria-hidden="true"
+        />
+        <span className="text-sm font-semibold tracking-wide text-ink uppercase">{title}</span>
+        <span className="rounded border border-line bg-surface-2 px-1.5 font-num text-xs text-ink-2">
+          {count}
+        </span>
       </div>
       <div className="space-y-2">{children}</div>
     </div>
   );
 }
 
-/** Phần nội dung chung của một dự đoán. */
+/** Phần nội dung chung của một dự đoán chưa chấm. */
 function Statement({ p, today }: { p: Prediction; today: string }) {
-  const overdue = p.outcome === null && p.resolveBy < today;
+  const left = daysUntil(today, p.resolveBy);
   return (
     <>
-      <div className="flex items-start gap-2">
-        <span className="shrink-0 rounded-lg bg-accent px-2 py-0.5 text-sm font-bold text-on-accent font-num">
-          {p.probability}%
-        </span>
-        <span className="text-sm leading-snug font-semibold text-ink">{p.statement}</span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="mb-1.5 flex flex-wrap items-center gap-2">
+            <Tag tone="indigo">{p.category}</Tag>
+            {p.outcome === null &&
+              (left < 0 ? (
+                <span className="text-xs font-semibold text-warn">Quá hạn {-left} ngày</span>
+              ) : left === 0 ? (
+                <span className="text-xs font-semibold text-warn">Hạn hôm nay</span>
+              ) : (
+                <span className="text-xs text-good">Còn {left} ngày</span>
+              ))}
+            <span className="font-num text-xs text-ink-2">Hạn {formatShortDate(p.resolveBy)}</span>
+          </div>
+          <div className="text-base leading-snug font-medium text-ink">{p.statement}</div>
+        </div>
+        <div className="shrink-0 rounded-lg border border-line bg-surface-2 px-2.5 py-1 text-center">
+          <div className="text-xs text-ink-3">Xác suất</div>
+          <div className="font-num text-lg font-semibold text-accent">{p.probability}%</div>
+        </div>
       </div>
-      <div className="mt-1 text-xs text-ink-3">
-        {p.category} · hạn {formatDayLabel(p.resolveBy)}
-        {overdue && <span className="font-semibold text-warn"> · quá hạn</span>}
-      </div>
-      {p.note && <div className="mt-1 text-xs text-ink-2">{p.note}</div>}
       {p.preMortem && (
-        <div className="mt-1 rounded-lg bg-surface-2 px-2 py-1 text-xs text-ink-2">
-          Pre-mortem: {p.preMortem}
+        <div className="mt-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink-2">
+          <span className="font-semibold text-warn">Pre-mortem:</span> {p.preMortem}
+        </div>
+      )}
+      {p.note && (
+        <div className="mt-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink-2">
+          <span className="font-semibold text-accent">Ghi chú:</span> {p.note}
         </div>
       )}
     </>
@@ -315,7 +383,7 @@ function DeleteButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="tap-target shrink-0 rounded-lg px-3 text-sm font-semibold text-bad-ink active:bg-bad/15"
+      className="tap-target shrink-0 rounded-lg px-2 text-sm font-medium text-bad-ink active:bg-bad/15"
       aria-label="Xoá dự đoán"
     >
       Xoá
@@ -336,19 +404,17 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
     <div className="pb-4">
       {/* ---------- Brier score ---------- */}
       <Card className="mb-4">
-        <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
-          Brier score
-        </div>
+        <SectionLabel>Brier score</SectionLabel>
 
         <div className="mt-2 grid grid-cols-2 gap-3">
           <div>
-            <div className="text-3xl font-bold text-ink tabular-nums">
+            <div className="font-num text-3xl font-semibold text-ink">
               {overall === null ? "—" : overall.toFixed(3)}
             </div>
             <div className="text-xs text-ink-3">tất cả ({resolvedCount} đã chấm)</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-ink tabular-nums">
+            <div className="font-num text-3xl font-semibold text-ink">
               {last30 === null ? "—" : last30.toFixed(3)}
             </div>
             <div className="text-xs text-ink-3">30 ngày gần đây</div>
@@ -363,15 +429,15 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
           <ul className="space-y-1 text-ink-2">
             <li className="flex justify-between">
               <span>Hoàn hảo</span>
-              <span className="font-semibold tabular-nums">0.000</span>
+              <span className="font-semibold font-num">0.000</span>
             </li>
             <li className="flex justify-between">
               <span>Luôn nói 50%</span>
-              <span className="font-semibold tabular-nums">{BRIER_ALWAYS_FIFTY.toFixed(3)}</span>
+              <span className="font-semibold font-num">{BRIER_ALWAYS_FIFTY.toFixed(3)}</span>
             </li>
             <li className="flex justify-between">
               <span>Tệ nhất có thể</span>
-              <span className="font-semibold tabular-nums">1.000</span>
+              <span className="font-semibold font-num">1.000</span>
             </li>
           </ul>
           <p className="mt-2 text-xs text-ink-3">
@@ -383,9 +449,7 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
 
       {/* ---------- Calibration ---------- */}
       <Card className="mb-4">
-        <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
-          Calibration
-        </div>
+        <SectionLabel>Calibration</SectionLabel>
         <p className="mt-1 mb-2 text-sm text-ink-2">
           Chấm dưới đường chéo = nói cao hơn thực tế (quá tự tin). Chấm trên = quá dè dặt.
         </p>
@@ -415,11 +479,11 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
             {buckets.map((b) => (
               <tr key={b.label} className="border-t border-line">
                 <td className="py-1.5 text-ink-2">{b.label}</td>
-                <td className="py-1.5 text-right tabular-nums">{b.count}</td>
-                <td className="py-1.5 text-right tabular-nums text-ink-2">
+                <td className="py-1.5 text-right font-num">{b.count}</td>
+                <td className="py-1.5 text-right font-num text-ink-2">
                   {b.statedAverage === null ? "—" : `${Math.round(b.statedAverage)}%`}
                 </td>
-                <td className="py-1.5 text-right font-semibold tabular-nums">
+                <td className="py-1.5 text-right font-semibold font-num">
                   {b.actualRate === null ? "—" : `${Math.round(b.actualRate)}%`}
                 </td>
               </tr>

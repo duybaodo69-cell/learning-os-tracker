@@ -2,7 +2,14 @@
  * Test cho các hàm xử lý ngày giờ.
  */
 import { describe, expect, it } from "vitest";
-import { computeSleepHours, formatDayLabel, formatMinutes, subtractMinutesFromHHmm } from "./dates";
+import {
+  computeSleepHours,
+  daysUntil,
+  formatDayLabel,
+  formatMinutes,
+  formatShortDate,
+  subtractMinutesFromHHmm,
+} from "./dates";
 
 describe("subtractMinutesFromHHmm", () => {
   it("lùi trong cùng một ngày", () => {
@@ -65,5 +72,25 @@ describe("formatDayLabel — ngày trên tiêu đề", () => {
     expect(days.map((d) => formatDayLabel(d).split(",")[0])).toEqual([
       "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật",
     ]);
+  });
+});
+
+describe("daysUntil", () => {
+  it("còn bao nhiêu ngày", () => {
+    expect(daysUntil("2026-09-26", "2026-09-30")).toBe(4);
+    expect(daysUntil("2026-09-26", "2026-12-31")).toBe(96);
+  });
+  it("cùng ngày là 0, quá hạn là số âm", () => {
+    expect(daysUntil("2026-09-26", "2026-09-26")).toBe(0);
+    expect(daysUntil("2026-09-26", "2026-09-24")).toBe(-2);
+  });
+  it("qua năm", () => {
+    expect(daysUntil("2026-12-31", "2027-01-01")).toBe(1);
+  });
+});
+
+describe("formatShortDate", () => {
+  it("đổi sang dd/mm/yyyy", () => {
+    expect(formatShortDate("2026-12-31")).toBe("31/12/2026");
   });
 });

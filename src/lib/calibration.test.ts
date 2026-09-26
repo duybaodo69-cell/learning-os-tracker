@@ -16,6 +16,8 @@ import {
   brierScore,
   bucketIndexFor,
   buildCalibration,
+  compareToFifty,
+  fiftyVerdict,
   describeBrier,
   hasEnoughToConclude,
   isWithinLastDays,
@@ -251,5 +253,47 @@ describe("describeBrier", () => {
 
   it("điểm thấp thì khen", () => {
     expect(describeBrier(0.05)).toBe("Rất tốt");
+  });
+});
+
+describe("compareToFifty", () => {
+  it("thấp hơn 0.25 là tốt hơn", () => {
+    expect(compareToFifty(0.194)).toBe("Tốt hơn mức luôn đoán 50% (0.25)");
+  });
+  it("cao hơn 0.25 là kém hơn", () => {
+    expect(compareToFifty(0.31)).toBe("Kém hơn mức luôn đoán 50% (0.25)");
+  });
+  it("đúng 0.25 là ngang, kể cả khi có sai số dấu phẩy động", () => {
+    expect(compareToFifty(0.25)).toBe("Ngang mức luôn đoán 50% (0.25)");
+    expect(compareToFifty(0.1 + 0.15)).toBe("Ngang mức luôn đoán 50% (0.25)");
+  });
+  it("chưa có dữ liệu", () => {
+    expect(compareToFifty(null)).toBe("Chưa chấm dự đoán nào");
+  });
+});
+
+describe("fiftyVerdict — một phán định cho cả chữ lẫn màu", () => {
+  it("so sánh đúng bằng độ chính xác hiển thị (3 chữ số)", () => {
+    // 0.2499999 hiện ra là "0.250" -> phải là ngang, không được gọi là tốt hơn.
+    expect(fiftyVerdict(0.2499999)).toBe("equal");
+    expect(fiftyVerdict(0.2504)).toBe("equal");
+    expect(fiftyVerdict(0.249)).toBe("better");
+    expect(fiftyVerdict(0.251)).toBe("worse");
+  });
+  it("câu chữ luôn khớp phán định", () => {
+    expect(compareToFifty(0.2499999)).toBe("Ngang mức luôn đoán 50% (0.25)");
+  });
+  it("null khi chưa có dữ liệu", () => {
+    expect(fiftyVerdict(null)).toBeNull();
+  });
+});
+
+describe("describeBrier khớp với phần tóm tắt", () => {
+  it("0.2499999 (hiện là 0.250) được gọi là ngang, không phải khá", () => {
+    expect(describeBrier(0.2499999)).toBe("Ngang với việc luôn nói 50%");
+  });
+  it("các dải vẫn đúng", () => {
+    expect(describeBrier(0.2)).toBe("Khá — tốt hơn việc luôn nói 50%");
+    expect(describeBrier(0.12)).toBe("Tốt");
   });
 });

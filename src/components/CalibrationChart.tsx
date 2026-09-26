@@ -49,7 +49,7 @@ export default function CalibrationChart({ buckets }: { buckets: CalibrationBuck
     <div className="aspect-square w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 8, right: 12, bottom: 24, left: 0 }}>
-          <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+          <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" />
 
           <XAxis
             type="number"
@@ -57,8 +57,8 @@ export default function CalibrationChart({ buckets }: { buckets: CalibrationBuck
             name="Bạn nói"
             domain={[0, 100]}
             ticks={[0, 20, 40, 60, 80, 100]}
-            tick={{ fontSize: 11, fill: "#94a3b8" }}
-            label={{ value: "Bạn nói (%)", position: "insideBottom", offset: -14, fontSize: 11, fill: "#64748b" }}
+            tick={{ fontSize: 12, fill: "var(--ink-2)" }}
+            label={{ value: "Bạn nói (%)", position: "insideBottom", offset: -14, fontSize: 12, fill: "var(--ink-2)" }}
           />
           <YAxis
             type="number"
@@ -66,9 +66,9 @@ export default function CalibrationChart({ buckets }: { buckets: CalibrationBuck
             name="Thực tế"
             domain={[0, 100]}
             ticks={[0, 20, 40, 60, 80, 100]}
-            tick={{ fontSize: 11, fill: "#94a3b8" }}
+            tick={{ fontSize: 12, fill: "var(--ink-2)" }}
             width={34}
-            label={{ value: "Thực tế (%)", angle: -90, position: "insideLeft", fontSize: 11, fill: "#64748b" }}
+            label={{ value: "Thực tế (%)", angle: -90, position: "insideLeft", fontSize: 12, fill: "var(--ink-2)" }}
           />
           {/* Kích thước chấm theo số lượng dự đoán trong khoảng. */}
           <ZAxis type="number" dataKey="count" range={[60, 400]} />
@@ -79,11 +79,11 @@ export default function CalibrationChart({ buckets }: { buckets: CalibrationBuck
               { x: 0, y: 0 },
               { x: 100, y: 100 },
             ]}
-            stroke="#94a3b8"
+            stroke="var(--ink-3)"
             strokeDasharray="4 4"
           />
 
-          <Scatter data={points} fill="#2563eb" />
+          <Scatter data={points} fill="var(--accent)" />
         </ScatterChart>
       </ResponsiveContainer>
     </div>
