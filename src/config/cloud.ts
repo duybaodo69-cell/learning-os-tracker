@@ -12,10 +12,10 @@
  * để thẳng trong code. Thứ bí mật là file `dexie-cloud.key` — nằm trong
  * .gitignore, không bao giờ commit.
  *
- * Chuỗi rỗng = chưa tạo database; mục Đồng bộ trong Cài đặt sẽ báo
+ * (Tạo bằng `npx dexie-cloud create` ngày 2026-09-26.) Chuỗi rỗng = chưa tạo database; mục Đồng bộ trong Cài đặt sẽ báo
  * "chưa cấu hình" và app chạy y như trước.
  */
-const DEV_URL = "";
-const PROD_URL = "";
+const DEV_URL = "https://zq98wk7oy.dexie.cloud";
+const PROD_URL = "https://zzmteuzif.dexie.cloud";
 
 export const CLOUD_DB_URL: string = import.meta.env.DEV ? DEV_URL : PROD_URL;

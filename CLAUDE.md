@@ -192,8 +192,8 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] **Phase 4 COMPLETE** — dashboard, weekly review, experiments, JSON export/import.
 - [x] **Phase 5 COMPLETE** — PWA: installable, offline, icons, version line.
 - [x] **Redesign COMPLETE** (design/BRIEF.md Part A + B) — dark "Quantitative Protocol" theme.
-- [x] **Part C: cloud sync (Dexie Cloud)** — code done; needs the Dexie Cloud databases
-      created (`src/config/cloud.ts` URLs) before it switches on.
+- [x] **Part C: cloud sync (Dexie Cloud)** — PROD https://zzmteuzif.dexie.cloud (whitelist: production
+      URL only), DEV https://zq98wk7oy.dexie.cloud (whitelist: http://localhost:5173 only).
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
