@@ -498,7 +498,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 ```bash
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # type-check + production build
-npm test                # unit tests (292: lib/ logic, db upgrade, hooks, background picker)
+npm test                # unit tests (299: lib/ logic, db upgrade, hooks, background picker, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```
@@ -512,6 +512,11 @@ npm run preview         # preview the production build
   runs `npm run build` then `npx wrangler deploy`. There is no manual deploy step.
 - **Config:** `wrangler.jsonc` serves `./dist` with `not_found_handling: single-page-application`,
   so an unknown path returns `index.html` instead of a 404.
+- **`worker/index.js` runs only for `/backgrounds/*`** (`run_worker_first`). Workers static assets
+  ignore `Range` and always answer 200 with the whole file; iOS Safari refuses to play video
+  without 206 partial responses. The worker slices the file (`worker/range.js`, tested). Check
+  after a deploy: `curl -sD - -o /dev/null -H "Range: bytes=0-1" <url>/backgrounds/window-rain-day.mp4`
+  must say `206` and `Content-Range: bytes 0-1/...`.
 - **`.nvmrc` pins Node 22.** Build hosts default to Node 18, but Vite 8 requires
   `^20.19.0 || >=22.12.0`. Deleting `.nvmrc` breaks every future build.
 - **Never enable "Protect with Cloudflare Access"** on this project. It puts a login wall in front

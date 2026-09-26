@@ -10,6 +10,10 @@
   // không bị đổi hành vi ngoài ý muốn.
   "compatibility_date": "2026-09-25",
 
+  // Worker nhỏ chỉ để trả video nền theo từng đoạn (Range / mã 206) —
+  // iPhone không phát video nếu thiếu. Xem worker/index.js.
+  "main": "worker/index.js",
+
   "assets": {
     // Thư mục chứa file đã build (Vite sinh ra sau `npm run build`).
     "directory": "./dist",
@@ -17,6 +21,12 @@
     // Quan trọng cho app một-trang (SPA):
     // nếu người dùng mở một đường dẫn lạ, trả về index.html
     // thay vì báo lỗi 404, để React tự xử lý.
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+
+    // Tên để worker gọi kho file tĩnh (env.ASSETS).
+    "binding": "ASSETS",
+
+    // Chỉ /backgrounds/* đi qua worker; mọi thứ khác phục vụ thẳng như cũ.
+    "run_worker_first": ["/backgrounds/*"]
   }
 }
