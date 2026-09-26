@@ -1,7 +1,8 @@
 /**
  * Màn hình "Cài đặt".
  *
- * Ba nhóm, theo thứ tự quan trọng:
+ * Các nhóm, theo thứ tự:
+ *   0. Giao diện, Đồng bộ (Dexie Cloud, src/components/SyncSection.tsx)
  *   1. Sao lưu & dữ liệu — mức bảo vệ của trình duyệt, xuất/nhập JSON
  *   2. Dữ liệu mẫu — kho riêng để xem thử
  *   3. Thử nghiệm cá nhân
@@ -10,7 +11,7 @@
 import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 
-import { db, isDemoMode, setDemoMode } from "../db/db";
+import { activeStore, db, isDemoMode, setDemoMode } from "../db/db";
 import { clearDemoData, loadDemoData } from "../db/demoData";
 import { todayISO } from "../lib/dates";
 import { checkPersistence, describePersistence } from "../lib/persistence";
@@ -24,18 +25,19 @@ import { Button, Card, Toggle } from "../components/ui";
 import type { ReactNode } from "react";
 import BackupSection from "../components/BackupSection";
 import ExperimentsManager from "../components/ExperimentsManager";
+import SyncSection from "../components/SyncSection";
 
 export default function SettingsScreen() {
   const demo = isDemoMode();
 
   // Đếm số bản ghi để bạn biết đang có bao nhiêu dữ liệu.
-  const checkinCount = useLiveQuery(() => db.checkins.count(), [], 0);
+  const checkinCount = useLiveQuery(() => db.dailyCheckins.count(), [], 0);
   const blockCount = useLiveQuery(() => db.focusBlocks.count(), [], 0);
   const dumpCount = useLiveQuery(() => db.brainDumps.count(), [], 0);
   const cardCount = useLiveQuery(() => db.cards.count(), [], 0);
   const logCount = useLiveQuery(() => db.reviewLogs.count(), [], 0);
   const predictionCount = useLiveQuery(() => db.predictions.count(), [], 0);
-  const reviewCount = useLiveQuery(() => db.weeklyReviews.count(), [], 0);
+  const reviewCount = useLiveQuery(() => db.weekReviews.count(), [], 0);
   const tagCount = useLiveQuery(() => db.experimentTags.count(), [], 0);
 
   // Tổng mọi bản ghi — dùng để biết kho có trống hay không.
@@ -95,6 +97,10 @@ export default function SettingsScreen() {
         />
       </Card>
 
+      {/* ================= Đồng bộ ================= */}
+      <GroupHeading>Đồng bộ</GroupHeading>
+      <SyncSection />
+
       {/* ================= 1. Sao lưu & dữ liệu ================= */}
       <GroupHeading>Sao lưu & dữ liệu</GroupHeading>
 
@@ -105,7 +111,7 @@ export default function SettingsScreen() {
       {/* Đang có bao nhiêu dữ liệu trong kho đang mở — một dòng gọn. */}
       <Card className="mb-6 py-3">
         <div className="mb-1 text-xs font-semibold tracking-wider text-ink-2 uppercase">
-          {demo ? "Kho dữ liệu mẫu" : "Kho dữ liệu thật"}
+          {demo ? "Kho dữ liệu mẫu" : activeStore === "cloud" ? "Kho dữ liệu thật · tài khoản" : "Kho dữ liệu thật · trên máy"}
         </div>
         <p className="text-sm leading-relaxed text-ink-2">
           <Count n={checkinCount} /> check-in · <Count n={blockCount} /> block ·{" "}

@@ -11,7 +11,8 @@ practise calibrated forecasting, and see the numbers on a dashboard.
 - UI language: **Vietnamese**. Keep standard English terms as-is: "deep work", "retrieval",
   "Brier score", "area", "PWA".
 - Code, comments, file names, type names: English.
-- No backend, no login, no account. All data lives on the device (IndexedDB).
+- No backend of our own. All data lives on the device (IndexedDB). Login is **optional**
+  (Part C, Dexie Cloud sync); without it the app is fully local as before.
 - Timezone: **Asia/Ho_Chi_Minh**. Dates are stored as plain `YYYY-MM-DD` strings in local time,
   never as UTC timestamps, so a day never shifts.
 
@@ -41,7 +42,8 @@ These types are the contract for every phase. Add fields only when a phase needs
 ```ts
 // A once-a-day check-in about sleep and energy.
 type DailyCheckin = {
-  date: string;        // "YYYY-MM-DD", unique (primary key)
+  id: string;          // primary key = "#" + date (src/db/keys.ts, Dexie v6)
+  date: string;        // "YYYY-MM-DD", one per day
   bedTime: string;     // "HH:mm"
   wakeTime: string;    // "HH:mm"
   sleepHours: number;  // computed from bedTime + wakeTime
@@ -121,7 +123,8 @@ type Prediction = {
 };
 
 type WeeklyReview = {
-  weekStart: string;  // Monday, "YYYY-MM-DD" (primary key)
+  id: string;         // primary key = "#" + weekStart (Dexie v6)
+  weekStart: string;  // Monday, "YYYY-MM-DD"
   learnedWithoutNotes: string;
   dataInsight: string;
   oneChange: string;
@@ -152,7 +155,9 @@ type ExperimentTag = {
 4. **Never delete user data without an in-app confirmation step.** Every delete/reset/import-overwrite
    shows a confirm dialog inside the app that names exactly what will be lost. No silent wipes,
    no destructive migrations.
-5. No network calls with user data. Everything stays on device.
+5. No network calls with user data, **except Dexie Cloud sync, and only after the owner has
+   signed in** from Settings -> Đồng bộ. Before sign-in, and always in demo mode, nothing
+   leaves the device (the local and demo stores do not even load the cloud addon).
 6. **Real data is only entered on the production URL; the local dev URL is for testing only.**
    Production is https://learning-os-tracker.duybaodo69.workers.dev
    IndexedDB is per-origin, so `localhost:5173` and the production URL hold two completely separate
@@ -187,7 +192,9 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] **Phase 4 COMPLETE** — dashboard, weekly review, experiments, JSON export/import.
 - [x] **Phase 5 COMPLETE** — PWA: installable, offline, icons, version line.
 - [x] **Redesign COMPLETE** (design/BRIEF.md Part A + B) — dark "Quantitative Protocol" theme.
-- [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export + optional cloud sync.
+- [x] **Part C: cloud sync (Dexie Cloud)** — code done; needs the Dexie Cloud databases
+      created (`src/config/cloud.ts` URLs) before it switches on.
+- [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
 
@@ -218,7 +225,9 @@ src/
     protocolPhases.ts  # EDIT HERE to change the 12-week schedule
   db/
     types.ts           # Area, Rating, DailyCheckin, FocusBlock
-    db.ts              # Dexie; picks the real or the demo database
+    db.ts              # Dexie; opens one of three stores (local / cloud / demo)
+    store.ts           # chooseStore(): which store to open (tested)
+    keys.ts            # "#date" primary keys for checkins / weekly reviews
     demoData.ts        # sample data, demo database only
   lib/
     dates.ts           # Asia/Ho_Chi_Minh dates, sleep hours, formatting, ids
@@ -228,6 +237,10 @@ src/
     persistence.ts     # navigator.storage.persist() + status
     areaColors.ts      # one fixed colour per area (Today + charts)
     scheduling.ts / calibration.ts / metrics.ts / backup.ts  # tested pure logic
+    sync.ts            # Vietnamese sync status + login messages (tested)
+    upload.ts          # planUpload: which local rows are new to the account (tested)
+    cloudUpload.ts     # reads the local store, adds only new rows to the account
+  config/cloud.ts      # Dexie Cloud database URLs (dev + prod; not secret)
   App.tsx              # holds which tab is active
   main.tsx             # React entry point
   index.css            # theme tokens, fonts, .tap-target, font-num, 16px input floor
@@ -413,12 +426,44 @@ src/
 - **No decorative jargon** from the mockups (SYS_ACTIVE, EXP ids, "Brier Loss"...). The "Sao chép
   tóm tắt tuần cho Claude" button in the stats mockup is Phase 6 and was deliberately not built.
 
+### Part C (Dexie Cloud sync) — rules to keep
+
+- **Three separate stores** (`src/db/store.ts`): `learning-os` (local, default),
+  `learning-os-cloud` (after sign-in, has the addon), `learning-os-demo` (never syncs).
+  Demo always wins. Switching store reloads the page, like demo mode. The flag is
+  `learning-os:sync` in localStorage.
+- **`requireAuth: true` on the cloud store is load-bearing.** Dexie Cloud uploads rows
+  created before login ("unauthorized user" data) automatically on login. Requiring auth
+  means the cloud store is never written before login, so nothing is ever merged silently.
+- **Old data reaches the account only through "Đưa dữ liệu trên máy này lên tài khoản"**
+  (Settings, `cloudUpload.ts`). It reuses the backup path (`collectBackupFrom` +
+  `normaliseBackupData`), shows a per-table preview, confirms, then ADDS only keys the account
+  lacks, in one transaction. Never clear or overwrite cloud tables here: a delete on the cloud
+  store deletes on every device. The local store is never touched. Upload is disabled until
+  the first sync is `in-sync`, otherwise every row would look "new".
+- **Primary keys:** Dexie Cloud needs globally unique string keys. UUID tables are fine;
+  `experimentTags.key` contains the experiment UUID, so it is fine. Check-ins and weekly
+  reviews use private IDs `"#" + date` (unique per user, so the same day on two devices is
+  one row). Dexie v6 copies the old tables into `dailyCheckins` / `weekReviews`, v7 drops the
+  old ones; `db.test.ts` runs that upgrade on a fake v5 database.
+- **Backup files keep the table names `checkins` / `weeklyReviews`** and format version 1;
+  `normaliseBackupData` fills missing ids and strips Dexie Cloud fields (`owner`, `realmId`,
+  `$ts`). Old files still import. In cloud mode, "Nhập" warns that it overwrites every device.
+- **Login UI is ours** (`customLoginGui: true`, `CloudLoginDialog.tsx`, Vietnamese, messages via
+  `translateLoginAlert`). Cancelling email/OTP turns sync off and returns to the local store.
+- **Evaluation users stop syncing after 30 days.** The owner's user must be switched to
+  production in the Dexie Cloud manager (free for up to 3). Settings warns via `evalWarning`.
+- **Two cloud databases:** DEV (localhost, test email only) and PROD (production URL). Never
+  whitelist localhost on the PROD database. `dexie-cloud.json` / `dexie-cloud.key` are
+  gitignored — the key is a secret.
+- Sync runs in the page only (no service-worker sync); the app syncs whenever it is open.
+
 ## 8. Commands
 
 ```bash
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # type-check + production build
-npm test                # unit tests (226: lib/ logic, useToday, theme)
+npm test                # unit tests (255: lib/ logic, db upgrade, useToday, theme)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

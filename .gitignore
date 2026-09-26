@@ -28,3 +28,7 @@ dev-server.log
 .vercel
 .gstack/
 preview.log
+
+# Dexie Cloud CLI — môi trường + KHOÁ BÍ MẬT, không bao giờ commit
+dexie-cloud.json
+dexie-cloud.key

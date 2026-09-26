@@ -9,7 +9,7 @@
 import { useRef, useState } from "react";
 
 import { todayISO } from "../lib/dates";
-import { isDemoMode } from "../db/db";
+import { activeStore, isDemoMode } from "../db/db";
 import {
   TABLE_LABELS,
   TABLE_NAMES,
@@ -236,6 +236,13 @@ export default function BackupSection() {
             <strong>{totalInFile} bản ghi</strong> từ file.
             <br />
             Nếu chưa xuất bản sao lưu của dữ liệu hiện tại, hãy bấm Huỷ và xuất trước.
+            {activeStore === "cloud" && (
+              <>
+                <br />
+                <strong>Bạn đang đăng nhập:</strong> việc ghi đè sẽ xoá dữ liệu trên tài khoản, tức là
+                trên MỌI máy đã đăng nhập, không chỉ máy này.
+              </>
+            )}
           </>
         }
         confirmLabel="Ghi đè"

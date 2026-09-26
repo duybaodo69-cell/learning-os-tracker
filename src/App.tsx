@@ -19,8 +19,9 @@ import PredictionsScreen from "./screens/PredictionsScreen";
 import DashboardScreen from "./screens/DashboardScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import FocusSession from "./screens/FocusSession";
+import CloudLoginDialog from "./components/CloudLoginDialog";
 
-import { db } from "./db/db";
+import { activeStore, db } from "./db/db";
 import type { Card } from "./db/types";
 import { todayISO } from "./lib/dates";
 import { dueCount as countDue } from "./lib/scheduling";
@@ -75,6 +76,7 @@ export default function App() {
     return (
       <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
         <FocusSession startedAt={timerStart} onExit={() => setTimerStart(null)} />
+        {activeStore === "cloud" && <CloudLoginDialog />}
       </div>
     );
   }
@@ -87,6 +89,9 @@ export default function App() {
       <div className="min-h-0 flex-1">{renderScreen()}</div>
 
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} reviewBadge={dueCount} />
+
+      {/* Hộp đăng nhập / xác nhận đăng xuất của Dexie Cloud — chỉ ở kho cloud. */}
+      {activeStore === "cloud" && <CloudLoginDialog />}
     </div>
   );
 }
