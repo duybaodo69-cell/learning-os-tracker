@@ -13,7 +13,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 import { db, isDemoMode } from "../db/db";
 import type { DailyCheckin, Experiment, ExperimentTag, FocusBlock, Prediction, ReviewLog, WeeklyReview } from "../db/types";
-import { formatMinutes, nowHHmm, todayISO, yesterdayISO } from "../lib/dates";
+import { formatDayLabel, formatMinutes, nowHHmm, todayISO, yesterdayISO } from "../lib/dates";
 import { useToday } from "../lib/useToday";
 import {
   addTimerDistraction,
@@ -210,7 +210,7 @@ export default function TodayScreen({
   const loadingCheckin = checkin === undefined;
 
   return (
-    <ScreenShell title="Hôm nay" subtitle={today}>
+    <ScreenShell title="Hôm nay" subtitle={formatDayLabel(today) /* "Thứ Bảy, 26/09" dễ đọc hơn "2026-09-26" */}>
       {isDemoMode() && (
         <div className="mb-4 rounded-xl bg-amber-100 px-4 py-2 text-center text-sm font-semibold text-amber-800">
           Đang xem DỮ LIỆU MẪU — không phải dữ liệu thật

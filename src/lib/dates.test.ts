@@ -2,7 +2,7 @@
  * Test cho các hàm xử lý ngày giờ.
  */
 import { describe, expect, it } from "vitest";
-import { computeSleepHours, formatMinutes, subtractMinutesFromHHmm } from "./dates";
+import { computeSleepHours, formatDayLabel, formatMinutes, subtractMinutesFromHHmm } from "./dates";
 
 describe("subtractMinutesFromHHmm", () => {
   it("lùi trong cùng một ngày", () => {
@@ -46,5 +46,24 @@ describe("formatMinutes", () => {
   });
   it("giờ lẻ phút", () => {
     expect(formatMinutes(205)).toBe("3h25");
+  });
+});
+
+describe("formatDayLabel — ngày trên tiêu đề", () => {
+  it("đúng thứ trong tuần", () => {
+    expect(formatDayLabel("2026-09-26")).toBe("Thứ Bảy, 26/09");
+    expect(formatDayLabel("2026-09-27")).toBe("Chủ Nhật, 27/09");
+    expect(formatDayLabel("2026-09-28")).toBe("Thứ Hai, 28/09");
+  });
+
+  it("ngày và tháng một chữ số được thêm số 0", () => {
+    expect(formatDayLabel("2026-10-05")).toBe("Thứ Hai, 05/10");
+  });
+
+  it("đủ bảy thứ trong một tuần liên tiếp", () => {
+    const days = ["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"];
+    expect(days.map((d) => formatDayLabel(d).split(",")[0])).toEqual([
+      "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật",
+    ]);
   });
 });
