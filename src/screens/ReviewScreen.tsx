@@ -35,9 +35,9 @@ export default function ReviewScreen({
         value={view}
         onChange={onViewChange}
         options={[
-          { id: "queue", label: "Ôn", badge: dueCount },
+          { id: "queue", label: "Ôn thẻ", badge: dueCount },
           { id: "braindump", label: "Brain dump" },
-          { id: "cards", label: "Thẻ" },
+          { id: "cards", label: "Kho thẻ" },
         ]}
       />
 

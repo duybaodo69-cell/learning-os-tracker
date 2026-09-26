@@ -16,7 +16,7 @@ import { newId } from "../lib/dates";
 import { useToday } from "../lib/useToday";
 import { DAILY_LIMIT, addDays, buildQueue, scheduleNext } from "../lib/scheduling";
 
-import { Button, Card as CardBox, EmptyState, Toggle } from "./ui";
+import { Button, Card as CardBox, EmptyState, SectionLabel, Tag, Toggle } from "./ui";
 
 /** Chế độ 10 phút: hết giờ là dừng buổi ôn. */
 const TEN_MINUTES_MS = 10 * 60 * 1000;
@@ -49,6 +49,15 @@ export default function ReviewQueue() {
   // đọc đồng hồ giữa lúc render làm kết quả không ổn định.
   const [remainingSec, setRemainingSec] = useState(TEN_MINUTES_MS / 1000);
 
+  // "Bây giờ" cho dòng "Phiên hiện tại". Cập nhật mỗi giây trong lúc ôn,
+  // giữ trong state thay vì đọc đồng hồ lúc vẽ.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (sessionStart === null) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [sessionStart]);
+
   // Danh sách thẻ đến hạn, tính lại khi dữ liệu đổi (dùng cho màn hình chờ).
   const dueCards = useMemo(() => buildQueue(allCards, today), [allCards, today]);
 
@@ -75,7 +84,9 @@ export default function ReviewQueue() {
     setAnswerShown(false);
     setTimeUp(false);
     setRemainingSec(TEN_MINUTES_MS / 1000);
-    setSessionStart(Date.now());
+    const t = Date.now();
+    setNow(t);
+    setSessionStart(t);
   }
 
   function endSession() {
@@ -127,7 +138,7 @@ export default function ReviewQueue() {
     return (
       <div className="pb-4">
         <CardBox className="mb-4 text-center">
-          <div className="text-5xl font-bold text-ink">{dueCards.length}</div>
+          <div className="font-num text-5xl font-semibold text-ink">{dueCards.length}</div>
           <p className="mt-1 text-sm text-ink-2">
             thẻ đến hạn hôm nay
             {allCards.length > dueCards.length && ` (tổng ${allCards.length} thẻ)`}
@@ -162,7 +173,7 @@ export default function ReviewQueue() {
             title={allCards.length === 0 ? "Chưa có thẻ nào" : "Hôm nay ôn xong rồi"}
             hint={
               allCards.length === 0
-                ? 'Tạo thẻ ở tab "Thẻ" hoặc từ chỗ hổng trong brain dump'
+                ? 'Tạo thẻ ở mục "Kho thẻ" hoặc từ chỗ hổng trong brain dump'
                 : "Quay lại ngày mai"
             }
           />
@@ -210,30 +221,16 @@ export default function ReviewQueue() {
 
   return (
     <div className="pb-4">
-      {/* Thanh tiến độ */}
-      <div className="mb-3 flex items-center justify-between text-xs text-ink-3">
-        <span>
-          Thẻ {position + 1}/{queueIds.length}
-        </span>
-        {tenMinuteMode && (
-          <span className="font-semibold tabular-nums">
-            còn {Math.floor(remainingSec / 60)}:{String(remainingSec % 60).padStart(2, "0")}
-          </span>
-        )}
-      </div>
-      <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-line">
-        <div
-          className="h-full bg-accent transition-all"
-          style={{ width: `${(position / queueIds.length) * 100}%` }}
-        />
-      </div>
-
-      {/* Mặt trước */}
+      {/* Thẻ hiện tại: area + vị trí trong hàng đợi */}
       <CardBox className="mb-3">
-        <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
-          {card.area}
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Tag tone="indigo">{card.area}</Tag>
+          <span className="font-num text-sm text-ink-2">
+            Thẻ {position + 1}/{queueIds.length}
+          </span>
         </div>
-        <div className="mt-2 text-lg leading-relaxed font-semibold whitespace-pre-wrap text-ink">
+        <SectionLabel>Mặt trước</SectionLabel>
+        <div className="text-lg leading-relaxed font-medium whitespace-pre-wrap text-ink">
           {card.front}
         </div>
       </CardBox>
@@ -241,7 +238,11 @@ export default function ReviewQueue() {
       {/* Mặt sau — chỉ hiện sau khi bấm nút */}
       {!answerShown ? (
         <>
-          <Button onClick={() => setAnswerShown(true)} className="w-full text-base">
+          <Button
+            variant="secondary"
+            onClick={() => setAnswerShown(true)}
+            className="w-full bg-canvas py-3 text-base text-accent"
+          >
             Hiện đáp án
           </Button>
           <p className="mt-2 text-center text-xs text-ink-3">
@@ -251,9 +252,10 @@ export default function ReviewQueue() {
       ) : (
         <>
           <CardBox className="mb-4 border-accent/30 bg-accent/10">
+            <SectionLabel>Mặt sau</SectionLabel>
             {card.back.trim() === "" ? (
               <p className="text-sm text-warn">
-                Thẻ này chưa có mặt sau. Sang tab "Thẻ" để điền đáp án.
+                Thẻ này chưa có mặt sau. Sang mục "Kho thẻ" để điền đáp án.
               </p>
             ) : (
               <div className="leading-relaxed whitespace-pre-wrap text-ink">{card.back}</div>
@@ -280,9 +282,7 @@ export default function ReviewQueue() {
                   className={`tap-target flex flex-col items-center justify-center rounded-lg py-2 font-semibold ${className}`}
                 >
                   <span className="text-sm">{label}</span>
-                  <span className="text-xs font-normal opacity-80">
-                    {preview.intervalDays}d
-                  </span>
+                  <span className="font-num text-xs font-normal">{preview.intervalDays}d</span>
                 </button>
               );
             })}
@@ -290,7 +290,40 @@ export default function ReviewQueue() {
         </>
       )}
 
-      <Button variant="ghost" onClick={endSession} className="mt-4 w-full text-sm">
+      {/* Phiên hiện tại + tiến độ */}
+      <div className="mt-4 rounded-lg border border-line bg-surface px-4 py-3">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-ink-2">
+            Phiên hiện tại{" "}
+            <span className="font-num text-ink">
+              {sessionStart === null
+                ? "00:00"
+                : `${String(Math.floor((now - sessionStart) / 60000)).padStart(2, "0")}:${String(
+                    Math.floor(((now - sessionStart) % 60000) / 1000)
+                  ).padStart(2, "0")}`}
+            </span>
+          </span>
+          <span className="font-num text-accent">
+            {position}/{queueIds.length} xong ({Math.round((position / queueIds.length) * 100)}%)
+          </span>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
+          <div
+            className="h-full bg-accent transition-all"
+            style={{ width: `${(position / queueIds.length) * 100}%` }}
+          />
+        </div>
+        {tenMinuteMode && (
+          <p className="mt-2 text-xs text-ink-2">
+            Chế độ 10 phút: còn{" "}
+            <span className="font-num text-ink">
+              {Math.floor(remainingSec / 60)}:{String(remainingSec % 60).padStart(2, "0")}
+            </span>
+          </p>
+        )}
+      </div>
+
+      <Button variant="ghost" onClick={endSession} className="mt-2 w-full text-sm">
         Dừng buổi ôn
       </Button>
     </div>

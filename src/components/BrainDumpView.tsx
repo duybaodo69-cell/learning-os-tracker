@@ -75,7 +75,7 @@ export default function BrainDumpView() {
     const cards: Card[] = gapLines.map((front) => ({
       id: newId(),
       front,
-      back: "", // để trống - bạn tự điền ở tab "Thẻ"
+      back: "", // để trống - bạn tự điền ở mục "Kho thẻ"
       area,
       createdAt: today,
       // Thẻ mới đến hạn NGAY hôm nay, để ôn lần đầu trong ngày.
@@ -88,7 +88,7 @@ export default function BrainDumpView() {
 
     await db.cards.bulkAdd(cards);
     setMessage(
-      `Đã tạo ${cards.length} thẻ nháp. Sang tab "Thẻ" để điền mặt sau.`
+      `Đã tạo ${cards.length} thẻ nháp. Sang mục "Kho thẻ" để điền mặt sau.`
     );
   }
 
