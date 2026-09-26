@@ -7,10 +7,13 @@
  * Mọi con số đều tính từ dữ liệu lưu trong localStorage (mốc bắt đầu, số
  * phân tâm, việc chen ngang), nên đóng app rồi mở lại vẫn quay về đúng phiên.
  *
- * HÌNH NỀN (FocusBackdrop + BackgroundPicker): một cảnh động phủ kín màn
- * hình phía sau đồng hồ. Nền chỉ là lớp trang trí — đổi nền, xem trước,
- * nền lỗi hay vào/thoát toàn màn hình KHÔNG đụng tới mốc bắt đầu, nên
- * không thể làm sai thời gian phiên.
+ * HÌNH NỀN (BackgroundPicker), hai chế độ:
+ *   - NỀN PHỦ (FocusBackdrop): cảnh động phủ kín màn hình phía sau đồng hồ.
+ *   - PLAYER YOUTUBE (YouTubePlayer): video trong khung riêng — ngang thì
+ *     video bên trái, cột đồng hồ bên phải; dọc thì video trên, đồng hồ dưới.
+ *     Không có gì của app nằm đè lên player.
+ * Cả hai chỉ là lớp trang trí — đổi nền, xem trước, video lỗi hay vào/thoát
+ * toàn màn hình KHÔNG đụng tới mốc bắt đầu, nên không thể làm sai thời gian phiên.
  *
  * XOAY NGANG: màn hình ngang chia hai cột (đồng hồ | nút bấm). Nút toàn màn
  * hình thử khoá hướng ngang; trình duyệt không cho thì nhắc tự xoay máy.
@@ -33,13 +36,15 @@ import {
   isSuspiciousDuration,
   removeTimerDistraction,
 } from "../lib/timer";
-import { getBackground, readDeviceHints, saveBackground, stillReason } from "../lib/background";
+import { NO_BACKGROUND, displayMode, getBackground, readDeviceHints, saveBackground, stillReason } from "../lib/background";
 import type { FocusBackground } from "../lib/background";
 import { canFullscreen, enterFullscreen, exitFullscreen, isFullscreen, onFullscreenChange } from "../lib/fullscreen";
 
 import BackgroundPicker from "../components/BackgroundPicker";
 import FocusBackdrop from "../components/FocusBackdrop";
 import type { BackdropStatus } from "../components/FocusBackdrop";
+import YouTubePlayer from "../components/YouTubePlayer";
+import type { PlayerStatus } from "../components/YouTubePlayer";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FocusBlockForm from "../components/FocusBlockForm";
 import { Button, SectionLabel, Tag } from "../components/ui";
@@ -100,7 +105,12 @@ export default function FocusSession({
   // Đọc một lần: máy yếu / giảm chuyển động / tiết kiệm dữ liệu -> ảnh tĩnh.
   const [stillNote] = useState(() => stillReason(readDeviceHints()));
   const shownBg = previewBg ?? savedBg;
-  const hasBg = shownBg.kind !== "none";
+  // Hai chế độ: "overlay" = nền phủ sau đồng hồ; "player" = YouTube trong
+  // khung riêng, đồng hồ ở vùng khác và KHÔNG phủ lên video.
+  const isPlayer = displayMode(shownBg) === "player";
+  // Thẻ trong suốt chỉ cần khi có nền phủ phía sau.
+  const hasBg = displayMode(shownBg) === "overlay";
+  const [playerStatus, setPlayerStatus] = useState<PlayerStatus>({ state: "loading" });
 
   const handlePreview = useCallback((bg: FocusBackground | null) => {
     setPreviewBg(bg);
@@ -203,9 +213,37 @@ export default function FocusSession({
   }
 
   return (
-    <div className="relative flex h-full flex-col">
-      <FocusBackdrop background={shownBg} still={stillNote !== null} onStatus={setBgStatus} />
+    <div className={`relative flex h-full flex-col ${isPlayer ? "bg-black landscape:flex-row" : ""}`}>
+      <FocusBackdrop background={isPlayer ? NO_BACKGROUND : shownBg} still={stillNote !== null} onStatus={setBgStatus} />
 
+      {/* ---------- Chế độ player: YouTube trong khung riêng ----------
+          Dọc: khung 16:9 ở trên, đồng hồ bên dưới.
+          Ngang: video chiếm phần lớn bên trái, cột đồng hồ bên phải.
+          Không có phần tử nào của app nằm đè lên khung này. */}
+      {isPlayer && shownBg.kind === "youtube" && (
+        <section
+          aria-label="Video YouTube"
+          className="relative z-10 aspect-video w-full shrink-0 bg-black landscape:aspect-auto landscape:h-full landscape:w-auto landscape:min-w-0 landscape:flex-1"
+        >
+          <YouTubePlayer
+            key={`${shownBg.videoId}:${shownBg.start ?? 0}`}
+            videoId={shownBg.videoId}
+            start={shownBg.start}
+            autoplay={stillNote === null}
+            onStatus={setPlayerStatus}
+          />
+        </section>
+      )}
+
+      {/* Vùng đồng hồ + nút. Ở chế độ nền phủ, "contents" làm lớp bọc này
+          biến mất khỏi bố cục — y như trước khi có chế độ player. */}
+      <div
+        className={
+          isPlayer
+            ? "relative z-10 flex min-h-0 flex-1 flex-col bg-canvas landscape:w-[min(340px,42vw)] landscape:flex-none landscape:border-l landscape:border-line"
+            : "contents"
+        }
+      >
       <header
         className={`relative z-10 border-b px-4 pt-4 pb-3 [@media(max-height:500px)]:pt-2 [@media(max-height:500px)]:pb-2 ${
           hasBg ? "border-white/10 bg-[color-mix(in_srgb,var(--canvas)_var(--glass),transparent)]" : "border-line bg-canvas/95"
@@ -255,6 +293,18 @@ export default function FocusSession({
         {!pickerOpen && bgStatus === "error" && hasBg && (
           <p className="mt-2 text-xs text-warn">Không tải được hình nền — đang dùng màu nền mặc định.</p>
         )}
+        {/* Trạng thái video YouTube — hiện ở vùng đồng hồ, không đè lên player. */}
+        {isPlayer && !pickerOpen && playerStatus.state === "error" && (
+          <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-bad/40 bg-surface-2 px-3 py-2 text-sm text-bad-ink">
+            <span>Video không phát được: {playerStatus.message}</span>
+            <button type="button" onClick={() => setPickerOpen(true)} className="tap-target shrink-0 px-2 text-sm font-semibold text-ink">
+              Đổi video
+            </button>
+          </div>
+        )}
+        {isPlayer && !pickerOpen && playerStatus.state === "blocked" && (
+          <p className="mt-2 text-xs text-warn">{playerStatus.message}</p>
+        )}
         {showRotateHint && (
           <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-accent/40 bg-surface-2 px-3 py-2 text-sm text-ink">
             <span>
@@ -270,7 +320,13 @@ export default function FocusSession({
       </header>
 
       <main className={`relative z-10 flex-1 overflow-y-auto px-4 py-4 [@media(max-height:500px)]:py-2`}>
-        <div className="mx-auto w-full max-w-5xl landscape:grid landscape:grid-cols-2 landscape:items-start landscape:gap-4">
+        <div
+          className={
+            isPlayer
+              ? "mx-auto w-full max-w-xl"
+              : "mx-auto w-full max-w-5xl landscape:grid landscape:grid-cols-2 landscape:items-start landscape:gap-4"
+          }
+        >
           {/* ---------- Đồng hồ (cột trái khi xoay ngang) ---------- */}
           <div className={`${panel} mb-4 flex flex-col items-center py-6 [@media(max-height:500px)]:py-3`}>
             <div className={`relative h-52 w-52 [@media(max-height:500px)]:h-40 [@media(max-height:500px)]:w-40`}>
@@ -370,6 +426,7 @@ export default function FocusSession({
           </div>
         </div>
       </main>
+      </div>
 
       {/* ---------- Hộp chọn hình nền ---------- */}
       {pickerOpen && (

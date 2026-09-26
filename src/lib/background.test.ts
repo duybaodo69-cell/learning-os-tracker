@@ -1,51 +1,67 @@
 /** Test kiểm tra link nền, đọc/ghi lựa chọn và phương án ảnh tĩnh. */
 import { describe, expect, it } from "vitest";
-import { checkBackgroundUrl, parseBackground, sameBackground, stillReason } from "./background";
+import { checkBackgroundUrl, describeBackground, displayMode, parseBackground, sameBackground, stillReason } from "./background";
 
-describe("checkBackgroundUrl — YouTube luôn bị từ chối rõ ràng", () => {
+describe("checkBackgroundUrl — link YouTube mở chế độ player (không bao giờ là nền phủ)", () => {
   const links = [
     "https://www.youtube.com/watch?v=HFM-EHduRrQ",
-    "https://youtube.com/watch?v=abc",
-    "https://m.youtube.com/watch?v=abc",
+    "https://youtube.com/watch?v=HFM-EHduRrQ",
+    "https://m.youtube.com/watch?v=HFM-EHduRrQ",
     "https://youtu.be/HFM-EHduRrQ",
-    "https://music.youtube.com/watch?v=abc",
-    "https://www.youtube-nocookie.com/embed/abc",
-    "https://www.youtube.com/shorts/abc",
+    "https://music.youtube.com/watch?v=HFM-EHduRrQ",
+    "https://www.youtube-nocookie.com/embed/HFM-EHduRrQ",
+    "https://www.youtube.com/shorts/HFM-EHduRrQ",
   ];
   for (const link of links) {
     it(link, () => {
       const r = checkBackgroundUrl(link);
-      expect(r.ok).toBe(false);
-      if (!r.ok) {
-        expect(r.reason).toBe("youtube");
-        expect(r.message).toContain("YouTube");
+      expect(r.ok).toBe(true);
+      if (r.ok) {
+        expect(r.background.kind).toBe("youtube");
+        expect(displayMode(r.background)).toBe("player");
       }
     });
   }
 
-  it("tên miền chỉ giống YouTube thì không bị nhầm", () => {
-    expect(checkBackgroundUrl("https://notyoutube.com/a.mp4").ok).toBe(true);
+  it("lấy đúng mã video và giây bắt đầu", () => {
+    expect(checkBackgroundUrl("https://youtu.be/HFM-EHduRrQ?t=90")).toEqual({
+      ok: true,
+      background: { kind: "youtube", videoId: "HFM-EHduRrQ", start: 90 },
+    });
+  });
+
+  it("link YouTube không trỏ tới video (kênh, playlist) -> báo rõ", () => {
+    for (const link of ["https://www.youtube.com/@SeanStudy", "https://www.youtube.com/playlist?list=PL1"]) {
+      const r = checkBackgroundUrl(link);
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.reason).toBe("youtube-no-video");
+    }
+  });
+
+  it("tên miền chỉ giống YouTube thì không bị nhầm — thành nền phủ bình thường", () => {
+    const r = checkBackgroundUrl("https://notyoutube.com/a.mp4");
+    expect(r.ok && r.background.kind).toBe("url");
   });
 });
 
 describe("checkBackgroundUrl — loại file", () => {
   it("nhận ra ảnh qua đuôi file, kể cả khi có ?query", () => {
-    expect(checkBackgroundUrl("https://x.com/a.JPG")).toMatchObject({ ok: true, media: "image" });
-    expect(checkBackgroundUrl("https://x.com/a.gif?w=1200#top")).toMatchObject({ ok: true, media: "image" });
-    expect(checkBackgroundUrl("https://x.com/a.webp")).toMatchObject({ ok: true, media: "image" });
+    expect(checkBackgroundUrl("https://x.com/a.JPG")).toMatchObject({ ok: true, background: { kind: "url", media: "image" } });
+    expect(checkBackgroundUrl("https://x.com/a.gif?w=1200#top")).toMatchObject({ ok: true, background: { kind: "url", media: "image" } });
+    expect(checkBackgroundUrl("https://x.com/a.webp")).toMatchObject({ ok: true, background: { kind: "url", media: "image" } });
   });
 
   it("nhận ra video mp4 / webm", () => {
-    expect(checkBackgroundUrl("https://x.com/v.mp4")).toMatchObject({ ok: true, media: "video" });
-    expect(checkBackgroundUrl("https://x.com/v.webm?t=1")).toMatchObject({ ok: true, media: "video" });
+    expect(checkBackgroundUrl("https://x.com/v.mp4")).toMatchObject({ ok: true, background: { kind: "url", media: "video" } });
+    expect(checkBackgroundUrl("https://x.com/v.webm?t=1")).toMatchObject({ ok: true, background: { kind: "url", media: "video" } });
   });
 
   it("không có đuôi file -> chưa rõ loại, sẽ thử khi hiển thị", () => {
-    expect(checkBackgroundUrl("https://images.example.com/photo/123")).toMatchObject({ ok: true, media: "unknown" });
+    expect(checkBackgroundUrl("https://images.example.com/photo/123")).toMatchObject({ ok: true, background: { kind: "url", media: "unknown" } });
   });
 
   it("bỏ khoảng trắng thừa khi dán", () => {
-    expect(checkBackgroundUrl("  https://x.com/a.png  ")).toMatchObject({ ok: true, url: "https://x.com/a.png" });
+    expect(checkBackgroundUrl("  https://x.com/a.png  ")).toMatchObject({ ok: true, background: { url: "https://x.com/a.png" } });
   });
 });
 
@@ -82,13 +98,23 @@ describe("parseBackground — đọc lựa chọn đã lưu", () => {
   it("cảnh không còn trong danh sách -> không nền, không làm vỡ app", () => {
     expect(parseBackground('{"kind":"preset","id":"da-bi-xoa"}')).toEqual({ kind: "none" });
   });
-  it("link đã lưu được kiểm tra lại (YouTube lọt vào bằng cách nào cũng bị bỏ)", () => {
-    expect(parseBackground('{"kind":"url","url":"https://youtu.be/x"}')).toEqual({ kind: "none" });
+  it("link đã lưu được kiểm tra lại: YouTube không bao giờ được coi là nền phủ", () => {
+    expect(parseBackground('{"kind":"url","url":"https://youtu.be/HFM-EHduRrQ"}')).toEqual({ kind: "none" });
     expect(parseBackground('{"kind":"url","url":"https://x.com/a.mp4"}')).toEqual({
       kind: "url",
       url: "https://x.com/a.mp4",
       media: "video",
     });
+  });
+  it("video YouTube đã lưu", () => {
+    expect(parseBackground('{"kind":"youtube","videoId":"HFM-EHduRrQ","start":90}')).toEqual({
+      kind: "youtube",
+      videoId: "HFM-EHduRrQ",
+      start: 90,
+    });
+  });
+  it("mã YouTube hỏng -> không nền", () => {
+    expect(parseBackground('{"kind":"youtube","videoId":"<script>"}')).toEqual({ kind: "none" });
   });
   it("JSON hỏng -> không nền", () => {
     expect(parseBackground("{hong")).toEqual({ kind: "none" });
@@ -121,5 +147,22 @@ describe("stillReason — khi nào dùng ảnh tĩnh thay video", () => {
   });
   it("trình duyệt không cho biết RAM/CPU -> không đoán bừa là máy yếu", () => {
     expect(stillReason({ reducedMotion: false, saveData: false })).toBeNull();
+  });
+});
+
+describe("displayMode / describeBackground — phân biệt hai chế độ", () => {
+  it("YouTube là player, còn lại là nền phủ", () => {
+    expect(displayMode({ kind: "youtube", videoId: "HFM-EHduRrQ" })).toBe("player");
+    expect(displayMode({ kind: "preset", id: "city-day-tokyo" })).toBe("overlay");
+    expect(displayMode({ kind: "url", url: "https://x.com/a.mp4", media: "video" })).toBe("overlay");
+    expect(displayMode({ kind: "none" })).toBe("none");
+  });
+  it("dòng 'Nền hiện tại' ghi rõ chế độ", () => {
+    expect(describeBackground({ kind: "youtube", videoId: "HFM-EHduRrQ" })).toBe("YouTube · Thượng Hải tới hoàng hôn");
+    expect(describeBackground({ kind: "youtube", videoId: "abcdefghijk" })).toBe("YouTube · video abcdefghijk");
+    expect(describeBackground({ kind: "preset", id: "city-day-tokyo" })).toBe("Nền phủ · Tokyo trong sương sớm");
+  });
+  it("hai video YouTube khác nhau không bị coi là một", () => {
+    expect(sameBackground({ kind: "youtube", videoId: "HFM-EHduRrQ" }, { kind: "youtube", videoId: "AdV-Gt6KjzI" })).toBe(false);
   });
 });

@@ -158,6 +158,8 @@ type ExperimentTag = {
 5. No network calls with user data, **except Dexie Cloud sync, and only after the owner has
    signed in** from Settings -> Đồng bộ. Before sign-in, and always in demo mode, nothing
    leaves the device (the local and demo stores do not even load the cloud addon).
+   The focus-session YouTube player loads YouTube (youtube-nocookie.com) only when the owner
+   picks a YouTube video; it sends no study data.
 6. **Real data is only entered on the production URL; the local dev URL is for testing only.**
    Production is https://learning-os-tracker.duybaodo69.workers.dev
    IndexedDB is per-origin, so `localhost:5173` and the production URL hold two completely separate
@@ -462,18 +464,38 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 
 ### Focus-session backgrounds — rules to keep
 
-- **Files:** `FocusBackdrop.tsx` (full-screen layer behind the clock), `BackgroundPicker.tsx`
-  (the "Hình nền" dialog), `lib/background.ts` (URL check, storage, still-image rules, tested),
-  `lib/fullscreen.ts` (fullscreen + landscape lock, never throws).
+- **Two display modes** (`displayMode()` in `lib/background.ts`):
+  - **overlay** — preset scenes / direct image-GIF-MP4-WebM links, full screen BEHIND the clock
+    (`FocusBackdrop.tsx`).
+  - **player** — YouTube links / YouTube presets, played with the official embedded player
+    (`YouTubePlayer.tsx`, IFrame API loaded on demand by `lib/youtubeApi.ts`, host
+    youtube-nocookie.com) in its OWN region: landscape = video left (~60%), clock column right
+    (`min(340px,42vw)`); portrait = 16:9 video on top, clock below. Nothing of the app may sit
+    on top of the player (YouTube terms) — no overlay, no hidden iframe, never as a backdrop.
+    A test asserts the clock and buttons are outside the player region.
+- **Files:** `BackgroundPicker.tsx` (the "Hình nền" dialog), `lib/background.ts` (link check →
+  mode, storage, still-image rules), `lib/youtube.ts` (link → video id + start, error texts),
+  `config/youtubePresets.ts` (6 study-with-me videos, embeddable per oEmbed 2026-09-26),
+  `lib/fullscreen.ts` (fullscreen + landscape lock, never throws). All tested.
 - **The background never touches the timer.** It is a sibling layer; the clock still derives
   from the stored start timestamp. `BackgroundPicker.test.tsx` proves a 10 s preview/apply keeps
   the clock counting and leaves the session keys untouched.
 - **Preview vs apply:** thumbnails and pasted links only preview. Only "Áp dụng" saves (key
   `learning-os:focus-background`, per device, not in backups, not synced). Apply stays disabled
-  until a pasted link has actually loaded — never a fake success.
-- **No YouTube, ever.** No downloads, no hidden iframe. YouTube / Vimeo / TikTok page links get
-  an explicit message. Only direct https image (.jpg/.png/.gif/.webp/.avif) or video
-  (.mp4/.webm) links; unknown extensions are tried as image, then video.
+  until the preview really works — overlay link loaded, or YouTube reported PLAYING (a mini
+  player inside the dialog, so the user can tap ▶ when autoplay is blocked). Editing the link
+  sets `pending` and locks Apply until the NEW link is previewed; otherwise a fast tap saved the
+  previous video. Never a fake success.
+- **YouTube player statuses:** loading / playing / blocked (no PLAYING within 6 s, or autoplay off
+  for reduced motion → "bấm ▶") / error (IFrame error codes via `describeYouTubeError`; 101/150
+  mean embedding disabled OR video gone — YouTube uses one code for both, so say both; offline or
+  API blocked → error after at most 15 s). Autoplay is always muted; unmute with YouTube's own
+  button. Video pauses when the page is hidden.
+- **Links:** YouTube watch / youtu.be / m. / music. / shorts / live / embed / nocookie, with
+  `t=` / `start=` → player. Channel / playlist / search links → explicit "không trỏ tới một
+  video". Vimeo / TikTok page links → explicit message. Direct https image
+  (.jpg/.png/.gif/.webp/.avif) or video (.mp4/.webm) → overlay; unknown extensions are tried as
+  image, then video.
 - **Preset videos must have a licence that allows a public website** (CC0 / CC BY / CC BY-SA or
   written permission). All current ones are Wikimedia Commons; `public/backgrounds/CREDITS.md`
   and each preset's `source` field hold author + licence, shown under "Nguồn & giấy phép video".
@@ -498,7 +520,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 ```bash
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # type-check + production build
-npm test                # unit tests (299: lib/ logic, db upgrade, hooks, background picker, worker)
+npm test                # unit tests (341: lib/ logic, db upgrade, hooks, background picker, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

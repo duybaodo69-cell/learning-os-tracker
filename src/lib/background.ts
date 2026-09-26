@@ -8,28 +8,44 @@
  * Toàn bộ phần kiểm tra là hàm thuần, có test trong background.test.ts.
  */
 import { findPreset } from "../config/backgrounds";
+import { findYouTubePreset } from "../config/youtubePresets";
+import { isYouTubeHost, parseYouTube } from "./youtube";
 
 export type MediaKind = "image" | "video";
 
 /**
- * Một lựa chọn nền:
- *   none   — không có nền (màu nền app như cũ)
- *   preset — một cảnh có sẵn trong src/config/backgrounds.ts
- *   url    — link ảnh/video người dùng tự dán. `media` = "unknown" khi đuôi
- *            file không cho biết loại; lúc hiển thị sẽ thử ảnh trước, video sau.
+ * Một lựa chọn nền. Có HAI chế độ hiển thị khác nhau:
+ *
+ * NỀN PHỦ sau đồng hồ (FocusBackdrop):
+ *   preset  — một cảnh có sẵn trong src/config/backgrounds.ts
+ *   url     — link ảnh/video trực tiếp người dùng tự dán. `media` = "unknown"
+ *             khi đuôi file không cho biết loại; lúc hiển thị thử ảnh trước, video sau.
+ *
+ * PLAYER YOUTUBE trong khung riêng (YouTubePlayer), đồng hồ nằm bên cạnh /
+ * bên dưới, KHÔNG phủ lên video:
+ *   youtube — mã video 11 ký tự + giây bắt đầu (nếu link có &t=)
+ *
+ *   none    — không có nền (màu nền app như cũ)
  */
 export type FocusBackground =
   | { kind: "none" }
   | { kind: "preset"; id: string }
-  | { kind: "url"; url: string; media: MediaKind | "unknown" };
+  | { kind: "url"; url: string; media: MediaKind | "unknown" }
+  | { kind: "youtube"; videoId: string; start?: number };
+
+/** Chế độ hiển thị của một lựa chọn: phủ sau đồng hồ, hay player riêng. */
+export function displayMode(bg: FocusBackground): "none" | "overlay" | "player" {
+  if (bg.kind === "none") return "none";
+  return bg.kind === "youtube" ? "player" : "overlay";
+}
 
 export const NO_BACKGROUND: FocusBackground = { kind: "none" };
 
 /* ==================== Kiểm tra link ==================== */
 
 export type UrlCheck =
-  | { ok: true; url: string; media: MediaKind | "unknown" }
-  | { ok: false; reason: "empty" | "invalid" | "not-https" | "youtube" | "video-page"; message: string };
+  | { ok: true; background: Extract<FocusBackground, { kind: "url" | "youtube" }> }
+  | { ok: false; reason: "empty" | "invalid" | "not-https" | "youtube-no-video" | "video-page"; message: string };
 
 const IMAGE_EXT = ["jpg", "jpeg", "png", "gif", "webp", "avif"];
 const VIDEO_EXT = ["mp4", "webm", "m4v", "mov"];
@@ -42,11 +58,13 @@ function hostIs(host: string, domain: string): boolean {
 }
 
 /**
- * Link dán vào có dùng làm nền được không.
+ * Link dán vào dùng được không, và dùng ở chế độ nào.
  *
- * YouTube bị từ chối rõ ràng: YouTube không cho lấy file video, và đặt
- * một khung YouTube ẩn dưới đồng hồ vừa trái điều khoản vừa không tự phát
- * được trên điện thoại. Thà báo thẳng còn hơn hiện "thành công" giả.
+ *   Link YouTube có mã video  -> chế độ PLAYER (player nhúng chính thức, khung riêng)
+ *   Link file ảnh/video https -> chế độ NỀN PHỦ sau đồng hồ
+ *
+ * YouTube KHÔNG BAO GIỜ được đặt làm nền phủ hay ẩn dưới đồng hồ: điều khoản
+ * của YouTube cấm che player, và app cũng không tải file video từ YouTube.
  */
 export function checkBackgroundUrl(input: string): UrlCheck {
   const text = input.trim();
@@ -60,12 +78,13 @@ export function checkBackgroundUrl(input: string): UrlCheck {
   }
 
   const host = url.hostname.toLowerCase();
-  if (hostIs(host, "youtube.com") || hostIs(host, "youtu.be") || hostIs(host, "youtube-nocookie.com")) {
+  if (isYouTubeHost(host)) {
+    const yt = parseYouTube(text);
+    if (yt) return { ok: true, background: { kind: "youtube", ...yt } };
     return {
       ok: false,
-      reason: "youtube",
-      message:
-        "Link YouTube không dùng làm nền được: YouTube không cho lấy file video để phát nền. Muốn dùng đúng video đó, cần file gốc (.mp4/.webm) và quyền sử dụng từ tác giả.",
+      reason: "youtube-no-video",
+      message: "Link YouTube này không trỏ tới một video (có thể là link kênh, playlist hay trang tìm kiếm). Mở video rồi sao chép link của video đó.",
     };
   }
   if (VIDEO_PAGE_HOSTS.some((d) => hostIs(host, d))) {
@@ -90,7 +109,7 @@ export function checkBackgroundUrl(input: string): UrlCheck {
     : VIDEO_EXT.includes(ext)
       ? "video"
       : "unknown";
-  return { ok: true, url: url.href, media };
+  return { ok: true, background: { kind: "url", url: url.href, media } };
 }
 
 /* ==================== Lưu trên máy ==================== */
@@ -101,13 +120,17 @@ export const BACKGROUND_KEY = "learning-os:focus-background";
 export function parseBackground(raw: string | null): FocusBackground {
   if (!raw) return NO_BACKGROUND;
   try {
-    const v = JSON.parse(raw) as Partial<{ kind: string; id: string; url: string; media: string }>;
+    const v = JSON.parse(raw) as Partial<{ kind: string; id: string; url: string; media: string; videoId: string; start: number }>;
     if (v.kind === "preset" && typeof v.id === "string" && findPreset(v.id)) {
       return { kind: "preset", id: v.id };
     }
     if (v.kind === "url" && typeof v.url === "string") {
       const check = checkBackgroundUrl(v.url);
-      if (check.ok) return { kind: "url", url: check.url, media: check.media };
+      if (check.ok && check.background.kind === "url") return check.background;
+    }
+    if (v.kind === "youtube" && typeof v.videoId === "string" && /^[A-Za-z0-9_-]{11}$/.test(v.videoId)) {
+      const start = typeof v.start === "number" && v.start > 0 ? Math.floor(v.start) : undefined;
+      return start ? { kind: "youtube", videoId: v.videoId, start } : { kind: "youtube", videoId: v.videoId };
     }
   } catch {
     /* hỏng thì coi như chưa chọn */
@@ -136,14 +159,19 @@ export function sameBackground(a: FocusBackground, b: FocusBackground): boolean 
   if (a.kind !== b.kind) return false;
   if (a.kind === "preset" && b.kind === "preset") return a.id === b.id;
   if (a.kind === "url" && b.kind === "url") return a.url === b.url;
+  if (a.kind === "youtube" && b.kind === "youtube") return a.videoId === b.videoId && a.start === b.start;
   return true;
 }
 
 /** Mô tả ngắn để hiện dòng "Nền hiện tại". */
 export function describeBackground(bg: FocusBackground): string {
   if (bg.kind === "none") return "Không có";
-  if (bg.kind === "preset") return findPreset(bg.id)?.label ?? "Không có";
-  return bg.url;
+  if (bg.kind === "preset") return `Nền phủ · ${findPreset(bg.id)?.label ?? "?"}`;
+  if (bg.kind === "youtube") {
+    const p = findYouTubePreset(bg.videoId);
+    return `YouTube · ${p ? p.label : `video ${bg.videoId}`}`;
+  }
+  return `Nền phủ · ${bg.url}`;
 }
 
 /* ==================== Tiết kiệm tài nguyên ==================== */
