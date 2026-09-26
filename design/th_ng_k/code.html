@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "tertiary-fixed-dim": "#4edea3", "on-tertiary-fixed-variant": "#005236", "surface-bright": "#37393e", "surface-container": "#1e2024", "surface-container-high": "#282a2e", "primary-container": "#38bdf8", "secondary-fixed": "#e1e0ff", "surface-container-low": "#1a1c20", "on-primary": "#00354a", "inverse-surface": "#e2e2e8", "secondary": "#c0c1ff", "background": "#111317", "tertiary-container": "#30c88f", "on-tertiary-fixed": "#002113", "secondary-container": "#3131c0", "surface": "#111317", "on-error": "#690005", "on-secondary": "#1000a9", "on-secondary-container": "#b0b2ff", "outline": "#87929a", "on-surface": "#e2e2e8", "surface-variant": "#333539", "error": "#ffb4ab", "on-tertiary": "#003824", "on-primary-fixed-variant": "#004c69", "surface-container-lowest": "#0c0e12", "surface-container-highest": "#333539", "on-tertiary-container": "#004e34", "primary-fixed": "#c4e7ff", "on-primary-fixed": "#001e2c", "on-error-container": "#ffdad6", "tertiary-fixed": "#6ffbbe", "on-secondary-fixed": "#07006c", "on-secondary-fixed-variant": "#2f2ebe", "inverse-primary": "#00668a", "surface-tint": "#7bd0ff", "primary-fixed-dim": "#7bd0ff", "tertiary": "#56e5a9", "error-container": "#93000a", "on-surface-variant": "#bdc8d1", "on-background": "#e2e2e8", "inverse-on-surface": "#2f3035", "surface-dim": "#111317", "outline-variant": "#3e484f", "on-primary-container": "#004965", "secondary-fixed-dim": "#c0c1ff", "primary": "#8ed5ff" }, borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, spacing: { "space-md": "0.75rem", "space-xs": "0.25rem", "space-lg": "1rem", "margin-desktop": "2rem", "gutter-desktop": "1.5rem", "margin": "1rem", "gutter": "1rem", "space-sm": "0.5rem", "space-xl": "1.5rem" }, fontFamily: { "headline-lg": ["Geist"], "headline-xl": ["Geist"], "headline-md": ["Geist"], "headline-sm": ["Geist"], "data-display": ["Geist"], "label-md": ["Geist"], "body-lg": ["Be Vietnam Pro"], "label-sm": ["Geist"], "headline-xl-mobile": ["Geist"], "body-sm": ["Be Vietnam Pro"], "data-mono": ["Geist"], "body-md": ["Be Vietnam Pro"] }, fontSize: { "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "headline-xl": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "500" }], "headline-sm": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "500" }], "data-display": ["28px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500" }], "body-lg": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "400" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.06em", "fontWeight": "600" }], "headline-xl-mobile": ["26px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "body-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }], "data-mono": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "500" }], "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }] } } } };</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#0c0e12;color:#e2e2e8;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface-container-lowest font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface-container-lowest/85 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.4)]"><div class="h-14 px-margin flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div><h1 class="font-headline-sm text-headline-sm uppercase tracking-wider text-on-surface">Thống Kê</h1></div><div class="flex items-center gap-space-xs font-data-mono text-label-sm text-on-surface-variant bg-surface-container-high/60 px-2 py-1 rounded"><span class="material-symbols-outlined text-[14px] text-tertiary">query_stats</span><span>SYS_ACTIVE</span></div></div></header><main class="flex-1 flex flex-col relative w-full pt-14 pb-20 bg-surface-container-lowest"><div class="flex flex-col w-full px-margin pb-space-xl space-y-space-md">
+<!-- Timeframe Selector -->
+<div class="flex items-center justify-between pt-space-xs">
+<div>
+<h2 class="font-headline-md text-headline-md tracking-tight text-on-surface">Thống kê hiệu suất</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Hệ thống phân tích định lượng v4.2</p>
+</div>
+<div class="flex bg-surface-container-high p-0.5 rounded-lg" id="timeframe-tabs">
+<button class="px-2.5 py-1 rounded font-label-sm text-label-sm text-on-primary bg-primary-container shadow-sm transition-all" data-tab="week">Tuần</button>
+<button class="px-2.5 py-1 rounded font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-all" data-tab="4w">4 tuần</button>
+<button class="px-2.5 py-1 rounded font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-all" data-tab="all">Từ đầu</button>
+</div>
+</div>
+<!-- Metric Matrix (Summary Rows) -->
+<div class="bg-surface-container-low rounded-xl p-space-md space-y-2">
+<div class="flex items-center justify-between pb-1">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Chỉ số vận hành cốt lõi</span>
+<span class="font-data-mono text-label-sm text-on-surface-variant">Δ: so cùng số ngày (n=7)</span>
+</div>
+<!-- Row 1: Giấc ngủ TB -->
+<div class="flex items-center justify-between py-1.5 px-2 rounded bg-surface-container/60 hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary">bedtime</span>
+<span class="font-body-sm text-body-sm text-on-surface">Giấc ngủ TB</span>
+</div>
+<div class="text-right flex items-baseline gap-2">
+<span class="font-data-display text-[16px] text-on-surface">6.9h</span>
+<span class="font-data-mono text-label-sm text-on-surface-variant">±0.3h so cùng số ngày</span>
+</div>
+</div>
+<!-- Row 2: Độ lệch giờ dậy -->
+<div class="flex items-center justify-between py-1.5 px-2 rounded bg-surface-container/60 hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-tertiary">alarm</span>
+<span class="font-body-sm text-body-sm text-on-surface">Độ lệch giờ dậy (SD)</span>
+</div>
+<div class="text-right flex items-baseline gap-2">
+<span class="font-data-display text-[16px] text-on-surface">±24 phút</span>
+<span class="font-data-mono text-label-sm text-tertiary">giảm 12m so cùng số ngày</span>
+</div>
+</div>
+<!-- Row 3: Tổng Deep work -->
+<div class="flex items-center justify-between py-1.5 px-2 rounded bg-surface-container/60 hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary">psychology</span>
+<span class="font-body-sm text-body-sm text-on-surface">Tổng Deep work</span>
+</div>
+<div class="text-right flex items-baseline gap-2">
+<div class="flex items-baseline gap-1">
+<span class="font-data-display text-[16px] text-on-surface">24.5h</span>
+<span class="font-data-mono text-label-sm text-outline">(1,470 phút)</span>
+</div>
+<span class="font-data-mono text-label-sm text-tertiary">+2.1h so cùng số ngày</span>
+</div>
+</div>
+<!-- Row 4: Phân tâm bình quân -->
+<div class="flex items-center justify-between py-1.5 px-2 rounded bg-surface-container/60 hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-secondary">adjust</span>
+<span class="font-body-sm text-body-sm text-on-surface">Phân tâm bình quân</span>
+</div>
+<div class="text-right flex items-baseline gap-2">
+<span class="font-data-display text-[16px] text-on-surface">1.8 <span class="font-data-mono text-label-sm text-on-surface-variant">/ block</span></span>
+<span class="font-data-mono text-label-sm text-tertiary">giảm 0.5 so cùng số ngày</span>
+</div>
+</div>
+<!-- Row 5: Thẻ đã ôn tập -->
+<div class="flex items-center justify-between py-1.5 px-2 rounded bg-surface-container/60 hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary-fixed-dim">style</span>
+<span class="font-body-sm text-body-sm text-on-surface">Thẻ đã ôn tập</span>
+</div>
+<div class="text-right flex items-baseline gap-2">
+<span class="font-data-display text-[16px] text-on-surface">142 thẻ</span>
+<span class="font-data-mono text-label-sm text-on-surface-variant">Retention: 84%</span>
+</div>
+</div>
+<!-- Row 6: Điểm Brier -->
+<div class="flex items-center justify-between py-1.5 px-2 rounded bg-surface-container/60 hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-tertiary">calculate</span>
+<span class="font-body-sm text-body-sm text-on-surface">Điểm Brier (30 ngày)</span>
+</div>
+<div class="text-right flex items-baseline gap-2">
+<span class="font-data-display text-[16px] text-tertiary">0.182</span>
+<span class="font-data-mono text-label-sm text-tertiary-fixed-dim">tốt hơn chuẩn 0.250</span>
+</div>
+</div>
+<!-- Row 7: Kỷ luật ghi nhận -->
+<div class="flex items-center justify-between py-1.5 px-2 rounded bg-surface-container/60 hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">history_edu</span>
+<span class="font-body-sm text-body-sm text-on-surface">Kỷ luật ghi nhận</span>
+</div>
+<div class="text-right flex items-baseline gap-2">
+<span class="font-data-mono text-body-sm text-on-surface">12/14 ngày đã log</span>
+<span class="font-data-mono text-label-sm text-outline-variant text-on-surface-variant">(Tuần này: 6/7 ngày)</span>
+</div>
+</div>
+</div>
+<!-- Deep Work Weekly Bars (Pure Empirical Hours) -->
+<div class="bg-surface-container-low rounded-xl p-space-md space-y-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary">bar_chart</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Deep work theo ngày</span>
+</div>
+<span class="font-data-mono text-label-sm text-on-surface-variant">Tổng: 24.5h</span>
+</div>
+<!-- Custom Micro Bar Chart (Mobile optimized inline SVG) -->
+<div class="w-full pt-2">
+<svg class="w-full overflow-visible" preserveaspectratio="none" viewbox="0 0 320 110">
+<!-- Reference Grid Lines -->
+<line stroke="#333539" stroke-dasharray="2 3" stroke-width="0.75" x1="20" x2="310" y1="20" y2="20"></line>
+<line stroke="#333539" stroke-dasharray="2 3" stroke-width="0.75" x1="20" x2="310" y1="50" y2="50"></line>
+<line stroke="#333539" stroke-width="0.75" x1="20" x2="310" y1="80" y2="80"></line>
+<text fill="#87929a" font-family="Geist" font-size="8" text-anchor="end" x="14" y="23">5h</text>
+<text fill="#87929a" font-family="Geist" font-size="8" text-anchor="end" x="14" y="53">2.5h</text>
+<!-- T2: 3.5h (height: 42) -->
+<rect fill="#38bdf8" fill-opacity="0.8" height="42" rx="2" width="24" x="30" y="38"></rect>
+<text fill="#e2e2e8" font-family="Geist" font-size="9" text-anchor="middle" x="42" y="33">3.5</text>
+<text fill="#87929a" font-family="Geist" font-size="9" text-anchor="middle" x="42" y="94">T2</text>
+<!-- T3: 4.8h (height: 57.6) -->
+<rect fill="#38bdf8" height="57.6" rx="2" width="24" x="72" y="22.4"></rect>
+<text fill="#e2e2e8" font-family="Geist" font-size="9" text-anchor="middle" x="84" y="17.4">4.8</text>
+<text fill="#87929a" font-family="Geist" font-size="9" text-anchor="middle" x="84" y="94">T3</text>
+<!-- T4: 3.2h (height: 38.4) -->
+<rect fill="#38bdf8" fill-opacity="0.8" height="38.4" rx="2" width="24" x="114" y="41.6"></rect>
+<text fill="#e2e2e8" font-family="Geist" font-size="9" text-anchor="middle" x="126" y="36.6">3.2</text>
+<text fill="#87929a" font-family="Geist" font-size="9" text-anchor="middle" x="126" y="94">T4</text>
+<!-- T5: 4.1h (height: 49.2) -->
+<rect fill="#38bdf8" height="49.2" rx="2" width="24" x="156" y="30.8"></rect>
+<text fill="#e2e2e8" font-family="Geist" font-size="9" text-anchor="middle" x="168" y="25.8">4.1</text>
+<text fill="#87929a" font-family="Geist" font-size="9" text-anchor="middle" x="168" y="94">T5</text>
+<!-- T6: 4.5h (height: 54) -->
+<rect fill="#38bdf8" height="54" rx="2" width="24" x="198" y="26"></rect>
+<text fill="#e2e2e8" font-family="Geist" font-size="9" text-anchor="middle" x="210" y="21">4.5</text>
+<text fill="#87929a" font-family="Geist" font-size="9" text-anchor="middle" x="210" y="94">T6</text>
+<!-- T7: 3.0h (height: 36) -->
+<rect fill="#38bdf8" fill-opacity="0.75" height="36" rx="2" width="24" x="240" y="44"></rect>
+<text fill="#e2e2e8" font-family="Geist" font-size="9" text-anchor="middle" x="252" y="39">3.0</text>
+<text fill="#87929a" font-family="Geist" font-size="9" text-anchor="middle" x="252" y="94">T7</text>
+<!-- CN: 1.4h (height: 16.8) -->
+<rect fill="#87929a" fill-opacity="0.45" height="16.8" rx="2" width="24" x="282" y="63.2"></rect>
+<text fill="#bdc8d1" font-family="Geist" font-size="9" text-anchor="middle" x="294" y="58.2">1.4</text>
+<text fill="#87929a" font-family="Geist" font-size="9" text-anchor="middle" x="294" y="94">CN</text>
+</svg>
+</div>
+</div>
+<!-- Area Breakdown (Strict Finance Areas Only) -->
+<div class="bg-surface-container-low rounded-xl p-space-md space-y-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-tertiary">pie_chart</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Phân bổ chuyên môn</span>
+</div>
+<span class="font-data-mono text-label-sm text-on-surface-variant">Finance / Research</span>
+</div>
+<!-- Stacked Segment Bar -->
+<div class="h-2 w-full flex rounded-full overflow-hidden bg-surface-container-highest">
+<div class="bg-[#38bdf8] h-full" style="width: 39%" title="Internship VC"></div>
+<div class="bg-[#4edea3] h-full" style="width: 25%" title="Financial modeling"></div>
+<div class="bg-[#c0c1ff] h-full" style="width: 16%" title="IM/Memo"></div>
+<div class="bg-[#f59e0b] h-full" style="width: 11%" title="IELTS"></div>
+<div class="bg-[#87929a] h-full" style="width: 9%" title="EFM / AFEP / BFN"></div>
+</div>
+<!-- Rows with Empirical Weights -->
+<div class="space-y-1.5 pt-1">
+<div class="flex items-center justify-between text-body-sm font-body-sm py-0.5">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-[#38bdf8]"></div>
+<span class="text-on-surface">Internship VC</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-on-surface">9.5h</span>
+<span class="font-data-mono text-label-sm text-on-surface-variant">39%</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm py-0.5">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-[#4edea3]"></div>
+<span class="text-on-surface">Financial modeling</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-on-surface">6.2h</span>
+<span class="font-data-mono text-label-sm text-on-surface-variant">25%</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm py-0.5">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-[#c0c1ff]"></div>
+<span class="text-on-surface">IM / Investment Memo</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-on-surface">4.0h</span>
+<span class="font-data-mono text-label-sm text-on-surface-variant">16%</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm py-0.5">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-[#f59e0b]"></div>
+<span class="text-on-surface">IELTS Academic</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-on-surface">2.8h</span>
+<span class="font-data-mono text-label-sm text-on-surface-variant">11%</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm py-0.5">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-[#87929a]"></div>
+<span class="text-on-surface">EFM / AFEP / BFN (Đại học)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-on-surface">2.0h</span>
+<span class="font-data-mono text-label-sm text-on-surface-variant">9%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Baseline Comparison (Weeks 1-2) -->
+<div class="bg-surface-container-low rounded-xl p-space-md space-y-space-sm">
+<div class="flex items-center justify-between border-b-0 pb-1">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">So với baseline (Tuần 1–2)</h3>
+<p class="font-data-mono text-label-sm text-on-surface-variant">(n = 14 ngày baseline vs n = 12 ngày hiện tại)</p>
+</div>
+<span class="material-symbols-outlined text-outline text-[18px]">compare_arrows</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm pt-1">
+<div class="p-2.5 rounded-lg bg-surface-container/70 flex flex-col justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Deep work / ngày</span>
+<div class="mt-1">
+<div class="flex items-baseline gap-1.5">
+<span class="font-data-display text-[20px] text-on-surface">3.5h</span>
+<span class="font-data-mono text-body-sm text-on-surface-variant">vs 2.6h</span>
+</div>
+<div class="flex items-center gap-1 mt-0.5 text-tertiary">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+<span class="font-data-mono text-label-sm font-semibold">+34.6%</span>
+</div>
+</div>
+</div>
+<div class="p-2.5 rounded-lg bg-surface-container/70 flex flex-col justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Phân tâm / block</span>
+<div class="mt-1">
+<div class="flex items-baseline gap-1.5">
+<span class="font-data-display text-[20px] text-on-surface">1.8</span>
+<span class="font-data-mono text-body-sm text-on-surface-variant">vs 3.4</span>
+</div>
+<div class="flex items-center gap-1 mt-0.5 text-tertiary">
+<span class="material-symbols-outlined text-[14px]">arrow_downward</span>
+<span class="font-data-mono text-label-sm font-semibold">-47.1%</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Correlation Chart: Sleep vs Deep Work -->
+<div class="bg-surface-container-low rounded-xl p-space-md space-y-space-sm">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Giấc ngủ đêm qua vs Deep work hôm nay</h3>
+<p class="font-label-sm text-label-sm text-outline">Tương quan thực nghiệm cùng ngày</p>
+</div>
+<span class="material-symbols-outlined text-[18px] text-primary">scatter_plot</span>
+</div>
+<!-- Inline Scatter Representation -->
+<div class="relative bg-surface-container/50 rounded-lg p-3 pt-4">
+<svg class="w-full overflow-visible" viewbox="0 0 280 120">
+<!-- Axes -->
+<line stroke="#333539" stroke-width="1" x1="30" x2="30" y1="10" y2="100"></line>
+<line stroke="#333539" stroke-width="1" x1="30" x2="270" y1="100" y2="100"></line>
+<!-- Y labels (Deep work: 0 to 5h) -->
+<text fill="#87929a" font-family="Geist" font-size="8" text-anchor="end" x="25" y="103">0h</text>
+<text fill="#87929a" font-family="Geist" font-size="8" text-anchor="end" x="25" y="58">2.5h</text>
+<text fill="#87929a" font-family="Geist" font-size="8" text-anchor="end" x="25" y="14">5h</text>
+<!-- X labels (Sleep: 5h to 9h) -->
+<text fill="#87929a" font-family="Geist" font-size="8" text-anchor="middle" x="30" y="112">5h</text>
+<text fill="#87929a" font-family="Geist" font-size="8" text-anchor="middle" x="90" y="112">6h</text>
+<text fill="#87929a" font-family="Geist" font-size="8" text-anchor="middle" x="150" y="112">7h</text>
+<text fill="#87929a" font-family="Geist" font-size="8" text-anchor="middle" x="210" y="112">8h</text>
+<text fill="#87929a" font-family="Geist" font-size="8" text-anchor="middle" x="270" y="112">9h</text>
+<!-- Trendline (r = 0.62) -->
+<line opacity="0.6" stroke="#38bdf8" stroke-dasharray="3 3" stroke-width="1" x1="85" x2="225" y1="65" y2="22"></line>
+<!-- Specific Empirical Points -->
+<!-- Point 1: 6h ngủ -> 2.1h DW (X: 90, Y: 100 - (2.1/5)*90 = 62.2) -->
+<circle class="animate-pulse" cx="90" cy="62.2" fill="#38bdf8" r="4.5"></circle>
+<text fill="#e2e2e8" font-family="Geist" font-size="8" x="96" y="60">6h: 2.1h</text>
+<!-- Point 2: 7h ngủ -> 3.8h DW (X: 150, Y: 100 - (3.8/5)*90 = 31.6) -->
+<circle cx="150" cy="31.6" fill="#38bdf8" r="4.5"></circle>
+<text fill="#e2e2e8" font-family="Geist" font-size="8" x="156" y="30">7h: 3.8h</text>
+<!-- Point 3: 7.5h ngủ -> 4.2h DW (X: 180, Y: 100 - (4.2/5)*90 = 24.4) -->
+<circle cx="180" cy="24.4" fill="#56e5a9" r="5"></circle>
+<text fill="#56e5a9" font-family="Geist" font-size="8" x="186" y="21">7.5h: 4.2h</text>
+<!-- Point 4: 8h ngủ -> 3.9h DW (X: 210, Y: 100 - (3.9/5)*90 = 29.8) -->
+<circle cx="210" cy="29.8" fill="#38bdf8" r="4.5"></circle>
+<text fill="#e2e2e8" font-family="Geist" font-size="8" x="216" y="35">8h: 3.9h</text>
+</svg>
+</div>
+<div class="flex items-center gap-1.5 px-2 py-1.5 rounded bg-surface-container text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-tertiary">insights</span>
+<span class="font-data-mono text-label-sm">Hệ số tương quan <span class="text-tertiary">r = +0.62</span> (n = 12 ngày, đủ độ tin cậy ban đầu)</span>
+</div>
+</div>
+<!-- Energy Check-in Correlation (With strict sample size thresholds) -->
+<div class="bg-surface-container-low rounded-xl p-space-md space-y-space-sm">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Năng lượng check-in → Deep work TB</h3>
+<p class="font-label-sm text-label-sm text-outline">Thang đo tự lượng giá 1–5</p>
+</div>
+<span class="material-symbols-outlined text-[18px] text-secondary">bolt</span>
+</div>
+<div class="space-y-1.5 pt-1">
+<!-- Mức 1 -->
+<div class="flex items-center justify-between p-2 rounded bg-surface-container/40">
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-label-sm w-4 text-outline">L1</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Rất thấp</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-label-sm text-error bg-error-container/20 px-1.5 py-0.5 rounded">chưa đủ dữ liệu</span>
+<span class="font-data-mono text-label-sm text-outline">(n = 1)</span>
+</div>
+</div>
+<!-- Mức 2 -->
+<div class="flex items-center justify-between p-2 rounded bg-surface-container/40">
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-label-sm w-4 text-outline">L2</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Thấp</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-body-sm text-on-surface">1.2h / ngày</span>
+<span class="font-data-mono text-label-sm text-error bg-error-container/20 px-1.5 py-0.5 rounded">chưa đủ dữ liệu</span>
+<span class="font-data-mono text-label-sm text-outline">(n = 2)</span>
+</div>
+</div>
+<!-- Mức 3 -->
+<div class="flex items-center justify-between p-2 rounded bg-surface-container/40">
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-label-sm w-4 text-outline">L3</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Bình thường</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-body-sm text-on-surface">2.8h / ngày</span>
+<span class="font-data-mono text-label-sm text-error bg-error-container/20 px-1.5 py-0.5 rounded">chưa đủ dữ liệu</span>
+<span class="font-data-mono text-label-sm text-outline">(n = 4)</span>
+</div>
+</div>
+<!-- Mức 4 -->
+<div class="flex items-center justify-between p-2 rounded bg-surface-container/40">
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-label-sm w-4 text-outline">L4</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Tốt</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-body-sm text-on-surface">4.1h / ngày</span>
+<span class="font-data-mono text-label-sm text-error bg-error-container/20 px-1.5 py-0.5 rounded">chưa đủ dữ liệu</span>
+<span class="font-data-mono text-label-sm text-outline">(n = 5)</span>
+</div>
+</div>
+<!-- Mức 5 -->
+<div class="flex items-center justify-between p-2 rounded bg-surface-container/40">
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-label-sm w-4 text-outline">L5</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Tối ưu</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-data-mono text-label-sm text-error bg-error-container/20 px-1.5 py-0.5 rounded">chưa đủ dữ liệu</span>
+<span class="font-data-mono text-label-sm text-outline">(n = 0)</span>
+</div>
+</div>
+</div>
+<div class="p-2 rounded bg-surface-container-high/50 flex items-start gap-2">
+<span class="material-symbols-outlined text-[15px] text-outline mt-0.5">info</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+        Cần tối thiểu 10 ngày ghi nhận trên mỗi mức năng lượng để rút ra kết luận định lượng chuẩn xác (hiện tại toàn bộ các mức n &lt; 10).
+      </p>
+</div>
+</div>
+<!-- Prominent Action: Markdown Export for LLM Evaluation -->
+<div class="pt-space-xs">
+<button class="w-full py-3 px-4 rounded-xl bg-primary-container text-on-primary font-headline-sm text-headline-sm flex items-center justify-center gap-2 active:scale-[0.99] transition-transform shadow-md" id="copy-claude-btn">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+<span>📋 Sao chép tóm tắt tuần cho Claude</span>
+</button>
+<div class="hidden font-data-mono text-label-sm text-tertiary text-center pt-2" id="copy-toast">
+      ✓ Đã sao chép Markdown thống kê vào bộ nhớ tạm
+    </div>
+</div>
+</div>
+<script>
+  // Copy to clipboard formatted strictly as clean empirical Markdown
+  document.getElementById('copy-claude-btn')?.addEventListener('click', () => {
+    const markdownSummary = `### QUANTITATIVE PERFORMANCE SUMMARY (WEEKLY REPORT)
+- Period: Last 7 days (Logged: 6/7 days | Total log: 12/14 days)
+- Baseline: Tuần 1–2 (n = 14) vs Tuần hiện tại (n = 12)
+
+#### 1. Core Operating Metrics (vs Same-day baseline):
+- Giấc ngủ TB: 6.9h (±0.3h so cùng số ngày)
+- Độ lệch giờ dậy (SD): ±24 phút (giảm 12m so cùng số ngày)
+- Tổng Deep work: 24.5h (1,470 phút) (+2.1h so cùng số ngày)
+- Phân tâm TB: 1.8 lần/block (giảm 0.5/block so cùng số ngày)
+- Thẻ SRS: 142 thẻ ôn tập (Retention: 84%)
+- Điểm Brier (30 ngày): 0.182 (so với benchmark 0.250)
+
+#### 2. Baseline Variance:
+- Deep work/ngày: 3.5h vs baseline 2.6h (+34.6%)
+- Phân tâm/block: 1.8 vs baseline 3.4 (-47.1%)
+
+#### 3. Empirical Correlations:
+- Sleep vs Deep Work: r = +0.62 (n = 12, ban đầu có độ tin cậy)
+  - 6.0h ngủ -> 2.1h DW
+  - 7.0h ngủ -> 3.8h DW
+  - 7.5h ngủ -> 4.2h DW
+  - 8.0h ngủ -> 3.9h DW
+- Energy Level -> DW correlation: Chưa đủ dữ liệu kết luận (tất cả các mức n < 10)
+
+#### 4. Area Allocations:
+- Internship VC: 9.5h (39%)
+- Financial modeling: 6.2h (25%)
+- IM/Memo: 4.0h (16%)
+- IELTS: 2.8h (11%)
+- EFM / AFEP / BFN: 2.0h (9%)
+`;
+
+    navigator.clipboard.writeText(markdownSummary).then(() => {
+      const toast = document.getElementById('copy-toast');
+      if (toast) {
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3000);
+      }
+    });
+  });
+
+  // Simple visual tab toggle
+  document.querySelectorAll('#timeframe-tabs button').forEach(button => {
+    button.addEventListener('click', (e) => {
+      document.querySelectorAll('#timeframe-tabs button').forEach(btn => {
+        btn.className = "px-2.5 py-1 rounded font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-all";
+      });
+      e.currentTarget.className = "px-2.5 py-1 rounded font-label-sm text-label-sm text-on-primary bg-primary-container shadow-sm transition-all";
+    });
+  });
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.5)]" data-active-classes="text-primary font-medium border-t-2 border-primary"><div class="grid grid-cols-5 h-16"><a class="flex flex-col items-center justify-center gap-1 min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="hom-nay" href="#"><span class="material-symbols-outlined text-[20px]">radar</span><span class="font-label-sm text-[10px] tracking-tight">Hôm nay</span></a><a class="flex flex-col items-center justify-center gap-1 min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="on-tap" href="#"><span class="material-symbols-outlined text-[20px]">sync_alt</span><span class="font-label-sm text-[10px] tracking-tight">Ôn tập</span></a><a class="flex flex-col items-center justify-center gap-1 min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="du-doan" href="#"><span class="material-symbols-outlined text-[20px]">trending_up</span><span class="font-label-sm text-[10px] tracking-tight">Dự đoán</span></a><a class="flex flex-col items-center justify-center gap-1 min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="thong-ke" href="#"><span class="material-symbols-outlined text-[20px]">query_stats</span><span class="font-label-sm text-[10px] tracking-tight">Thống kê</span></a><a class="flex flex-col items-center justify-center gap-1 min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="cai-dat" href="#"><span class="material-symbols-outlined text-[20px]">tune</span><span class="font-label-sm text-[10px] tracking-tight">Cài đặt</span></a></div></nav></body></html>

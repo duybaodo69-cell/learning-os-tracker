@@ -13,7 +13,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 import { db, isDemoMode } from "../db/db";
 import type { DailyCheckin, Experiment, ExperimentTag, FocusBlock, Prediction, ReviewLog, WeeklyReview } from "../db/types";
-import { formatDayLabel, formatMinutes, nowHHmm, todayISO, yesterdayISO } from "../lib/dates";
+import { formatDayLabel, formatMinutes, todayISO, yesterdayISO } from "../lib/dates";
 import { useToday } from "../lib/useToday";
 import {
   addTimerDistraction,
@@ -371,7 +371,11 @@ export default function TodayScreen({
             date={today}
             existing={editingBlock ?? undefined}
             initialMinutes={timerResult?.minutes}
-            initialStartTime={timerResult?.startTime ?? nowHHmm()}
+            initialStartTime={
+              // CHỈ truyền khi có mốc thật từ bộ đếm. Bấm "+ Block" bằng tay thì để
+              // trống, để form tự tính "bây giờ trừ số phút" (sửa 10).
+              timerResult?.startTime
+            }
             initialDistractions={timerResult?.distractions}
             onSave={saveBlock}
             onCancel={() => {

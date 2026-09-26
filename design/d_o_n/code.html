@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "tertiary-fixed-dim": "#4edea3", "on-tertiary-fixed-variant": "#005236", "surface-bright": "#37393e", "surface-container": "#1e2024", "surface-container-high": "#282a2e", "primary-container": "#38bdf8", "secondary-fixed": "#e1e0ff", "surface-container-low": "#1a1c20", "on-primary": "#00354a", "inverse-surface": "#e2e2e8", "secondary": "#c0c1ff", "background": "#111317", "tertiary-container": "#30c88f", "on-tertiary-fixed": "#002113", "secondary-container": "#3131c0", "surface": "#111317", "on-error": "#690005", "on-secondary": "#1000a9", "on-secondary-container": "#b0b2ff", "outline": "#87929a", "on-surface": "#e2e2e8", "surface-variant": "#333539", "error": "#ffb4ab", "on-tertiary": "#003824", "on-primary-fixed-variant": "#004c69", "surface-container-lowest": "#0c0e12", "surface-container-highest": "#333539", "on-tertiary-container": "#004e34", "primary-fixed": "#c4e7ff", "on-primary-fixed": "#001e2c", "on-error-container": "#ffdad6", "tertiary-fixed": "#6ffbbe", "on-secondary-fixed": "#07006c", "on-secondary-fixed-variant": "#2f2ebe", "inverse-primary": "#00668a", "surface-tint": "#7bd0ff", "primary-fixed-dim": "#7bd0ff", "tertiary": "#56e5a9", "error-container": "#93000a", "on-surface-variant": "#bdc8d1", "on-background": "#e2e2e8", "inverse-on-surface": "#2f3035", "surface-dim": "#111317", "outline-variant": "#3e484f", "on-primary-container": "#004965", "secondary-fixed-dim": "#c0c1ff", "primary": "#8ed5ff" }, borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, spacing: { "space-md": "0.75rem", "space-xs": "0.25rem", "space-lg": "1rem", "margin-desktop": "2rem", "gutter-desktop": "1.5rem", "margin": "1rem", "gutter": "1rem", "space-sm": "0.5rem", "space-xl": "1.5rem" }, fontFamily: { "headline-lg": ["Geist"], "headline-xl": ["Geist"], "headline-md": ["Geist"], "headline-sm": ["Geist"], "data-display": ["Geist"], "label-md": ["Geist"], "body-lg": ["Be Vietnam Pro"], "label-sm": ["Geist"], "headline-xl-mobile": ["Geist"], "body-sm": ["Be Vietnam Pro"], "data-mono": ["Geist"], "body-md": ["Be Vietnam Pro"] }, fontSize: { "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "headline-xl": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "500" }], "headline-sm": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "500" }], "data-display": ["28px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500" }], "body-lg": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "400" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.06em", "fontWeight": "600" }], "headline-xl-mobile": ["26px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "body-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }], "data-mono": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "500" }], "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }] } } } };</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#0c0e12;color:#e2e2e8;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface-container-lowest font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface-container-lowest/85 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.4)]"><div class="h-14 px-margin flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div><h1 class="font-headline-sm text-headline-sm uppercase tracking-wider text-on-surface">Dự Đoán</h1></div><div class="flex items-center gap-space-xs font-data-mono text-label-sm text-on-surface-variant bg-surface-container-high/60 px-2 py-1 rounded"><span class="material-symbols-outlined text-[14px] text-tertiary">query_stats</span><span>SYS_ACTIVE</span></div></div></header><main class="flex-1 flex flex-col relative w-full pt-14 pb-20 bg-surface-container-lowest"><div class="flex flex-col w-full px-margin pb-space-xl">
+<!-- Segmented Sub-Tab Controller -->
+<div class="w-full bg-surface-container-low p-1 rounded-xl mb-space-lg flex items-center shadow-sm">
+<button class="flex-1 py-2 rounded-lg font-label-md text-label-md transition-all text-on-primary bg-primary-container font-semibold shadow-sm flex items-center justify-center gap-1.5" id="tab-forecasts-btn" onclick="switchSubTab('forecasts')">
+<span class="material-symbols-outlined text-[16px]">dynamic_form</span>
+      Dự đoán
+      <span class="bg-on-primary/20 text-on-primary font-data-mono text-[10px] px-1.5 py-0.5 rounded-full">5</span>
+</button>
+<button class="flex-1 py-2 rounded-lg font-label-md text-label-md transition-all text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1.5" id="tab-calibration-btn" onclick="switchSubTab('calibration')">
+<span class="material-symbols-outlined text-[16px]">show_chart</span>
+      Điểm số Calibration
+    </button>
+</div>
+<!-- VIEW 1: DỰ ĐOÁN (Active) -->
+<div class="flex flex-col gap-space-lg" id="view-forecasts">
+<!-- Quick Metric Strip -->
+<div class="grid grid-cols-2 gap-space-sm">
+<div class="bg-surface-container p-space-md rounded-lg shadow-sm">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm uppercase">
+<span>Brier Score (All-time)</span>
+<span class="material-symbols-outlined text-[14px] text-tertiary">verified</span>
+</div>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-data-display text-data-display text-tertiary">0.194</span>
+<span class="font-data-mono text-label-sm text-tertiary-fixed-dim bg-on-tertiary-fixed-variant/40 px-1 rounded">-0.056 vs 0.25</span>
+</div>
+<div class="font-label-sm text-[10px] text-on-surface-variant mt-1">Chuẩn hơn mức đoán mò (0.250)</div>
+</div>
+<div class="bg-surface-container p-space-md rounded-lg shadow-sm">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm uppercase">
+<span>Quyết toán gần nhất</span>
+<span class="material-symbols-outlined text-[14px] text-primary">schedule</span>
+</div>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-data-display text-data-display text-on-surface">26</span>
+<span class="font-data-mono text-label-sm text-on-surface-variant">mẫu đã đóng</span>
+</div>
+<div class="font-label-sm text-[10px] text-on-surface-variant mt-1">2 sự kiện đang chờ chấm</div>
+</div>
+</div>
+<!-- Section: Đến hạn chấm -->
+<section class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-error animate-ping"></span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-wide">Đến hạn chấm</h2>
+<span class="bg-surface-container-high text-on-surface font-data-mono text-label-sm px-1.5 py-0.2 rounded">2</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Cần xác nhận thực tế</span>
+</div>
+<!-- Card 1 -->
+<div class="bg-surface-container p-space-md rounded-lg shadow-sm flex flex-col gap-space-sm transition-all" id="resolve-card-1">
+<div class="flex items-start justify-between gap-2">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-surface-container-highest text-primary font-data-mono text-label-sm px-1.5 py-0.5 rounded">VN-Index</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Hạn: 25/09/2024</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium">VN-Index trên 1.280 điểm ngày 25/09</p>
+</div>
+<div class="bg-surface-container-high px-2 py-1 rounded text-right">
+<div class="font-label-sm text-[10px] text-on-surface-variant uppercase">Xác suất</div>
+<div class="font-data-mono text-headline-sm text-primary font-bold">55%</div>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<button class="flex-1 py-2 rounded-lg bg-surface-container-high text-tertiary hover:bg-surface-bright active:scale-95 font-label-md text-label-md flex items-center justify-center gap-1 transition-all" onclick="resolveForecast('resolve-card-1', true, 0.55)">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+            ĐÚNG
+          </button>
+<button class="flex-1 py-2 rounded-lg bg-surface-container-high text-error hover:bg-surface-bright active:scale-95 font-label-md text-label-md flex items-center justify-center gap-1 transition-all" onclick="resolveForecast('resolve-card-1', false, 0.55)">
+<span class="material-symbols-outlined text-[16px]">cancel</span>
+            SAI
+          </button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container p-space-md rounded-lg shadow-sm flex flex-col gap-space-sm transition-all" id="resolve-card-2">
+<div class="flex items-start justify-between gap-2">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-secondary-container/40 text-secondary font-data-mono text-label-sm px-1.5 py-0.5 rounded">Deal / VC</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Hạn: 28/09/2024</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium">Quỹ công bố khoản đầu tư Seed vào LogiTech trước 28/09</p>
+</div>
+<div class="bg-surface-container-high px-2 py-1 rounded text-right">
+<div class="font-label-sm text-[10px] text-on-surface-variant uppercase">Xác suất</div>
+<div class="font-data-mono text-headline-sm text-primary font-bold">70%</div>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<button class="flex-1 py-2 rounded-lg bg-surface-container-high text-tertiary hover:bg-surface-bright active:scale-95 font-label-md text-label-md flex items-center justify-center gap-1 transition-all" onclick="resolveForecast('resolve-card-2', true, 0.70)">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+            ĐÚNG
+          </button>
+<button class="flex-1 py-2 rounded-lg bg-surface-container-high text-error hover:bg-surface-bright active:scale-95 font-label-md text-label-md flex items-center justify-center gap-1 transition-all" onclick="resolveForecast('resolve-card-2', false, 0.70)">
+<span class="material-symbols-outlined text-[16px]">cancel</span>
+            SAI
+          </button>
+</div>
+</div>
+</section>
+<!-- Trigger Action: Tạo dự đoán mới -->
+<div>
+<button class="w-full py-3 bg-primary-container text-on-primary rounded-xl font-headline-sm text-headline-sm flex items-center justify-center gap-2 shadow-md active:scale-[0.99] transition-all" onclick="toggleNewForecastModal(true)">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+        Tạo dự đoán mới
+      </button>
+</div>
+<!-- Section: Đang mở (3) -->
+<section class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-wide">Đang mở</h2>
+<span class="bg-surface-container-high text-on-surface font-data-mono text-label-sm px-1.5 py-0.2 rounded">3</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-data-mono">SẮP XẾP: EXPIRY ASC</span>
+</div>
+<!-- Item 1 -->
+<div class="bg-surface-container p-space-md rounded-lg shadow-sm flex flex-col gap-2">
+<div class="flex items-start justify-between gap-2">
+<div class="flex flex-wrap items-center gap-2">
+<span class="bg-secondary-container/40 text-secondary font-data-mono text-label-sm px-1.5 py-0.5 rounded">Deal / VC</span>
+<span class="font-data-mono text-label-sm text-tertiary">Còn 94 ngày</span>
+<span class="text-on-surface-variant font-data-mono text-[10px]">Hạn: 31/12</span>
+</div>
+<span class="font-data-mono text-headline-sm text-primary font-semibold">60%</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium">Startup healthcare device chốt vòng gọi vốn trước 31/12</p>
+<div class="bg-surface-container-low p-2 rounded text-body-sm text-body-sm text-on-surface-variant flex items-start gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-error shrink-0 mt-0.5">warning</span>
+<div><strong class="font-data-mono text-label-sm text-error uppercase">Pre-mortem:</strong> Rủi ro định giá cao so với ARR hiện tại.</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-surface-container p-space-md rounded-lg shadow-sm flex flex-col gap-2">
+<div class="flex items-start justify-between gap-2">
+<div class="flex flex-wrap items-center gap-2">
+<span class="bg-surface-container-highest text-primary font-data-mono text-label-sm px-1.5 py-0.5 rounded">Market</span>
+<span class="font-data-mono text-label-sm text-tertiary">Còn 33 ngày</span>
+<span class="text-on-surface-variant font-data-mono text-[10px]">Hạn: 31/10</span>
+</div>
+<span class="font-data-mono text-headline-sm text-primary font-semibold">55%</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium">VN-Index trên 1.300 điểm ngày 31/10</p>
+<div class="bg-surface-container-low p-2 rounded text-body-sm text-body-sm text-on-surface-variant flex items-start gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-tertiary shrink-0 mt-0.5">analytics</span>
+<div><strong class="font-data-mono text-label-sm text-tertiary uppercase">Base rate:</strong> Q4 lịch sử tăng điểm 65% số năm theo dữ liệu 10 năm qua.</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="bg-surface-container p-space-md rounded-lg shadow-sm flex flex-col gap-2">
+<div class="flex items-start justify-between gap-2">
+<div class="flex flex-wrap items-center gap-2">
+<span class="bg-surface-container-high text-on-surface-variant font-data-mono text-label-sm px-1.5 py-0.5 rounded">Study</span>
+<span class="font-data-mono text-label-sm text-on-surface-variant">Còn 48 ngày</span>
+<span class="text-on-surface-variant font-data-mono text-[10px]">Hạn: 15/11</span>
+</div>
+<span class="font-data-mono text-headline-sm text-primary font-semibold">35%</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium">Mock IELTS Writing ≥ 6.5 ngày 15/11</p>
+<div class="bg-surface-container-low p-2 rounded text-body-sm text-body-sm text-on-surface-variant flex items-start gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-primary shrink-0 mt-0.5">history_edu</span>
+<div><strong class="font-data-mono text-label-sm text-primary uppercase">Base rate:</strong> 2 bài gần nhất đạt 6.0; thiếu thời gian viết Task 2.</div>
+</div>
+</div>
+</section>
+<!-- Section: Đã chấm gần đây -->
+<section class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-wide">Đã chấm gần đây</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Brier tức thời</span>
+</div>
+<div class="bg-surface-container rounded-lg p-space-md flex flex-col gap-3 shadow-sm">
+<div class="flex items-start justify-between gap-2">
+<div class="flex-1 min-w-0">
+<p class="font-body-md text-body-md text-on-surface font-medium truncate">Hoàn thành draft Investment Memo trong 48h</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-data-mono text-label-sm text-on-surface-variant">Dự đoán: <strong class="text-on-surface">80%</strong></span>
+<span class="text-outline text-label-sm">•</span>
+<span class="bg-tertiary-container/30 text-tertiary font-data-mono text-label-sm px-1.5 py-0.5 rounded font-bold">Thực tế: ĐÚNG</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-data-mono text-headline-sm text-tertiary font-bold">0.04</span>
+<div class="font-label-sm text-[10px] text-on-surface-variant">Brier Loss</div>
+</div>
+</div>
+<div class="h-[1px] bg-surface-container-high"></div>
+<div class="flex items-start justify-between gap-2">
+<div class="flex-1 min-w-0">
+<p class="font-body-md text-body-md text-on-surface font-medium truncate">Deal AI Agent Series A closed trước Q3</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-data-mono text-label-sm text-on-surface-variant">Dự đoán: <strong class="text-on-surface">70%</strong></span>
+<span class="text-outline text-label-sm">•</span>
+<span class="bg-error-container/30 text-error font-data-mono text-label-sm px-1.5 py-0.5 rounded font-bold">Thực tế: SAI</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-data-mono text-headline-sm text-error font-bold">0.49</span>
+<div class="font-label-sm text-[10px] text-on-surface-variant">Brier Loss</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- VIEW 2: ĐIỂM SỐ CALIBRATION (Brier & Độ chuẩn xác) -->
+<div class="hidden flex-col gap-space-lg" id="view-calibration">
+<!-- Top Brier Summary -->
+<div class="bg-surface-container p-space-md rounded-lg shadow-sm flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-surface">Hiệu suất Brier Score</span>
+<span class="font-data-mono text-label-sm text-tertiary bg-surface-container-high px-2 py-0.5 rounded">Good Calibrator</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+        Brier Score đo lường sai số bình phương giữa xác suất dự đoán và kết quả (0 = dự đoán hoàn hảo, 0.25 = đoán ngẫu nhiên).
+      </p>
+<div class="grid grid-cols-2 gap-space-sm mt-2">
+<div class="bg-surface-container-low p-space-md rounded">
+<div class="font-label-sm text-label-sm text-on-surface-variant">All-time Brier</div>
+<div class="font-data-display text-data-display text-tertiary mt-1">0.194</div>
+<div class="font-data-mono text-label-sm text-tertiary-fixed-dim mt-0.5">n = 26 dự đoán</div>
+</div>
+<div class="bg-surface-container-low p-space-md rounded">
+<div class="font-label-sm text-label-sm text-on-surface-variant">30 ngày gần đây</div>
+<div class="font-data-display text-data-display text-primary mt-1">0.182</div>
+<div class="font-data-mono text-label-sm text-primary mt-0.5">Δ -0.012 cải thiện</div>
+</div>
+</div>
+</div>
+<!-- Calibration Chart Section -->
+<div class="bg-surface-container p-space-md rounded-lg shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Đường cong Calibration</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">So sánh xác suất gán vs tỷ lệ xảy ra thực tế</p>
+</div>
+<div class="flex items-center gap-2 font-data-mono text-[11px]">
+<span class="flex items-center gap-1 text-on-surface-variant"><span class="w-2.5 h-0.5 bg-outline"></span> Lý tưởng</span>
+<span class="flex items-center gap-1 text-primary"><span class="w-2.5 h-1 bg-primary rounded"></span> Thực tế</span>
+</div>
+</div>
+<!-- Chart Visual SVG (Interactive & Calibrated) -->
+<div class="w-full bg-surface-container-low p-2 rounded-lg flex flex-col items-center">
+<svg class="w-full h-48 select-none" viewbox="0 0 320 220">
+<!-- Background Grid lines -->
+<line stroke="#262c3a" stroke-dasharray="2 2" stroke-width="1" x1="40" x2="300" y1="20" y2="20"></line>
+<line stroke="#262c3a" stroke-dasharray="2 2" stroke-width="1" x1="40" x2="300" y1="60" y2="60"></line>
+<line stroke="#262c3a" stroke-dasharray="2 2" stroke-width="1" x1="40" x2="300" y1="100" y2="100"></line>
+<line stroke="#262c3a" stroke-dasharray="2 2" stroke-width="1" x1="40" x2="300" y1="140" y2="140"></line>
+<line stroke="#333539" stroke-width="1.5" x1="40" x2="300" y1="180" y2="180"></line>
+<line stroke="#333539" stroke-width="1.5" x1="40" x2="40" y1="20" y2="180"></line>
+<line stroke="#262c3a" stroke-dasharray="2 2" stroke-width="1" x1="105" x2="105" y1="20" y2="180"></line>
+<line stroke="#262c3a" stroke-dasharray="2 2" stroke-width="1" x1="170" x2="170" y1="20" y2="180"></line>
+<line stroke="#262c3a" stroke-dasharray="2 2" stroke-width="1" x1="235" x2="235" y1="20" y2="180"></line>
+<line stroke="#262c3a" stroke-dasharray="2 2" stroke-width="1" x1="300" x2="300" y1="20" y2="180"></line>
+<!-- Diagonal Perfect Calibration Line (0% to 100%) -->
+<line opacity="0.6" stroke="#87929a" stroke-dasharray="4 4" stroke-width="1.5" x1="40" x2="300" y1="180" y2="20"></line>
+<!-- Empirical Calibration Line:
+               Buckets: 10% -> 0% (x=66, y=180)
+                        30% -> 40% (x=118, y=116)
+                        50% -> 50% (x=170, y=100)
+                        70% -> 66% (x=222, y=74)
+                        90% -> 75% (x=274, y=60)
+          -->
+<polyline fill="none" points="66,180 118,116 170,100 222,74 274,60" stroke="#38bdf8" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></polyline>
+<!-- Data Points (Circles) with Glow -->
+<circle class="cursor-pointer hover:r-6 transition-all" cx="66" cy="180" fill="#38bdf8" r="4.5"></circle>
+<circle class="cursor-pointer hover:r-6 transition-all" cx="118" cy="116" fill="#38bdf8" r="4.5"></circle>
+<circle class="cursor-pointer hover:r-6 transition-all" cx="170" cy="100" fill="#38bdf8" r="4.5"></circle>
+<circle class="cursor-pointer hover:r-6 transition-all" cx="222" cy="74" fill="#38bdf8" r="4.5"></circle>
+<circle class="cursor-pointer hover:r-6 transition-all" cx="274" cy="60" fill="#38bdf8" r="4.5"></circle>
+<!-- Y Axis Labels -->
+<text fill="#87929a" font-family="Geist" font-size="10" text-anchor="end" x="32" y="183">0%</text>
+<text fill="#87929a" font-family="Geist" font-size="10" text-anchor="end" x="32" y="103">50%</text>
+<text fill="#87929a" font-family="Geist" font-size="10" text-anchor="end" x="32" y="24">100%</text>
+<!-- X Axis Labels -->
+<text fill="#87929a" font-family="Geist" font-size="10" text-anchor="middle" x="66" y="196">10%</text>
+<text fill="#87929a" font-family="Geist" font-size="10" text-anchor="middle" x="118" y="196">30%</text>
+<text fill="#87929a" font-family="Geist" font-size="10" text-anchor="middle" x="170" y="196">50%</text>
+<text fill="#87929a" font-family="Geist" font-size="10" text-anchor="middle" x="222" y="196">70%</text>
+<text fill="#87929a" font-family="Geist" font-size="10" text-anchor="middle" x="274" y="196">90%</text>
+<text fill="#bdc8d1" font-family="Geist" font-size="10" text-anchor="middle" x="170" y="214">Xác suất gán (Assigned Probability)</text>
+</svg>
+</div>
+<!-- 5-Bucket Breakdown Table -->
+<div class="overflow-x-auto mt-2">
+<table class="w-full text-left font-data-mono text-body-sm">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm border-b border-surface-container-high">
+<th class="py-2 px-2">Bucket</th>
+<th class="py-2 px-2 text-center">Mẫu (n)</th>
+<th class="py-2 px-2 text-right">Tỷ lệ thực tế</th>
+<th class="py-2 px-2 text-right">Độ lệch</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-high/40">
+<tr>
+<td class="py-2 px-2 font-medium text-on-surface">10%</td>
+<td class="py-2 px-2 text-center text-on-surface-variant">n = 3</td>
+<td class="py-2 px-2 text-right text-tertiary">0.0% (0/3)</td>
+<td class="py-2 px-2 text-right text-tertiary-fixed-dim">-10%</td>
+</tr>
+<tr>
+<td class="py-2 px-2 font-medium text-on-surface">30%</td>
+<td class="py-2 px-2 text-center text-on-surface-variant">n = 5</td>
+<td class="py-2 px-2 text-right text-primary">40.0% (2/5)</td>
+<td class="py-2 px-2 text-right text-primary">+10%</td>
+</tr>
+<tr>
+<td class="py-2 px-2 font-medium text-on-surface">50%</td>
+<td class="py-2 px-2 text-center text-on-surface-variant">n = 8</td>
+<td class="py-2 px-2 text-right text-tertiary">50.0% (4/8)</td>
+<td class="py-2 px-2 text-right text-tertiary">±0%</td>
+</tr>
+<tr>
+<td class="py-2 px-2 font-medium text-on-surface">70%</td>
+<td class="py-2 px-2 text-center text-on-surface-variant">n = 6</td>
+<td class="py-2 px-2 text-right text-primary">66.7% (4/6)</td>
+<td class="py-2 px-2 text-right text-on-surface-variant">-3.3%</td>
+</tr>
+<tr>
+<td class="py-2 px-2 font-medium text-on-surface">90%</td>
+<td class="py-2 px-2 text-center text-on-surface-variant">n = 4</td>
+<td class="py-2 px-2 text-right text-error">75.0% (3/4)</td>
+<td class="py-2 px-2 text-right text-error font-semibold">-15.0% (Overconf)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Scientific Sample Size Disclaimer -->
+<div class="bg-surface-container-low p-space-md rounded-lg flex items-start gap-2.5 mt-2">
+<span class="material-symbols-outlined text-[18px] text-tertiary shrink-0 mt-0.5">info</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+<strong class="text-on-surface font-semibold">Ghi chú thống kê:</strong> Cần tối thiểu ≥ 20 dự đoán đã giải quyết để rút ra kết luận thống kê ban đầu và ≥ 100 dự đoán để đánh giá khách quan độ tự tin quá mức (overconfidence bias).
+        </p>
+</div>
+</div>
+</div>
+<!-- POPUP MODAL: TẠO DỰ ĐOÁN MỚI -->
+<div class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-surface-container-lowest/80 backdrop-blur-md p-0 sm:p-4" id="new-forecast-modal">
+<div class="w-full max-w-lg bg-surface-container max-h-[90vh] overflow-y-auto rounded-t-xl sm:rounded-xl p-space-lg flex flex-col gap-space-md shadow-2xl">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[22px]">add_chart</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Tạo dự đoán mới</h3>
+</div>
+<button class="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" onclick="toggleNewForecastModal(false)">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Form Inputs -->
+<form class="flex flex-col gap-4" id="new-forecast-form" onsubmit="handleCreateForecast(event)">
+<!-- 1. Phát biểu Statement -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Phát biểu sự kiện (Yes/No verifiability)</label>
+<textarea class="w-full bg-surface-container-lowest text-[16px] text-on-surface placeholder:text-outline p-3 rounded-lg focus:outline-none focus:bg-surface-container-low transition-all font-body-md" id="statement-input" placeholder="Nhập sự kiện có thể kiểm chứng Đúng/Sai trước thời hạn..." required="" rows="2"></textarea>
+</div>
+<!-- 2. Probability Slider & Quick Chips -->
+<div class="flex flex-col gap-2 bg-surface-container-low p-space-md rounded-lg">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Xác suất gán</label>
+<span class="font-data-mono text-headline-md text-primary font-bold" id="slider-prob-value">50%</span>
+</div>
+<input class="w-full accent-primary-container h-2 bg-surface-container-highest rounded-lg cursor-pointer" id="prob-slider" max="95" min="5" oninput="updateProbSlider(this.value)" step="5" type="range" value="50"/>
+<!-- 5 quick chips -->
+<div class="grid grid-cols-5 gap-1.5 pt-1">
+<button class="py-1 rounded bg-surface-container-highest text-on-surface font-data-mono text-label-sm hover:bg-primary-container hover:text-on-primary transition-all" onclick="setProb(10)" type="button">10%</button>
+<button class="py-1 rounded bg-surface-container-highest text-on-surface font-data-mono text-label-sm hover:bg-primary-container hover:text-on-primary transition-all" onclick="setProb(30)" type="button">30%</button>
+<button class="py-1 rounded bg-primary-container text-on-primary font-data-mono text-label-sm font-semibold transition-all" id="chip-50" onclick="setProb(50)" type="button">50%</button>
+<button class="py-1 rounded bg-surface-container-highest text-on-surface font-data-mono text-label-sm hover:bg-primary-container hover:text-on-primary transition-all" onclick="setProb(70)" type="button">70%</button>
+<button class="py-1 rounded bg-surface-container-highest text-on-surface font-data-mono text-label-sm hover:bg-primary-container hover:text-on-primary transition-all" onclick="setProb(90)" type="button">90%</button>
+</div>
+</div>
+<!-- 3. Category Chips -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Phân loại lĩnh vực</label>
+<div class="grid grid-cols-4 gap-1.5">
+<button class="py-2 px-1 text-center rounded bg-secondary-container/40 text-secondary font-data-mono text-label-sm font-semibold transition-all" id="cat-vc" onclick="selectCategory('Deal / VC')" type="button">
+              Deal / VC
+            </button>
+<button class="py-2 px-1 text-center rounded bg-surface-container-highest text-on-surface font-data-mono text-label-sm transition-all" id="cat-market" onclick="selectCategory('Market')" type="button">
+              Market
+            </button>
+<button class="py-2 px-1 text-center rounded bg-surface-container-highest text-on-surface font-data-mono text-label-sm transition-all" id="cat-study" onclick="selectCategory('Study')" type="button">
+              Study
+            </button>
+<button class="py-2 px-1 text-center rounded bg-surface-container-highest text-on-surface font-data-mono text-label-sm transition-all" id="cat-personal" onclick="selectCategory('Personal')" type="button">
+              Personal
+            </button>
+</div>
+</div>
+<!-- 4. Resolve-by Date -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Hạn nghiệm thu (Resolve-by)</label>
+<input class="w-full bg-surface-container-lowest text-[16px] text-on-surface p-3 rounded-lg focus:outline-none focus:bg-surface-container-low font-data-mono" id="resolve-date" required="" type="date"/>
+</div>
+<!-- 5. Base Rate Note -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Base Rate (Tỷ lệ cơ sở)</label>
+<input class="w-full bg-surface-container-lowest text-[16px] text-on-surface placeholder:text-outline p-3 rounded-lg focus:outline-none focus:bg-surface-container-low font-body-md" id="base-rate-input" placeholder="Tỷ lệ cơ sở trong quá khứ của nhóm sự kiện này..." type="text"/>
+</div>
+<!-- 6. Pre-mortem (Conditional: Deal / VC) -->
+<div class="flex flex-col gap-1.5 bg-surface-container-low p-space-md rounded-lg" id="premortem-container">
+<div class="flex items-center gap-1.5 text-error">
+<span class="material-symbols-outlined text-[16px]">psychology_alt</span>
+<label class="font-label-md text-label-md uppercase tracking-wider font-semibold">Pre-Mortem Analysis (Dành riêng cho Deal/VC)</label>
+</div>
+<p class="font-body-sm text-[12px] text-on-surface-variant">Giả sử thương vụ thất bại hoặc không đóng được vòng, nguyên nhân chính là gì?</p>
+<textarea class="w-full bg-surface-container-lowest text-[16px] text-on-surface placeholder:text-outline p-2.5 rounded-lg focus:outline-none focus:bg-surface-container-highest font-body-md" id="premortem-input" placeholder="VD: Định giá founder đưa ra vượt trần mandate, rủi ro DD kỹ thuật..." rows="2"></textarea>
+</div>
+<!-- Modal Submit Actions -->
+<div class="flex items-center gap-2 pt-2">
+<button class="flex-1 py-3 bg-surface-container-high text-on-surface rounded-xl font-label-md text-label-md hover:bg-surface-bright transition-colors" onclick="toggleNewForecastModal(false)" type="button">
+            Hủy
+          </button>
+<button class="flex-2 py-3 px-6 bg-primary-container text-on-primary rounded-xl font-headline-sm text-headline-sm font-semibold active:scale-95 transition-all shadow-md" type="submit">
+            Lưu dự đoán
+          </button>
+</div>
+</form>
+</div>
+</div>
+</div>
+<script>
+  let currentCategory = 'Deal / VC';
+
+  function switchSubTab(tab) {
+    const viewForecasts = document.getElementById('view-forecasts');
+    const viewCalibration = document.getElementById('view-calibration');
+    const btnForecasts = document.getElementById('tab-forecasts-btn');
+    const btnCalibration = document.getElementById('tab-calibration-btn');
+
+    if (tab === 'forecasts') {
+      viewForecasts.classList.remove('hidden');
+      viewForecasts.classList.add('flex');
+      viewCalibration.classList.remove('flex');
+      viewCalibration.classList.add('hidden');
+
+      btnForecasts.className = "flex-1 py-2 rounded-lg font-label-md text-label-md transition-all text-on-primary bg-primary-container font-semibold shadow-sm flex items-center justify-center gap-1.5";
+      btnCalibration.className = "flex-1 py-2 rounded-lg font-label-md text-label-md transition-all text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1.5";
+    } else {
+      viewCalibration.classList.remove('hidden');
+      viewCalibration.classList.add('flex');
+      viewForecasts.classList.remove('flex');
+      viewForecasts.classList.add('hidden');
+
+      btnCalibration.className = "flex-1 py-2 rounded-lg font-label-md text-label-md transition-all text-on-primary bg-primary-container font-semibold shadow-sm flex items-center justify-center gap-1.5";
+      btnForecasts.className = "flex-1 py-2 rounded-lg font-label-md text-label-md transition-all text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1.5";
+    }
+  }
+
+  function resolveForecast(elementId, isTrue, probability) {
+    const card = document.getElementById(elementId);
+    if (!card) return;
+    
+    // Calculate individual Brier Score: (probability - actual)^2
+    const actual = isTrue ? 1.0 : 0.0;
+    const brier = Math.pow(probability - actual, 2).toFixed(2);
+
+    card.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[20px] ${isTrue ? 'text-tertiary' : 'text-error'}">
+            ${isTrue ? 'check_circle' : 'cancel'}
+          </span>
+          <span class="font-body-md text-body-md text-on-surface font-medium">Đã ghi nhận: <strong class="${isTrue ? 'text-tertiary' : 'text-error'}">${isTrue ? 'ĐÚNG' : 'SAI'}</strong></span>
+        </div>
+        <div class="text-right">
+          <span class="font-data-mono text-label-sm text-on-surface-variant">Brier Loss:</span>
+          <span class="font-data-mono text-headline-sm ${brier < 0.25 ? 'text-tertiary' : 'text-error'} font-bold ml-1">${brier}</span>
+        </div>
+      </div>
+    `;
+    card.classList.add('opacity-90', 'border-l-2', isTrue ? 'border-tertiary' : 'border-error');
+  }
+
+  function toggleNewForecastModal(show) {
+    const modal = document.getElementById('new-forecast-modal');
+    if (show) {
+      modal.classList.remove('hidden');
+      // Set default date to 30 days ahead
+      const today = new Date();
+      today.setDate(today.getDate() + 30);
+      const dateString = today.toISOString().split('T')[0];
+      const dateInput = document.getElementById('resolve-date');
+      if (dateInput && !dateInput.value) {
+        dateInput.value = dateString;
+      }
+    } else {
+      modal.classList.add('hidden');
+    }
+  }
+
+  function updateProbSlider(val) {
+    document.getElementById('slider-prob-value').innerText = val + '%';
+  }
+
+  function setProb(val) {
+    const slider = document.getElementById('prob-slider');
+    slider.value = val;
+    updateProbSlider(val);
+  }
+
+  function selectCategory(cat) {
+    currentCategory = cat;
+    const categories = [
+      { id: 'cat-vc', name: 'Deal / VC' },
+      { id: 'cat-market', name: 'Market' },
+      { id: 'cat-study', name: 'Study' },
+      { id: 'cat-personal', name: 'Personal' }
+    ];
+
+    categories.forEach(item => {
+      const el = document.getElementById(item.id);
+      if (item.name === cat) {
+        el.className = "py-2 px-1 text-center rounded bg-secondary-container/40 text-secondary font-data-mono text-label-sm font-semibold transition-all";
+      } else {
+        el.className = "py-2 px-1 text-center rounded bg-surface-container-highest text-on-surface font-data-mono text-label-sm transition-all";
+      }
+    });
+
+    const premortemBox = document.getElementById('premortem-container');
+    if (cat === 'Deal / VC') {
+      premortemBox.classList.remove('hidden');
+    } else {
+      premortemBox.classList.add('hidden');
+    }
+  }
+
+  function handleCreateForecast(e) {
+    e.preventDefault();
+    toggleNewForecastModal(false);
+    // Micro-interaction: temporarily notify active state
+    alert("Dự đoán đã được ghi nhận vào nhật ký xác suất (Calibration Log).");
+  }
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.5)]" data-active-classes="text-primary font-medium border-t-2 border-primary"><div class="grid grid-cols-5 h-16"><a class="flex flex-col items-center justify-center gap-1 min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="hom-nay" href="#"><span class="material-symbols-outlined text-[20px]">radar</span><span class="font-label-sm text-[10px] tracking-tight">Hôm nay</span></a><a class="flex flex-col items-center justify-center gap-1 min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="on-tap" href="#"><span class="material-symbols-outlined text-[20px]">sync_alt</span><span class="font-label-sm text-[10px] tracking-tight">Ôn tập</span></a><a class="flex flex-col items-center justify-center gap-1 min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="du-doan" href="#"><span class="material-symbols-outlined text-[20px]">trending_up</span><span class="font-label-sm text-[10px] tracking-tight">Dự đoán</span></a><a class="flex flex-col items-center justify-center gap-1 min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="thong-ke" href="#"><span class="material-symbols-outlined text-[20px]">query_stats</span><span class="font-label-sm text-[10px] tracking-tight">Thống kê</span></a><a class="flex flex-col items-center justify-center gap-1 min-h-[44px] text-on-surface-variant transition-colors hover:text-on-surface" data-path="cai-dat" href="#"><span class="material-symbols-outlined text-[20px]">tune</span><span class="font-label-sm text-[10px] tracking-tight">Cài đặt</span></a></div></nav></body></html>
