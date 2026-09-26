@@ -186,6 +186,7 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] **Phase 3 COMPLETE** — predictions, Brier score, calibration chart, pre-mortem.
 - [x] **Phase 4 COMPLETE** — dashboard, weekly review, experiments, JSON export/import.
 - [x] **Phase 5 COMPLETE** — PWA: installable, offline, icons, version line.
+- [x] **Redesign COMPLETE** (design/BRIEF.md Part A + B) — dark "Quantitative Protocol" theme.
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export + optional cloud sync.
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
@@ -212,7 +213,7 @@ src/
     ProtocolBanner.tsx
     CheckinForm.tsx
     FocusBlockForm.tsx
-  screens/             # one file per tab
+  screens/             # one file per tab, plus FocusSession.tsx (full-screen timer)
   config/
     protocolPhases.ts  # EDIT HERE to change the 12-week schedule
   db/
@@ -223,9 +224,13 @@ src/
     dates.ts           # Asia/Ho_Chi_Minh dates, sleep hours, formatting, ids
     timer.ts           # start/stop timer backed by a stored timestamp
     prefs.ts           # remembers the last-used area
+    useToday.ts        # today's date, recomputed past midnight
+    persistence.ts     # navigator.storage.persist() + status
+    areaColors.ts      # one fixed colour per area (Today + charts)
+    scheduling.ts / calibration.ts / metrics.ts / backup.ts  # tested pure logic
   App.tsx              # holds which tab is active
   main.tsx             # React entry point
-  index.css            # Tailwind + .tap-target
+  index.css            # theme tokens, fonts, .tap-target, font-num, 16px input floor
 ```
 
 ### Phase 1 decisions worth knowing
@@ -327,10 +332,11 @@ src/
 ### Phase 5 decisions worth knowing
 
 - **PWA config lives in `vite.config.ts`** under `VitePWA`. Name "Learning OS", short name
-  "LearnOS", theme `#0D6570`, portrait, `display: standalone`, `registerType: "autoUpdate"`.
+  "LearnOS", theme/background `#0c0e12` (the app canvas), portrait, `display: standalone`,
+  `registerType: "autoUpdate"`.
 - **Icons are generated PNGs in `public/icons/`**: 192, 512, a padded 512 `maskable`, a 180
-  apple-touch-icon and a 64 favicon. Three ascending bars, white on dark teal, no text and no
-  emoji so they stay legible at 48px. Regenerate all sizes from one source if the mark changes —
+  apple-touch-icon and a 64 favicon. Three ascending cyan bars on the canvas colour, no text and
+  no emoji so they stay legible at 48px. Regenerate all sizes from one source if the mark changes —
   iOS ignores the manifest and uses `apple-touch-icon` from `index.html`.
 - **`maximumFileSizeToCacheInBytes` is raised to 4MB** so the ~308 kB Recharts chunk is precached.
   Without it workbox skips large files and the Thống kê tab breaks offline.
@@ -371,12 +377,39 @@ src/
   minute chips until the user edits the time field.
 - **Component tests use happy-dom** via `// @vitest-environment happy-dom` at the top of the file.
 
+### Redesign (Quantitative Protocol) — rules to keep
+
+- **Colours are CSS variables** on `:root` in `src/index.css`, wired into Tailwind through
+  `@theme inline`: `canvas`, `surface`, `surface-2`, `line`, `ink`, `ink-2`, `ink-3`, `accent`,
+  `on-accent`, `indigo`, `indigo-ink`, `good`, `warn`, `bad`, `bad-ink`. Use these class names
+  (`bg-surface`, `text-ink-2`...), never raw Tailwind palette colours. A light theme later only
+  needs to override the variables.
+- **Contrast is measured, not eyeballed.** `ink-3` is `#8792a5` (>= 5.3:1 on every surface)
+  instead of the design's `#475569`, which measured 2.2-2.55:1. Red text uses `bad-ink`, indigo
+  text uses `indigo-ink`. Chart bars must reach 3:1; Recharts legends are forced to `ink-2`
+  because by default they inherit the series colour.
+- **Minimum text size is 12px** everywhere, including chart axes and legends. No `text-[10px]`
+  or `text-[11px]`.
+- **Fonts are self-hosted via @fontsource** (precached, so offline works): Be Vietnam Pro for all
+  text, Geist latin subset only for numerals through the `font-num` utility.
+- **Colour means state, not decoration:** good = improved, warn = attention, bad = worse or
+  delete, indigo = category. Distraction counts use a neutral tag.
+- **Statistics honesty:** never show p-values or "significant". Experiments hide per-arm results
+  until both arms have >= 10 days ("Chưa đủ ngày: A x/10 · B y/10"). Energy -> deep work needs
+  >= 5 days per level, otherwise greyed "sơ bộ (n=x)". Correlation r is always "sơ bộ" with n.
+- **One verdict per comparison.** Brier colour, summary sentence and `describeBrier` all use
+  `fiftyVerdict`, which compares at the displayed 3-decimal precision.
+- **Stats period tabs** (`periodRanges`) always compare equal spans; baseline comparisons use
+  `normalisePerWeek` for cumulative metrics.
+- **No decorative jargon** from the mockups (SYS_ACTIVE, EXP ids, "Brier Loss"...). The "Sao chép
+  tóm tắt tuần cho Claude" button in the stats mockup is Phase 6 and was deliberately not built.
+
 ## 8. Commands
 
 ```bash
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # type-check + production build
-npm test                # unit tests (176, lib/ + useToday hook)
+npm test                # unit tests (220: lib/ logic + useToday hook)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```
