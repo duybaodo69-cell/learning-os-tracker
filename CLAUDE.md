@@ -305,8 +305,9 @@ src/
   only genuine sums return 0. Mixing them up draws charts that lie.
 - **`mondayOf` handles Sunday correctly.** `getDay()` returns 0 for Sunday, so a naive `day - 1`
   pushes Sunday into the *next* week. Sunday goes back 6 days. This is tested.
-- **Sleep is paired with the NEXT day's deep work**, not the same day. Last night's sleep affects
-  tomorrow, and matching same-day measures the wrong direction of causation.
+- **Sleep is paired with the SAME day's deep work** (`buildSleepVsSameDayFocus`). A check-in
+  dated D is filled in on the morning of D and describes the night before it, so it is the sleep
+  that fuelled day D. The first version paired it with D+1, which was off by one day.
 - **Retention only counts reviews where `intervalBefore >= 3`.** Cards resurfacing after one day
   are remembered by everyone and would inflate the number.
 - **Consistency counts days, never streaks.** A streak that resets to zero after one missed day
@@ -342,12 +343,33 @@ src/
 - **`autoUpdate` means a new deploy is picked up on the next cold start.** If the version line
   looks stale, fully close the installed app and reopen it.
 
+### Post-Phase-5 fixes worth knowing
+
+- **Never read "today" once at render.** Use `useToday()` (`src/lib/useToday.ts`), which
+  recomputes on `visibilitychange`, window `focus` and every 60 s. When SAVING a new check-in or
+  block, stamp `todayISO()` at save time; edits keep their original date.
+- **Week-over-week compares equal day counts** (`sameSpanLastWeek`): Monday..today against
+  Monday..same weekday last week. The card says "so cùng số ngày".
+- **`navigator.storage.persist()` runs on startup** (`src/lib/persistence.ts`); Settings shows the
+  result. The helper never throws — a rejection there must not blank the app.
+- **"Khó" never exceeds "Được".** At a learning step it repeats the step without advancing
+  `reps`; later it is clamped to the good interval. The invariant again <= hard <= good < easy is
+  tested exhaustively.
+- **Chart margins are 0 left / 14 right** with Y-axis widths sized to the widest label. Negative
+  margins clipped labels at 390px.
+- **Demo-mode exports are `learning-os-DEMO-<date>.json`** and do not update the last-export date.
+- **Timer extras:** a "+1 phân tâm" button counts distractions live (stored beside the start
+  timestamp, reset by `startTimer`); runs over 180 min ask for confirmation before prefilling.
+- **Manual "+ Block" start time defaults to now minus the selected minutes**, following the
+  minute chips until the user edits the time field.
+- **Component tests use happy-dom** via `// @vitest-environment happy-dom` at the top of the file.
+
 ## 8. Commands
 
 ```bash
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # type-check + production build
-npm test                # unit tests (scheduling logic)
+npm test                # unit tests (176, lib/ + useToday hook)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```
