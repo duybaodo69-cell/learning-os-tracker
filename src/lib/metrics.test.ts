@@ -40,7 +40,7 @@ import {
 
 /* -------- tiện ích tạo dữ liệu giả -------- */
 function checkin(date: string, sleepHours: number, wakeTime = "06:30"): DailyCheckin {
-  return { date, bedTime: "23:30", wakeTime, sleepHours, energy: 3 };
+  return { id: `#${date}`, date, bedTime: "23:30", wakeTime, sleepHours, energy: 3 };
 }
 function block(date: string, minutes: number, extra: Partial<FocusBlock> = {}): FocusBlock {
   return {

@@ -8,7 +8,7 @@
  * một file rác thì toàn bộ dữ liệu bị xoá và thay bằng rác.
  */
 import { describe, expect, it } from "vitest";
-import { BACKUP_FORMAT_VERSION, TABLE_NAMES, backupFileName, parseBackup } from "./backup";
+import { BACKUP_FORMAT_VERSION, TABLE_NAMES, backupFileName, normaliseBackupData, parseBackup } from "./backup";
 
 function validFile(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
@@ -117,5 +117,35 @@ describe("backupFileName", () => {
     for (const demo of [true, false]) {
       expect(backupFileName("2026-01-01", demo).endsWith(".json")).toBe(true);
     }
+  });
+});
+
+describe("normaliseBackupData — file cũ và dữ liệu từ Dexie Cloud", () => {
+  it("file xuất trước version 6 (check-in chưa có id) được điền id = #ngày", () => {
+    const d = normaliseBackupData({
+      checkins: [{ date: "2026-09-25", bedTime: "23:00", wakeTime: "06:00", sleepHours: 7, energy: 3 } as never],
+      weeklyReviews: [{ weekStart: "2026-09-21", learnedWithoutNotes: "", dataInsight: "", oneChange: "" } as never],
+    });
+    expect(d.checkins[0].id).toBe("#2026-09-25");
+    expect(d.weeklyReviews[0].id).toBe("#2026-09-21");
+  });
+
+  it("id luôn đi theo ngày, kể cả khi file ghi id sai", () => {
+    const d = normaliseBackupData({
+      checkins: [{ id: "lung-tung", date: "2026-09-25" } as never],
+    });
+    expect(d.checkins[0].id).toBe("#2026-09-25");
+  });
+
+  it("bỏ các trường nội bộ của Dexie Cloud, giữ nguyên phần còn lại", () => {
+    const d = normaliseBackupData({
+      focusBlocks: [{ id: "b1", minutes: 50, owner: "x@y.z", realmId: "rlm-1", $ts: 5 } as never],
+    });
+    expect(d.focusBlocks[0]).toEqual({ id: "b1", minutes: 50 });
+  });
+
+  it("bảng thiếu thành danh sách rỗng", () => {
+    const d = normaliseBackupData({});
+    for (const name of TABLE_NAMES) expect(d[name]).toEqual([]);
   });
 });

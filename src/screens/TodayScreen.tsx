@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { db, isDemoMode } from "../db/db";
+import { checkinId, weekReviewId } from "../db/keys";
 import type { DailyCheckin, Experiment, ExperimentTag, FocusBlock, Prediction, ReviewLog, WeeklyReview } from "../db/types";
 import { formatDayLabel, formatMinutes, todayISO, yesterdayISO } from "../lib/dates";
 import { useToday } from "../lib/useToday";
@@ -49,14 +50,14 @@ export default function TodayScreen({
      useLiveQuery tự chạy lại và vẽ lại màn hình mỗi khi dữ liệu đổi.
      Không cần tự gọi "tải lại" ở đâu cả. */
   /* CẨN THẬN chỗ này:
-     - db.checkins.get() trả về `undefined` khi KHÔNG CÓ bản ghi
+     - db.dailyCheckins.get() trả về `undefined` khi KHÔNG CÓ bản ghi
      - useLiveQuery trả về `undefined` khi ĐANG ĐỌC database
      Hai tình huống khác hẳn nhau nhưng cùng một giá trị -> rất dễ nhầm.
      Nên ở đây đổi "không có" thành `null`, để:
         undefined = đang đọc   |   null = chưa check-in   |   object = đã có */
-  const checkin = useLiveQuery(async () => (await db.checkins.get(today)) ?? null, [today]);
+  const checkin = useLiveQuery(async () => (await db.dailyCheckins.get(checkinId(today))) ?? null, [today]);
   const yesterdayCheckin = useLiveQuery(
-    async () => (await db.checkins.get(yesterdayISO())) ?? null,
+    async () => (await db.dailyCheckins.get(checkinId(yesterdayISO()))) ?? null,
     [today]
   );
   const blocks = useLiveQuery(
@@ -68,14 +69,14 @@ export default function TodayScreen({
   // Phase 4: dữ liệu cho thẻ tổng kết tuần và chip thí nghiệm.
   const experiments = useLiveQuery(() => db.experiments.toArray(), [], [] as Experiment[]);
   const experimentTags = useLiveQuery(() => db.experimentTags.toArray(), [], [] as ExperimentTag[]);
-  const allCheckins = useLiveQuery(() => db.checkins.toArray(), [], [] as DailyCheckin[]);
+  const allCheckins = useLiveQuery(() => db.dailyCheckins.toArray(), [], [] as DailyCheckin[]);
   const allBlocks = useLiveQuery(() => db.focusBlocks.toArray(), [], [] as FocusBlock[]);
   const allLogs = useLiveQuery(() => db.reviewLogs.toArray(), [], [] as ReviewLog[]);
   const allPredictions = useLiveQuery(() => db.predictions.toArray(), [], [] as Prediction[]);
 
   const thisMonday = mondayOf(today);
   const weeklyReview = useLiveQuery(
-    async () => (await db.weeklyReviews.get(thisMonday)) ?? null,
+    async () => (await db.weekReviews.get(weekReviewId(thisMonday))) ?? null,
     [thisMonday]
   );
 
@@ -103,7 +104,8 @@ export default function TodayScreen({
     // Chỉ ghi đè khi đang tạo mới — đang SỬA một check-in cũ thì phải
     // giữ nguyên ngày của bản ghi đó.
     const stamped = editingCheckin ? value : { ...value, date: todayISO() };
-    await db.checkins.put(stamped);
+    // Khoá chính luôn đi theo ngày cuối cùng được lưu (xem src/db/keys.ts).
+    await db.dailyCheckins.put({ ...stamped, id: checkinId(stamped.date) });
     setEditingCheckin(false);
   }
 
@@ -165,7 +167,7 @@ export default function TodayScreen({
           )}
           existing={weeklyReview ?? undefined}
           onSave={(r: WeeklyReview) => {
-            void db.weeklyReviews.put(r);
+            void db.weekReviews.put(r);
           }}
         />
       )}

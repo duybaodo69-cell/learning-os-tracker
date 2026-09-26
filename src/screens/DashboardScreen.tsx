@@ -115,7 +115,7 @@ export default function DashboardScreen() {
   const today = useToday();
   const [period, setPeriod] = useState<Period>("week");
 
-  const checkins = useLiveQuery(() => db.checkins.toArray(), [], [] as DailyCheckin[]);
+  const checkins = useLiveQuery(() => db.dailyCheckins.toArray(), [], [] as DailyCheckin[]);
   const focusBlocks = useLiveQuery(() => db.focusBlocks.toArray(), [], [] as FocusBlock[]);
   const reviewLogs = useLiveQuery(() => db.reviewLogs.toArray(), [], [] as ReviewLog[]);
   const predictions = useLiveQuery(() => db.predictions.toArray(), [], [] as Prediction[]);

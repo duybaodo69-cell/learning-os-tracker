@@ -7,6 +7,7 @@
 import { useState } from "react";
 
 import type { WeeklyReview } from "../db/types";
+import { weekReviewId } from "../db/keys";
 import { formatMinutes } from "../lib/dates";
 import type { MetricSet } from "../lib/metrics";
 
@@ -96,6 +97,7 @@ export default function WeeklyReviewCard({
         <Button
           onClick={() => {
             onSave({
+              id: weekReviewId(weekStart),
               weekStart,
               learnedWithoutNotes: learned.trim(),
               dataInsight: insight.trim(),

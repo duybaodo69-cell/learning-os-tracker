@@ -8,6 +8,7 @@
  * Mọi nội dung mẫu đều có chữ "[MẪU]" để không nhầm với dữ liệu thật.
  */
 import { db } from "./db";
+import { checkinId, weekReviewId } from "./keys";
 import type { Area, BrainDump, Card, DailyCheckin, Experiment, ExperimentTag, FocusBlock, Grade, Prediction, PredictionCategory, ReviewLog, Rating, WeeklyReview } from "./types";
 import { newId } from "../lib/dates";
 import { START_EASE, addDays } from "../lib/scheduling";
@@ -43,6 +44,7 @@ export async function loadDemoData(today: string): Promise<void> {
       Math.round(((24 * 60 - (23 * 60 + bedMinute) + (wakeTime === "07:00" ? 420 : 390)) / 60) * 4) / 4;
 
     checkins.push({
+      id: checkinId(date),
       date,
       bedTime,
       wakeTime,
@@ -240,6 +242,7 @@ export async function loadDemoData(today: string): Promise<void> {
 
   /* ---------- Tổng kết tuần ---------- */
   const weeklyReviews: WeeklyReview[] = [1, 2].map((weeksAgo) => ({
+    id: weekReviewId(mondayOf(minusDays(today, weeksAgo * 7))),
     weekStart: mondayOf(minusDays(today, weeksAgo * 7)),
     learnedWithoutNotes: "[MẪU] Dựng được mô hình DCF từ đầu mà không mở template.",
     dataInsight: "[MẪU] Ngày ngủ dưới 7h thì deep work hôm sau giảm rõ.",
@@ -247,7 +250,7 @@ export async function loadDemoData(today: string): Promise<void> {
   }));
 
   // bulkPut = thêm mới hoặc ghi đè nếu trùng khoá.
-  await db.checkins.bulkPut(checkins);
+  await db.dailyCheckins.bulkPut(checkins);
   await db.focusBlocks.bulkPut(blocks);
   await db.brainDumps.bulkPut(dumps);
   await db.cards.bulkPut(cards);
@@ -255,12 +258,12 @@ export async function loadDemoData(today: string): Promise<void> {
   await db.predictions.bulkPut(predictions);
   await db.experiments.bulkPut([experiment]);
   await db.experimentTags.bulkPut(experimentTags);
-  await db.weeklyReviews.bulkPut(weeklyReviews);
+  await db.weekReviews.bulkPut(weeklyReviews);
 }
 
 /** Xoá sạch database demo. Chỉ ảnh hưởng chế độ demo. */
 export async function clearDemoData(): Promise<void> {
-  await db.checkins.clear();
+  await db.dailyCheckins.clear();
   await db.focusBlocks.clear();
   await db.brainDumps.clear();
   await db.cards.clear();
@@ -268,5 +271,5 @@ export async function clearDemoData(): Promise<void> {
   await db.predictions.clear();
   await db.experiments.clear();
   await db.experimentTags.clear();
-  await db.weeklyReviews.clear();
+  await db.weekReviews.clear();
 }

@@ -3,14 +3,17 @@
  *
  * Không có server, không đăng nhập — dữ liệu nằm trong máy bạn.
  *
- * CHẾ ĐỘ DỮ LIỆU MẪU (demo):
- * App mở MỘT trong HAI database, tuỳ công tắc trong màn hình Cài đặt:
- *   - "learning-os"      → dữ liệu thật của bạn
- *   - "learning-os-demo" → dữ liệu mẫu để xem thử
- * Hai cái này tách biệt hoàn toàn. Bật/tắt demo KHÔNG bao giờ
- * đụng tới dữ liệu thật.
+ * BA KHO DỮ LIỆU (xem src/db/store.ts):
+ * App mở MỘT trong BA database, tuỳ công tắc trong màn hình Cài đặt:
+ *   - "learning-os"       → dữ liệu thật, chỉ trên máy này (mặc định)
+ *   - "learning-os-cloud" → dữ liệu thật, đồng bộ qua Dexie Cloud (sau khi đăng nhập)
+ *   - "learning-os-demo"  → dữ liệu mẫu để xem thử, không bao giờ đồng bộ
+ * Ba cái tách biệt hoàn toàn. Đổi kho KHÔNG bao giờ xoá dữ liệu của kho kia.
  */
-import Dexie, { type Table } from "dexie";
+import Dexie, { type DexieOptions, type Table } from "dexie";
+import dexieCloud from "dexie-cloud-addon";
+import { CLOUD_DB_URL } from "../config/cloud";
+import { STORE_DB_NAME, chooseStore, type StoreKind } from "./store";
 import type {
   BrainDump,
   Card,
@@ -22,6 +25,7 @@ import type {
   ReviewLog,
   WeeklyReview,
 } from "./types";
+import { checkinId, weekReviewId } from "./keys";
 
 /** Khoá lưu công tắc demo trong localStorage. */
 const DEMO_MODE_KEY = "learning-os:demo-mode";
@@ -47,9 +51,10 @@ export function setDemoMode(on: boolean): void {
   }
 }
 
-class LearningDB extends Dexie {
+export class LearningDB extends Dexie {
   // Dấu `!` nói với TypeScript: "Dexie sẽ gán giá trị, đừng lo".
-  checkins!: Table<DailyCheckin, string>;
+  // Version 6 đổi tên: `checkins` -> `dailyCheckins`, `weeklyReviews` -> `weekReviews`.
+  dailyCheckins!: Table<DailyCheckin, string>;
   focusBlocks!: Table<FocusBlock, string>;
   // Phase 2
   brainDumps!: Table<BrainDump, string>;
@@ -58,12 +63,12 @@ class LearningDB extends Dexie {
   // Phase 3
   predictions!: Table<Prediction, string>;
   // Phase 4
-  weeklyReviews!: Table<WeeklyReview, string>;
+  weekReviews!: Table<WeeklyReview, string>;
   experiments!: Table<Experiment, string>;
   experimentTags!: Table<ExperimentTag, string>;
 
-  constructor(databaseName: string) {
-    super(databaseName);
+  constructor(databaseName: string, options?: DexieOptions) {
+    super(databaseName, options);
 
     // version(1) = cấu trúc bảng đời đầu.
     // Chuỗi bên phải liệt kê các cột được đánh index (tìm kiếm nhanh).
@@ -103,11 +108,92 @@ class LearningDB extends Dexie {
     this.version(5).stores({
       focusBlocks: "id, date, area",
     });
+
+    // version(6) + version(7) — chuẩn bị cho đồng bộ Dexie Cloud.
+    //
+    // Dexie Cloud cần khoá chính duy nhất trên toàn hệ thống. Hai bảng cũ dùng
+    // ngày trơn làm khoá ("2026-09-26"), nên chuyển sang khoá "#2026-09-26"
+    // (xem src/db/keys.ts). IndexedDB KHÔNG cho đổi khoá chính của một bảng
+    // có sẵn, nên phải làm hai bước:
+    //   6: tạo bảng mới với khoá `id`, rồi CHÉP từng bản ghi cũ sang
+    //   7: bỏ hai bảng cũ (lúc này dữ liệu đã nằm ở bảng mới)
+    // Mỗi bước chạy trong một transaction: lỗi giữa chừng thì database giữ
+    // nguyên như cũ, không bao giờ nửa nọ nửa kia. Có test trong db.test.ts.
+    this.version(6)
+      .stores({
+        dailyCheckins: "id, date",
+        weekReviews: "id, weekStart",
+      })
+      .upgrade(async (tx) => {
+        const oldCheckins: Omit<DailyCheckin, "id">[] = await tx.table("checkins").toArray();
+        await tx
+          .table("dailyCheckins")
+          .bulkPut(oldCheckins.map((c) => ({ ...c, id: checkinId(c.date) })));
+
+        const oldReviews: Omit<WeeklyReview, "id">[] = await tx.table("weeklyReviews").toArray();
+        await tx
+          .table("weekReviews")
+          .bulkPut(oldReviews.map((r) => ({ ...r, id: weekReviewId(r.weekStart) })));
+      });
+
+    this.version(7).stores({
+      checkins: null,
+      weeklyReviews: null,
+    });
   }
+}
+
+/* ==================== Đồng bộ ==================== */
+
+/** Khoá lưu công tắc đồng bộ trong localStorage. "1" = đã bấm đăng nhập. */
+const SYNC_KEY = "learning-os:sync";
+
+/** Đã bật đồng bộ (bấm "Đăng nhập để đồng bộ") trên máy này chưa? */
+export function isSyncEnabled(): boolean {
+  try {
+    return localStorage.getItem(SYNC_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Bật/tắt đồng bộ. Trang phải tải lại để đổi database. */
+export function setSyncEnabled(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(SYNC_KEY, "1");
+    else localStorage.removeItem(SYNC_KEY);
+  } catch {
+    /* bỏ qua */
+  }
+}
+
+/** Kho đang mở. Chọn MỘT LẦN lúc khởi động. */
+export const activeStore: StoreKind = chooseStore(isDemoMode(), isSyncEnabled(), CLOUD_DB_URL);
+
+/** Kho cloud đã có địa chỉ database chưa (đã chạy `npx dexie-cloud create`)? */
+export const cloudConfigured = CLOUD_DB_URL !== "";
+
+function openActiveDb(): LearningDB {
+  if (activeStore !== "cloud") {
+    // Kho trên máy và kho demo: KHÔNG gắn addon, nên không thể gửi gì lên mạng.
+    return new LearningDB(STORE_DB_NAME[activeStore]);
+  }
+  const cloudDb = new LearningDB(STORE_DB_NAME.cloud, { addons: [dexieCloud] });
+  cloudDb.cloud.configure({
+    databaseUrl: CLOUD_DB_URL,
+    // Bắt buộc đăng nhập trước khi đọc/ghi. Nhờ vậy kho cloud không bao giờ
+    // chứa dữ liệu "chưa có chủ" — thứ mà Dexie Cloud sẽ tự đẩy lên tài khoản
+    // lúc đăng nhập. Dữ liệu cũ chỉ lên tài khoản khi bạn tự bấm chuyển.
+    requireAuth: true,
+    // Hộp đăng nhập tiếng Việt của mình (src/components/CloudLoginDialog.tsx)
+    // thay cho hộp tiếng Anh mặc định.
+    customLoginGui: true,
+  });
+  return cloudDb;
 }
 
 /**
  * Database đang dùng. Được chọn MỘT LẦN lúc app khởi động,
- * nên đổi công tắc demo thì phải tải lại trang (Cài đặt tự làm việc này).
+ * nên đổi công tắc demo / đồng bộ thì phải tải lại trang (Cài đặt tự làm).
  */
-export const db = new LearningDB(isDemoMode() ? "learning-os-demo" : "learning-os");
+export const db = openActiveDb();

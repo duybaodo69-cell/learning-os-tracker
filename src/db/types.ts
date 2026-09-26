@@ -28,7 +28,9 @@ export type Rating = 1 | 2 | 3 | 4 | 5;
 
 /** Check-in buổi sáng — mỗi ngày đúng một bản ghi. */
 export type DailyCheckin = {
-  date: string;       // "YYYY-MM-DD" — đồng thời là khoá chính
+  /** Khoá chính = "#" + date (xem src/db/keys.ts). Thêm ở Dexie version 6. */
+  id: string;
+  date: string;       // "YYYY-MM-DD" — mỗi ngày đúng một bản ghi
   bedTime: string;    // "HH:mm" giờ đi ngủ tối qua
   wakeTime: string;   // "HH:mm" giờ thức dậy sáng nay
   sleepHours: number; // tự tính từ bedTime + wakeTime
@@ -121,7 +123,9 @@ export type Prediction = {
 
 /** Tổng kết tuần — mỗi tuần một bản ghi, khoá là ngày Thứ Hai. */
 export type WeeklyReview = {
-  weekStart: string;            // Thứ Hai, "YYYY-MM-DD" (khoá chính)
+  /** Khoá chính = "#" + weekStart (xem src/db/keys.ts). Thêm ở Dexie version 6. */
+  id: string;
+  weekStart: string;            // Thứ Hai, "YYYY-MM-DD"
   learnedWithoutNotes: string;  // học được gì mà làm lại được không cần tài liệu
   dataInsight: string;          // dữ liệu cho thấy gì
   oneChange: string;            // một điều chỉnh duy nhất cho tuần tới

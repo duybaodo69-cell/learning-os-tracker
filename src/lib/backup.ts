@@ -8,7 +8,8 @@
  * Định dạng file cố ý để dạng JSON đọc được bằng mắt, không nén, không mã hoá:
  * mười năm nữa mở ra vẫn hiểu được, không cần app này.
  */
-import { db, isDemoMode } from "../db/db";
+import { db, isDemoMode, type LearningDB } from "../db/db";
+import { checkinId, weekReviewId } from "../db/keys";
 import type {
   BrainDump,
   Card,
@@ -21,7 +22,13 @@ import type {
   WeeklyReview,
 } from "../db/types";
 
-/** Tăng số này khi định dạng file thay đổi theo cách không tương thích. */
+/**
+ * Tăng số này khi định dạng file thay đổi theo cách không tương thích.
+ *
+ * Việc thêm trường `id` cho check-in / tổng kết tuần (Dexie version 6) KHÔNG
+ * cần tăng số: file cũ thiếu `id` vẫn nhập được, `normaliseBackupData` tự
+ * điền. Tên bảng trong file vẫn là "checkins" và "weeklyReviews" như cũ.
+ */
 export const BACKUP_FORMAT_VERSION = 1;
 
 const APP_TAG = "learning-os-tracker";
@@ -71,6 +78,43 @@ export const TABLE_LABELS: Record<string, string> = {
   experimentTags: "Nhãn thí nghiệm",
 };
 
+/* ==================== Làm sạch dữ liệu ==================== */
+
+/**
+ * Các trường Dexie Cloud tự gắn vào mỗi bản ghi khi đồng bộ (chủ sở hữu,
+ * vùng dữ liệu...). Chúng không phải dữ liệu học tập của bạn, và nếu nhập
+ * lại vào tài khoản khác sẽ trỏ nhầm chủ — nên luôn bỏ đi.
+ */
+const CLOUD_FIELDS = ["owner", "realmId", "$ts"] as const;
+
+function stripCloudFields<T extends object>(row: T): T {
+  const copy = { ...row } as Record<string, unknown>;
+  for (const f of CLOUD_FIELDS) delete copy[f];
+  return copy as T;
+}
+
+/**
+ * Đưa dữ liệu (từ file hoặc từ database) về đúng dạng hiện tại:
+ *   - bỏ các trường nội bộ của Dexie Cloud
+ *   - check-in / tổng kết tuần luôn có `id` = "#ngày" — file xuất trước
+ *     version 6 không có trường này
+ * Hàm thuần, không đụng database — có test.
+ */
+export function normaliseBackupData(d: Partial<BackupData>): BackupData {
+  const clean = <T extends object>(rows: T[] | undefined): T[] => (rows ?? []).map(stripCloudFields);
+  return {
+    checkins: clean(d.checkins).map((c) => ({ ...c, id: checkinId(c.date) })),
+    focusBlocks: clean(d.focusBlocks),
+    brainDumps: clean(d.brainDumps),
+    cards: clean(d.cards),
+    reviewLogs: clean(d.reviewLogs),
+    predictions: clean(d.predictions),
+    weeklyReviews: clean(d.weeklyReviews).map((r) => ({ ...r, id: weekReviewId(r.weekStart) })),
+    experiments: clean(d.experiments),
+    experimentTags: clean(d.experimentTags),
+  };
+}
+
 /* ==================== Ngày xuất gần nhất ==================== */
 
 const LAST_EXPORT_KEY = "learning-os:last-export";
@@ -118,8 +162,16 @@ export function backupFileName(todayISO: string, demo: boolean): string {
 
 /* ==================== Xuất ==================== */
 
-/** Đọc toàn bộ dữ liệu ra một object. */
+/** Đọc toàn bộ dữ liệu của kho đang mở ra một object. */
 export async function collectBackup(): Promise<BackupFile> {
+  return collectBackupFrom(db);
+}
+
+/**
+ * Đọc toàn bộ dữ liệu của một kho BẤT KỲ — dùng khi đang ở kho cloud mà cần
+ * đọc kho trên máy để đưa lên tài khoản (src/lib/cloudUpload.ts).
+ */
+export async function collectBackupFrom(db: LearningDB): Promise<BackupFile> {
   const [
     checkins,
     focusBlocks,
@@ -131,13 +183,13 @@ export async function collectBackup(): Promise<BackupFile> {
     experiments,
     experimentTags,
   ] = await Promise.all([
-    db.checkins.toArray(),
+    db.dailyCheckins.toArray(),
     db.focusBlocks.toArray(),
     db.brainDumps.toArray(),
     db.cards.toArray(),
     db.reviewLogs.toArray(),
     db.predictions.toArray(),
-    db.weeklyReviews.toArray(),
+    db.weekReviews.toArray(),
     db.experiments.toArray(),
     db.experimentTags.toArray(),
   ]);
@@ -146,7 +198,7 @@ export async function collectBackup(): Promise<BackupFile> {
     app: APP_TAG,
     formatVersion: BACKUP_FORMAT_VERSION,
     exportedAt: new Date().toISOString(),
-    data: {
+    data: normaliseBackupData({
       checkins,
       focusBlocks,
       brainDumps,
@@ -156,7 +208,7 @@ export async function collectBackup(): Promise<BackupFile> {
       weeklyReviews,
       experiments,
       experimentTags,
-    },
+    }),
   };
 }
 
@@ -284,13 +336,13 @@ export function parseBackup(text: string): ParsedBackup {
 /** Đếm số bản ghi đang có trong database — để so với file trước khi ghi đè. */
 export async function currentCounts(): Promise<Record<string, number>> {
   const [a, b, c, d, e, f, g, h, i] = await Promise.all([
-    db.checkins.count(),
+    db.dailyCheckins.count(),
     db.focusBlocks.count(),
     db.brainDumps.count(),
     db.cards.count(),
     db.reviewLogs.count(),
     db.predictions.count(),
-    db.weeklyReviews.count(),
+    db.weekReviews.count(),
     db.experiments.count(),
     db.experimentTags.count(),
   ]);
@@ -316,42 +368,42 @@ export async function currentCounts(): Promise<Record<string, number>> {
  * toàn bộ — không bao giờ để lại tình trạng nửa cũ nửa mới.
  */
 export async function importBackup(file: BackupFile): Promise<void> {
-  const d = file.data;
+  const d = normaliseBackupData(file.data);
   await db.transaction(
     "rw",
     [
-      db.checkins,
+      db.dailyCheckins,
       db.focusBlocks,
       db.brainDumps,
       db.cards,
       db.reviewLogs,
       db.predictions,
-      db.weeklyReviews,
+      db.weekReviews,
       db.experiments,
       db.experimentTags,
     ],
     async () => {
       await Promise.all([
-        db.checkins.clear(),
+        db.dailyCheckins.clear(),
         db.focusBlocks.clear(),
         db.brainDumps.clear(),
         db.cards.clear(),
         db.reviewLogs.clear(),
         db.predictions.clear(),
-        db.weeklyReviews.clear(),
+        db.weekReviews.clear(),
         db.experiments.clear(),
         db.experimentTags.clear(),
       ]);
       await Promise.all([
-        db.checkins.bulkAdd(d.checkins ?? []),
-        db.focusBlocks.bulkAdd(d.focusBlocks ?? []),
-        db.brainDumps.bulkAdd(d.brainDumps ?? []),
-        db.cards.bulkAdd(d.cards ?? []),
-        db.reviewLogs.bulkAdd(d.reviewLogs ?? []),
-        db.predictions.bulkAdd(d.predictions ?? []),
-        db.weeklyReviews.bulkAdd(d.weeklyReviews ?? []),
-        db.experiments.bulkAdd(d.experiments ?? []),
-        db.experimentTags.bulkAdd(d.experimentTags ?? []),
+        db.dailyCheckins.bulkAdd(d.checkins),
+        db.focusBlocks.bulkAdd(d.focusBlocks),
+        db.brainDumps.bulkAdd(d.brainDumps),
+        db.cards.bulkAdd(d.cards),
+        db.reviewLogs.bulkAdd(d.reviewLogs),
+        db.predictions.bulkAdd(d.predictions),
+        db.weekReviews.bulkAdd(d.weeklyReviews),
+        db.experiments.bulkAdd(d.experiments),
+        db.experimentTags.bulkAdd(d.experimentTags),
       ]);
     }
   );

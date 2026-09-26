@@ -8,6 +8,7 @@
  */
 import { useState } from "react";
 import type { DailyCheckin, Rating } from "../db/types";
+import { checkinId } from "../db/keys";
 import { computeSleepHours } from "../lib/dates";
 import { Button, Field, RatingRow, TextInput, TimeInput } from "./ui";
 
@@ -34,6 +35,7 @@ export default function CheckinForm({ date, previous, existing, onSave, onCancel
   function handleSave() {
     if (energy === null) return; // nút Lưu đã bị khoá, đây chỉ là lớp bảo vệ thứ hai
     onSave({
+      id: checkinId(date),
       date,
       bedTime,
       wakeTime,
