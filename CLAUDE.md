@@ -241,6 +241,8 @@ src/
     upload.ts          # planUpload: which local rows are new to the account (tested)
     cloudUpload.ts     # reads the local store, adds only new rows to the account
   config/cloud.ts      # Dexie Cloud database URLs (dev + prod; not secret)
+  config/backgrounds.ts  # focus-session background presets + source/licence of each
+public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   App.tsx              # holds which tab is active
   main.tsx             # React entry point
   index.css            # theme tokens, fonts, .tap-target, font-num, 16px input floor
@@ -458,12 +460,45 @@ src/
   gitignored — the key is a secret.
 - Sync runs in the page only (no service-worker sync); the app syncs whenever it is open.
 
+### Focus-session backgrounds — rules to keep
+
+- **Files:** `FocusBackdrop.tsx` (full-screen layer behind the clock), `BackgroundPicker.tsx`
+  (the "Hình nền" dialog), `lib/background.ts` (URL check, storage, still-image rules, tested),
+  `lib/fullscreen.ts` (fullscreen + landscape lock, never throws).
+- **The background never touches the timer.** It is a sibling layer; the clock still derives
+  from the stored start timestamp. `BackgroundPicker.test.tsx` proves a 10 s preview/apply keeps
+  the clock counting and leaves the session keys untouched.
+- **Preview vs apply:** thumbnails and pasted links only preview. Only "Áp dụng" saves (key
+  `learning-os:focus-background`, per device, not in backups, not synced). Apply stays disabled
+  until a pasted link has actually loaded — never a fake success.
+- **No YouTube, ever.** No downloads, no hidden iframe. YouTube / Vimeo / TikTok page links get
+  an explicit message. Only direct https image (.jpg/.png/.gif/.webp/.avif) or video
+  (.mp4/.webm) links; unknown extensions are tried as image, then video.
+- **Preset videos must have a licence that allows a public website** (CC0 / CC BY / CC BY-SA or
+  written permission). All current ones are Wikimedia Commons; `public/backgrounds/CREDITS.md`
+  and each preset's `source` field hold author + licence, shown under "Nguồn & giấy phép video".
+  Audio is always stripped (one candidate was rejected for a copyrighted music track).
+- **Encoding:** 1280x720, 30 fps, H.264 MP4, no audio, 11–19 s with a 1 s crossfade loop,
+  ~0.7–3 MB each. Poster and thumbnail are the clip's first frame so the thumbnail is the scene.
+  Posters/thumbs are precached (offline shows the still); videos are not (16 MB).
+- **Fallbacks:** reduced motion, Save-Data, <= 2 GB RAM or <= 2 CPU cores -> poster only, no
+  video request. Video error or blocked autoplay -> poster + a visible notice. Hidden page ->
+  video paused.
+- **Contrast over video:** panels use `--glass` (90% dark / 94% light, in `index.css`), computed
+  for a pure-white or pure-black frame behind them so ink-3 stays >= 4.5:1. No backdrop blur
+  over video (battery).
+- **Landscape:** the manifest orientation is `any` (a `portrait` lock stops the installed
+  Android app from ever rotating). Landscape = two columns; `[@media(max-height:500px)]:`
+  classes shrink the clock. Tailwind only sees literal class names — never build them from a
+  variable. Fullscreen tries `screen.orientation.lock("landscape")`; if that fails (iPhone,
+  desktop) a hint asks the user to rotate.
+
 ## 8. Commands
 
 ```bash
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # type-check + production build
-npm test                # unit tests (255: lib/ logic, db upgrade, useToday, theme)
+npm test                # unit tests (292: lib/ logic, db upgrade, hooks, background picker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

@@ -36,7 +36,10 @@ export default defineConfig({
         lang: "vi",
         // standalone: mở ra không có thanh địa chỉ, trông như app thật.
         display: "standalone",
-        orientation: "portrait",
+        // "any": cho phép xoay ngang. Màn Phiên tập trung có giao diện ngang
+        // (đồng hồ | nút bấm) và cảnh nền; khoá "portrait" ở đây sẽ làm app
+        // đã cài KHÔNG BAO GIỜ xoay được trên Android.
+        orientation: "any",
         start_url: "/",
         scope: "/",
         background_color: "#0c0e12",
@@ -57,7 +60,11 @@ export default defineConfig({
 
       workbox: {
         // Lưu sẵn toàn bộ phần vỏ app để mở được khi mất mạng.
-        globPatterns: ["**/*.{js,css,html,png,svg,woff2}"],
+        // Thêm ảnh nền tĩnh (poster + thumbnail, tổng ~0.8MB) để khi mất mạng
+        // màn Phiên tập trung vẫn có nền. VIDEO nền (~16MB) cố ý KHÔNG lưu
+        // sẵn: quá nặng để tải về máy mỗi lần cập nhật app. Offline thì nền
+        // tự rơi về ảnh tĩnh (xem FocusBackdrop.tsx).
+        globPatterns: ["**/*.{js,css,html,png,svg,woff2}", "backgrounds/*.jpg"],
         // Mở một đường dẫn lạ lúc offline thì trả về index.html,
         // để React tự xử lý thay vì báo lỗi không có mạng.
         navigateFallback: "index.html",

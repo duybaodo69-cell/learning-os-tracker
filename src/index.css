@@ -55,6 +55,11 @@
 
   -webkit-text-size-adjust: 100%;
   color-scheme: dark;
+
+  /* Độ đậm của thẻ khi màn Phiên tập trung có hình nền. Tính cho trường hợp
+     xấu nhất (video trắng xoá / đen kịt ngay sau thẻ): chữ mờ ink-3 vẫn
+     >= 4.5:1 — tối 90% cho 5.09, sáng cần 94% (90% chỉ 4.43). */
+  --glass: 90%;
 }
 
 /* ---------------------------------------------------------------
@@ -86,6 +91,7 @@
   --bad-ink: #b91c1c;     /* red-700 */
 
   color-scheme: light;
+  --glass: 94%;
 }
 
 @theme inline {

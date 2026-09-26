@@ -1,0 +1,185 @@
+/**
+ * Hình nền cho màn "Phiên tập trung": đọc/ghi lựa chọn và kiểm tra link.
+ *
+ * Lựa chọn lưu trong localStorage: là sở thích của riêng máy này (giống
+ * chế độ tối), không phải dữ liệu học tập — không nằm trong file sao lưu
+ * và không đồng bộ.
+ *
+ * Toàn bộ phần kiểm tra là hàm thuần, có test trong background.test.ts.
+ */
+import { findPreset } from "../config/backgrounds";
+
+export type MediaKind = "image" | "video";
+
+/**
+ * Một lựa chọn nền:
+ *   none   — không có nền (màu nền app như cũ)
+ *   preset — một cảnh có sẵn trong src/config/backgrounds.ts
+ *   url    — link ảnh/video người dùng tự dán. `media` = "unknown" khi đuôi
+ *            file không cho biết loại; lúc hiển thị sẽ thử ảnh trước, video sau.
+ */
+export type FocusBackground =
+  | { kind: "none" }
+  | { kind: "preset"; id: string }
+  | { kind: "url"; url: string; media: MediaKind | "unknown" };
+
+export const NO_BACKGROUND: FocusBackground = { kind: "none" };
+
+/* ==================== Kiểm tra link ==================== */
+
+export type UrlCheck =
+  | { ok: true; url: string; media: MediaKind | "unknown" }
+  | { ok: false; reason: "empty" | "invalid" | "not-https" | "youtube" | "video-page"; message: string };
+
+const IMAGE_EXT = ["jpg", "jpeg", "png", "gif", "webp", "avif"];
+const VIDEO_EXT = ["mp4", "webm", "m4v", "mov"];
+
+/** Tên miền của các trang xem video — link tới TRANG, không phải file video. */
+const VIDEO_PAGE_HOSTS = ["vimeo.com", "tiktok.com", "facebook.com", "fb.watch", "instagram.com", "dailymotion.com"];
+
+function hostIs(host: string, domain: string): boolean {
+  return host === domain || host.endsWith(`.${domain}`);
+}
+
+/**
+ * Link dán vào có dùng làm nền được không.
+ *
+ * YouTube bị từ chối rõ ràng: YouTube không cho lấy file video, và đặt
+ * một khung YouTube ẩn dưới đồng hồ vừa trái điều khoản vừa không tự phát
+ * được trên điện thoại. Thà báo thẳng còn hơn hiện "thành công" giả.
+ */
+export function checkBackgroundUrl(input: string): UrlCheck {
+  const text = input.trim();
+  if (text === "") return { ok: false, reason: "empty", message: "" };
+
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    return { ok: false, reason: "invalid", message: "Đây không phải một đường link hợp lệ." };
+  }
+
+  const host = url.hostname.toLowerCase();
+  if (hostIs(host, "youtube.com") || hostIs(host, "youtu.be") || hostIs(host, "youtube-nocookie.com")) {
+    return {
+      ok: false,
+      reason: "youtube",
+      message:
+        "Link YouTube không dùng làm nền được: YouTube không cho lấy file video để phát nền. Muốn dùng đúng video đó, cần file gốc (.mp4/.webm) và quyền sử dụng từ tác giả.",
+    };
+  }
+  if (VIDEO_PAGE_HOSTS.some((d) => hostIs(host, d))) {
+    return {
+      ok: false,
+      reason: "video-page",
+      message: "Đây là link trang xem video, không phải file video. Cần link trực tiếp tới file .mp4 hoặc .webm.",
+    };
+  }
+  if (url.protocol !== "https:") {
+    return {
+      ok: false,
+      reason: "not-https",
+      message: "Link phải bắt đầu bằng https:// — trình duyệt chặn nội dung http trong app https.",
+    };
+  }
+
+  // Đuôi file nằm ở phần đường dẫn, bỏ qua ?query và #hash.
+  const ext = url.pathname.split(".").pop()?.toLowerCase() ?? "";
+  const media: MediaKind | "unknown" = IMAGE_EXT.includes(ext)
+    ? "image"
+    : VIDEO_EXT.includes(ext)
+      ? "video"
+      : "unknown";
+  return { ok: true, url: url.href, media };
+}
+
+/* ==================== Lưu trên máy ==================== */
+
+export const BACKGROUND_KEY = "learning-os:focus-background";
+
+/** Đọc lựa chọn đã lưu. Giá trị hỏng / cảnh đã bị xoá khỏi danh sách -> không nền. */
+export function parseBackground(raw: string | null): FocusBackground {
+  if (!raw) return NO_BACKGROUND;
+  try {
+    const v = JSON.parse(raw) as Partial<{ kind: string; id: string; url: string; media: string }>;
+    if (v.kind === "preset" && typeof v.id === "string" && findPreset(v.id)) {
+      return { kind: "preset", id: v.id };
+    }
+    if (v.kind === "url" && typeof v.url === "string") {
+      const check = checkBackgroundUrl(v.url);
+      if (check.ok) return { kind: "url", url: check.url, media: check.media };
+    }
+  } catch {
+    /* hỏng thì coi như chưa chọn */
+  }
+  return NO_BACKGROUND;
+}
+
+export function getBackground(): FocusBackground {
+  try {
+    return parseBackground(localStorage.getItem(BACKGROUND_KEY));
+  } catch {
+    return NO_BACKGROUND;
+  }
+}
+
+export function saveBackground(bg: FocusBackground): void {
+  try {
+    if (bg.kind === "none") localStorage.removeItem(BACKGROUND_KEY);
+    else localStorage.setItem(BACKGROUND_KEY, JSON.stringify(bg));
+  } catch {
+    /* không lưu được thì vẫn dùng cho phiên này */
+  }
+}
+
+export function sameBackground(a: FocusBackground, b: FocusBackground): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === "preset" && b.kind === "preset") return a.id === b.id;
+  if (a.kind === "url" && b.kind === "url") return a.url === b.url;
+  return true;
+}
+
+/** Mô tả ngắn để hiện dòng "Nền hiện tại". */
+export function describeBackground(bg: FocusBackground): string {
+  if (bg.kind === "none") return "Không có";
+  if (bg.kind === "preset") return findPreset(bg.id)?.label ?? "Không có";
+  return bg.url;
+}
+
+/* ==================== Tiết kiệm tài nguyên ==================== */
+
+export type DeviceHints = {
+  /** prefers-reduced-motion: reduce */
+  reducedMotion: boolean;
+  /** navigator.connection.saveData — người dùng bật tiết kiệm dữ liệu */
+  saveData: boolean;
+  /** navigator.deviceMemory (GB), không phải trình duyệt nào cũng có */
+  deviceMemory?: number;
+  /** navigator.hardwareConcurrency (số nhân CPU) */
+  cpuCores?: number;
+};
+
+/**
+ * Có nên dùng ảnh tĩnh thay cho video không. Trả về lý do để hiện cho
+ * người dùng biết vì sao nền đứng yên, hoặc null nếu phát video bình thường.
+ */
+export function stillReason(h: DeviceHints): string | null {
+  if (h.reducedMotion) return "Máy đang bật giảm chuyển động, nên nền là ảnh tĩnh.";
+  if (h.saveData) return "Máy đang bật tiết kiệm dữ liệu, nên nền là ảnh tĩnh.";
+  if ((h.deviceMemory !== undefined && h.deviceMemory <= 2) || (h.cpuCores !== undefined && h.cpuCores <= 2)) {
+    return "Máy cấu hình thấp, nên nền là ảnh tĩnh để đồng hồ chạy mượt.";
+  }
+  return null;
+}
+
+/** Đọc các gợi ý trên từ trình duyệt thật. */
+export function readDeviceHints(): DeviceHints {
+  const nav = navigator as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number };
+  return {
+    reducedMotion:
+      typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    saveData: nav.connection?.saveData === true,
+    deviceMemory: nav.deviceMemory,
+    cpuCores: nav.hardwareConcurrency || undefined,
+  };
+}
