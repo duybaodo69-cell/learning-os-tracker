@@ -412,3 +412,139 @@ export function buildExperimentResult(
     enough: a.days >= EXPERIMENT_MIN_DAYS && b.days >= EXPERIMENT_MIN_DAYS,
   };
 }
+
+/* ==================== Khoảng thời gian cho tab Thống kê ==================== */
+
+export type Period = "week" | "4w" | "all";
+
+export type PeriodRanges = {
+  current: { from: string; to: string };
+  /** Khoảng để so sánh, CÙNG SỐ NGÀY. null = không so sánh (tab "Từ đầu"). */
+  previous: { from: string; to: string } | null;
+};
+
+/**
+ * Tính khoảng "hiện tại" và khoảng "trước đó" cho từng tab.
+ *   week : Thứ Hai -> hôm nay, so với cùng số ngày tuần trước
+ *   4w   : 28 ngày gần nhất, so với 28 ngày liền trước
+ *   all  : từ ngày có dữ liệu đầu tiên -> hôm nay, không so sánh
+ * Hai khoảng luôn dài bằng nhau, để tổng deep work không bị so khập khiễng.
+ */
+export function periodRanges(period: Period, today: string, earliest?: string): PeriodRanges {
+  if (period === "week") {
+    const from = mondayOf(today);
+    return { current: { from, to: today }, previous: sameSpanLastWeek(from, today) };
+  }
+  if (period === "4w") {
+    const from = addDays(today, -27);
+    return {
+      current: { from, to: today },
+      previous: { from: addDays(today, -55), to: addDays(today, -28) },
+    };
+  }
+  const from = earliest && earliest < today ? earliest : today;
+  return { current: { from, to: today }, previous: null };
+}
+
+/** Ngày sớm nhất có bất kỳ dữ liệu nào (check-in, block, lượt ôn). */
+export function earliestDate(input: MetricsInput): string | undefined {
+  const all = [
+    ...input.checkins.map((c) => c.date),
+    ...input.focusBlocks.map((b) => b.date),
+    ...input.reviewLogs.map((l) => l.date),
+  ];
+  return all.length === 0 ? undefined : all.reduce((a, b) => (a < b ? a : b));
+}
+
+/* ==================== Năng lượng -> deep work ==================== */
+
+/** Cần ít nhất chừng này ngày ở một mức năng lượng mới đáng tin. */
+export const ENERGY_MIN_DAYS = 5;
+
+export type EnergyRow = {
+  level: 1 | 2 | 3 | 4 | 5;
+  /** Số ngày check-in ở mức này. */
+  n: number;
+  /** Số phút deep work trung bình mỗi ngày ở mức này. null khi n = 0. */
+  avgMinutes: number | null;
+  /** Đủ ngày để đọc chưa (n >= 5). Chưa đủ thì hiện mờ, ghi "sơ bộ". */
+  enough: boolean;
+};
+
+/**
+ * Với mỗi mức năng lượng 1-5: những ngày check-in ở mức đó làm được bao
+ * nhiêu phút deep work (của CHÍNH ngày đó). Ngày có check-in nhưng không
+ * có block nào được tính là 0 phút — bỏ đi sẽ làm số đẹp giả tạo.
+ */
+export function energyToDeepWork(checkins: DailyCheckin[], blocks: FocusBlock[]): EnergyRow[] {
+  const minutesByDate = new Map<string, number>();
+  for (const b of blocks) {
+    minutesByDate.set(b.date, (minutesByDate.get(b.date) ?? 0) + b.minutes);
+  }
+  return ([1, 2, 3, 4, 5] as const).map((level) => {
+    const days = checkins.filter((c) => c.energy === level);
+    const minutes = days.map((c) => minutesByDate.get(c.date) ?? 0);
+    return {
+      level,
+      n: days.length,
+      avgMinutes: mean(minutes),
+      enough: days.length >= ENERGY_MIN_DAYS,
+    };
+  });
+}
+
+/* ==================== Tương quan ==================== */
+
+/**
+ * Hệ số tương quan Pearson r giữa hai dãy số cùng độ dài.
+ * null khi có dưới 3 điểm, hoặc một dãy không đổi (không tính được).
+ *
+ * LƯU Ý khi hiển thị: luôn ghi "sơ bộ" và số điểm n. Với vài chục ngày
+ * dữ liệu cá nhân, r chỉ là gợi ý, KHÔNG phải kết luận — và app cố ý
+ * không bao giờ hiện p-value hay "có ý nghĩa thống kê".
+ */
+export function pearson(xs: number[], ys: number[]): number | null {
+  const n = Math.min(xs.length, ys.length);
+  if (n < 3) return null;
+  const mx = xs.slice(0, n).reduce((a, b) => a + b, 0) / n;
+  const my = ys.slice(0, n).reduce((a, b) => a + b, 0) / n;
+  let sxy = 0;
+  let sxx = 0;
+  let syy = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = xs[i] - mx;
+    const dy = ys[i] - my;
+    sxy += dx * dy;
+    sxx += dx * dx;
+    syy += dy * dy;
+  }
+  if (sxx === 0 || syy === 0) return null;
+  return sxy / Math.sqrt(sxx * syy);
+}
+
+/** r giữa giấc ngủ và deep work cùng ngày, chỉ trên những ngày có check-in. */
+export function sleepFocusCorrelation(points: SleepVsFocusPoint[]): { r: number | null; n: number } {
+  const withSleep = points.filter((p) => p.sleepHours !== null);
+  return {
+    r: pearson(
+      withSleep.map((p) => p.sleepHours as number),
+      withSleep.map((p) => p.sameDayMinutes)
+    ),
+    n: withSleep.length,
+  };
+}
+
+/**
+ * Quy các chỉ số CỘNG DỒN (deep work, lượt ôn) về mức "mỗi 7 ngày".
+ * Dùng khi so một khoảng bất kỳ với baseline (vốn đã quy về mỗi tuần):
+ * 28 ngày deep work đem so thẳng với baseline 7 ngày thì lúc nào cũng "tăng vọt".
+ * Các chỉ số trung bình (giấc ngủ, phân tâm/block, tỷ lệ...) giữ nguyên.
+ */
+export function normalisePerWeek(m: MetricSet, days: number): MetricSet {
+  if (days <= 0) return m;
+  return {
+    ...m,
+    deepWorkMinutes: (m.deepWorkMinutes / days) * 7,
+    cardsReviewed: (m.cardsReviewed / days) * 7,
+  };
+}

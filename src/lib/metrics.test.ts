@@ -21,10 +21,17 @@ import {
   computeMetrics,
   consistency,
   daysBetween,
+  earliestDate,
+  energyToDeepWork,
+  ENERGY_MIN_DAYS,
+  pearson,
+  periodRanges,
+  sleepFocusCorrelation,
   hhmmToMinutes,
   isSunday,
   mean,
   mondayOf,
+  normalisePerWeek,
   sameSpanLastWeek,
   standardDeviation,
   weekRange,
@@ -459,5 +466,143 @@ describe("buildExperimentResult", () => {
     expect(r.b.days).toBe(0);
     expect(r.b.focusMean).toBeNull();
     expect(r.b.deepWorkMinutes).toBe(0);
+  });
+});
+
+describe("periodRanges — mỗi tab so cùng số ngày", () => {
+  it("Tuần: Thứ Hai đến hôm nay, so với cùng số ngày tuần trước", () => {
+    const r = periodRanges("week", "2026-09-30"); // Thứ Tư
+    expect(r.current).toEqual({ from: "2026-09-28", to: "2026-09-30" });
+    expect(r.previous).toEqual({ from: "2026-09-21", to: "2026-09-23" });
+  });
+
+  it("4 tuần: 28 ngày so với 28 ngày liền trước, không chồng lấn", () => {
+    const r = periodRanges("4w", "2026-10-25");
+    expect(daysBetween(r.current.from, r.current.to)).toHaveLength(28);
+    expect(daysBetween(r.previous!.from, r.previous!.to)).toHaveLength(28);
+    expect(r.previous!.to < r.current.from).toBe(true);
+    expect(addDays(r.previous!.to, 1)).toBe(r.current.from);
+  });
+
+  it("Từ đầu: bắt đầu từ ngày có dữ liệu đầu tiên, không so sánh", () => {
+    const r = periodRanges("all", "2026-10-25", "2026-09-28");
+    expect(r.current).toEqual({ from: "2026-09-28", to: "2026-10-25" });
+    expect(r.previous).toBeNull();
+  });
+
+  it("Từ đầu khi chưa có dữ liệu thì chỉ là hôm nay", () => {
+    expect(periodRanges("all", "2026-10-25").current).toEqual({ from: "2026-10-25", to: "2026-10-25" });
+  });
+});
+
+describe("earliestDate", () => {
+  it("lấy ngày sớm nhất trên mọi loại dữ liệu", () => {
+    expect(
+      earliestDate({
+        checkins: [checkin("2026-09-20", 7)],
+        focusBlocks: [block("2026-09-15", 30)],
+        reviewLogs: [log("2026-09-18", "good", 3)],
+        predictions: [],
+      })
+    ).toBe("2026-09-15");
+  });
+  it("không có dữ liệu thì undefined", () => {
+    expect(earliestDate({ checkins: [], focusBlocks: [], reviewLogs: [], predictions: [] })).toBeUndefined();
+  });
+});
+
+describe("energyToDeepWork", () => {
+  function ck(date: string, energy: 1 | 2 | 3 | 4 | 5) {
+    return { ...checkin(date, 7), energy };
+  }
+
+  it("luôn trả về đủ 5 mức", () => {
+    expect(energyToDeepWork([], []).map((r) => r.level)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("trung bình phút deep work của chính những ngày ở mức đó", () => {
+    const rows = energyToDeepWork(
+      [ck("2026-09-01", 4), ck("2026-09-02", 4)],
+      [block("2026-09-01", 120), block("2026-09-02", 60)]
+    );
+    expect(rows[3].n).toBe(2);
+    expect(rows[3].avgMinutes).toBe(90);
+  });
+
+  it("ngày có check-in mà không có block được tính là 0 phút, không bị bỏ", () => {
+    const rows = energyToDeepWork([ck("2026-09-01", 2), ck("2026-09-02", 2)], [block("2026-09-01", 100)]);
+    expect(rows[1].avgMinutes).toBe(50);
+  });
+
+  it("mức chưa có ngày nào: n = 0 và trung bình là null", () => {
+    const rows = energyToDeepWork([ck("2026-09-01", 3)], []);
+    expect(rows[0].n).toBe(0);
+    expect(rows[0].avgMinutes).toBeNull();
+  });
+
+  it("cần ít nhất 5 ngày mỗi mức mới đủ để đọc", () => {
+    expect(ENERGY_MIN_DAYS).toBe(5);
+    const four = ["01", "02", "03", "04"].map((d) => ck(`2026-09-${d}`, 5));
+    expect(energyToDeepWork(four, [])[4].enough).toBe(false);
+    const five = [...four, ck("2026-09-05", 5)];
+    expect(energyToDeepWork(five, [])[4].enough).toBe(true);
+  });
+});
+
+describe("pearson", () => {
+  it("tương quan dương hoàn hảo = 1", () => {
+    expect(pearson([1, 2, 3, 4], [2, 4, 6, 8])).toBeCloseTo(1, 10);
+  });
+  it("tương quan âm hoàn hảo = -1", () => {
+    expect(pearson([1, 2, 3], [3, 2, 1])).toBeCloseTo(-1, 10);
+  });
+  it("không liên quan thì gần 0", () => {
+    expect(pearson([1, 2, 3, 4], [1, -1, -1, 1])).toBeCloseTo(0, 10);
+  });
+  it("dưới 3 điểm thì không tính", () => {
+    expect(pearson([1, 2], [1, 2])).toBeNull();
+  });
+  it("một dãy không đổi thì không tính được", () => {
+    expect(pearson([7, 7, 7], [1, 2, 3])).toBeNull();
+  });
+});
+
+describe("sleepFocusCorrelation", () => {
+  it("chỉ dùng những ngày có check-in và trả về n", () => {
+    const pts = [
+      { date: "a", sleepHours: 6, sameDayMinutes: 60 },
+      { date: "b", sleepHours: 7, sameDayMinutes: 120 },
+      { date: "c", sleepHours: 8, sameDayMinutes: 180 },
+      { date: "d", sleepHours: null, sameDayMinutes: 999 },
+    ];
+    const r = sleepFocusCorrelation(pts);
+    expect(r.n).toBe(3);
+    expect(r.r).toBeCloseTo(1, 10);
+  });
+});
+
+describe("normalisePerWeek", () => {
+  const base = {
+    avgSleepHours: 7,
+    wakeTimeSdMinutes: 20,
+    deepWorkMinutes: 2800,
+    avgDistractionsPerBlock: 2,
+    cardsReviewed: 280,
+    retentionRate: 80,
+    brier30: 0.2,
+  };
+  it("28 ngày quy về mức 7 ngày", () => {
+    const n = normalisePerWeek(base, 28);
+    expect(n.deepWorkMinutes).toBe(700);
+    expect(n.cardsReviewed).toBe(70);
+  });
+  it("chỉ số trung bình giữ nguyên", () => {
+    const n = normalisePerWeek(base, 28);
+    expect(n.avgSleepHours).toBe(7);
+    expect(n.retentionRate).toBe(80);
+    expect(n.brier30).toBe(0.2);
+  });
+  it("0 ngày thì trả nguyên, không chia cho 0", () => {
+    expect(normalisePerWeek(base, 0)).toEqual(base);
   });
 });
