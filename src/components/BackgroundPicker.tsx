@@ -1,16 +1,15 @@
 /**
- * Hộp "Hình nền" của màn "Phiên tập trung".
+ * Hộp "⚙ Cài đặt phiên" của màn "Phiên tập trung".
  *
- * Bố cục: ô dán link, dòng "Nền hiện tại", các nhóm thumbnail chọn nhanh,
- * rồi ba nút Xoá nền / Huỷ / Áp dụng.
+ * Bố cục: tuỳ chọn hiển thị (bật/tắt video nền, độ tối — đổi NGAY), rồi phần
+ * cảnh nền: ô dán link, dòng "Nền hiện tại", các nhóm thumbnail, và ba nút
+ * Xoá nền / Huỷ / Áp dụng.
  *
- * HAI CHẾ ĐỘ, hiện rõ trong hộp:
- *   - Link YouTube / video mẫu YouTube -> PLAYER: video trong khung riêng,
- *     đồng hồ bên cạnh (ngang) hoặc bên dưới (dọc), không phủ lên video.
- *     Xem trước ngay TRONG hộp này (khung nhỏ), để bấm ▶ được khi trình
- *     duyệt chặn tự phát.
- *   - Link ảnh/GIF/video trực tiếp / cảnh mẫu -> NỀN PHỦ sau đồng hồ.
- *     Xem trước trên nền thật phía sau hộp.
+ * Mọi loại cảnh đều phủ kín màn hình phía sau đồng hồ:
+ *   - Link YouTube / video mẫu YouTube: xem trước ngay TRONG hộp này (khung
+ *     nhỏ có nút điều khiển), để bấm ▶ được khi trình duyệt chặn tự phát.
+ *   - Link ảnh/GIF/video trực tiếp / cảnh mẫu MP4: xem trước trên nền thật
+ *     phía sau hộp.
  *
  * Quy tắc:
  *   - Chọn hay dán chỉ là XEM TRƯỚC. Chỉ "Áp dụng" mới lưu. "Huỷ", nút X,
@@ -24,11 +23,11 @@ import { BACKGROUND_PRESETS, GROUP_LABELS } from "../config/backgrounds";
 import type { BackgroundGroup } from "../config/backgrounds";
 import { YOUTUBE_PRESETS } from "../config/youtubePresets";
 import { NO_BACKGROUND, checkBackgroundUrl, describeBackground, displayMode, sameBackground } from "../lib/background";
-import type { FocusBackground } from "../lib/background";
+import type { DimLevel, FocusBackground } from "../lib/background";
 import type { BackdropStatus } from "./FocusBackdrop";
 import YouTubePlayer from "./YouTubePlayer";
 import type { PlayerStatus } from "./YouTubePlayer";
-import { Button } from "./ui";
+import { Button, Toggle } from "./ui";
 
 type Props = {
   /** Nền đang dùng (đã lưu). */
@@ -41,11 +40,18 @@ type Props = {
   onPreview: (bg: FocusBackground | null) => void;
   onApply: (bg: FocusBackground) => void;
   onClose: () => void;
+  /** Tuỳ chọn hiển thị — đổi ngay, không cần Áp dụng. Bỏ trống = không hiện phần này. */
+  display?: {
+    videoOn: boolean;
+    onVideoOn: (on: boolean) => void;
+    dim: DimLevel;
+    onDim: (d: DimLevel) => void;
+  };
 };
 
 const OVERLAY_GROUPS: BackgroundGroup[] = ["morning", "night", "study"];
 
-export default function BackgroundPicker({ saved, previewStatus, stillNote, onPreview, onApply, onClose }: Props) {
+export default function BackgroundPicker({ saved, previewStatus, stillNote, onPreview, onApply, onClose, display }: Props) {
   const [draft, setDraft] = useState<FocusBackground>(saved);
   const [urlText, setUrlText] = useState(saved.kind === "url" ? saved.url : "");
   // Trạng thái của khung xem trước YouTube trong hộp.
@@ -132,7 +138,7 @@ export default function BackgroundPicker({ saved, previewStatus, stillNote, onPr
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           <h2 id="bg-picker-title" className="flex items-center gap-2 text-lg font-bold text-ink">
             <ImageIcon />
-            Hình nền
+            Cài đặt phiên
           </h2>
           <button
             type="button"
@@ -145,6 +151,42 @@ export default function BackgroundPicker({ saved, previewStatus, stillNote, onPr
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+          {/* ---------- Tuỳ chọn hiển thị (đổi ngay) ---------- */}
+          {display && (
+            <section className="mb-4 rounded-lg border border-line bg-surface p-3">
+              <h3 className="mb-2 text-sm font-semibold text-ink">Hiển thị</h3>
+              <Toggle
+                label="Video nền"
+                description="Tắt: giữ đồng hồ, nền gradient tĩnh, không tải video."
+                checked={display.videoOn}
+                onChange={display.onVideoOn}
+              />
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-sm text-ink">
+                  Độ tối sau đồng hồ
+                  <span className="block text-xs text-ink-2">Chọn Đậm nếu video quá sáng hoặc rối mắt.</span>
+                </span>
+                <div className="flex shrink-0 rounded-lg border border-line p-0.5" role="radiogroup" aria-label="Độ tối sau đồng hồ">
+                  {(["normal", "strong"] as const).map((lv) => (
+                    <button
+                      key={lv}
+                      type="button"
+                      role="radio"
+                      aria-checked={display.dim === lv}
+                      onClick={() => display.onDim(lv)}
+                      className={`tap-target rounded-md px-3 text-sm font-semibold ${
+                        display.dim === lv ? "bg-accent text-on-accent" : "text-ink-2"
+                      }`}
+                    >
+                      {lv === "normal" ? "Vừa" : "Đậm"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
+          <h3 className="mb-2 text-sm font-semibold text-ink">Cảnh nền</h3>
           {/* ---------- Ô dán link ---------- */}
           <label htmlFor="bg-url" className="mb-1.5 block text-sm font-semibold text-ink">
             Link YouTube, ảnh / GIF / video (MP4, WebM)
@@ -173,9 +215,8 @@ export default function BackgroundPicker({ saved, previewStatus, stillNote, onPr
             />
           </div>
           <p id="bg-url-help" className="mt-1.5 text-xs text-ink-2">
-            Link YouTube → <strong className="text-ink">player riêng</strong>, đồng hồ nằm bên cạnh. Link trực tiếp tới
-            file .jpg, .png, .gif, .webp, .mp4, .webm (https://) → <strong className="text-ink">nền phủ</strong> sau đồng
-            hồ.
+            Dán link video YouTube, hoặc link trực tiếp tới file .jpg, .png, .gif, .webp, .mp4, .webm (https://). Cảnh phủ
+            kín màn hình phía sau đồng hồ.
           </p>
 
           <div id="bg-url-status" aria-live="polite">
@@ -211,7 +252,7 @@ export default function BackgroundPicker({ saved, previewStatus, stillNote, onPr
               </div>
               {ytStatus.state === "loading" && <StatusLine tone="neutral">Đang tải video YouTube...</StatusLine>}
               {ytStatus.state === "playing" && (
-                <StatusLine tone="good">Video đang phát. Bấm Áp dụng để dùng khi bấm giờ.</StatusLine>
+                <StatusLine tone="good">Video đang phát. Bấm Áp dụng để dùng làm cảnh nền.</StatusLine>
               )}
               {ytStatus.state === "blocked" && (
                 <StatusLine tone="warn">{ytStatus.message} Phát được thì mới Áp dụng được.</StatusLine>
@@ -255,7 +296,7 @@ export default function BackgroundPicker({ saved, previewStatus, stillNote, onPr
 
           {OVERLAY_GROUPS.map((group) => (
             <section key={group} className="mb-4">
-              <GroupTitle mode="overlay">{`Nền phủ · ${GROUP_LABELS[group]}`}</GroupTitle>
+              <GroupTitle mode="overlay">{`Cảnh có sẵn · ${GROUP_LABELS[group]}`}</GroupTitle>
               <div className="grid grid-cols-3 gap-2">
                 {BACKGROUND_PRESETS.filter((p) => p.group === group).map((p) => (
                   <Thumb
@@ -280,7 +321,8 @@ export default function BackgroundPicker({ saved, previewStatus, stillNote, onPr
             </summary>
             <p className="mt-1 mb-1 font-semibold text-ink">Video YouTube</p>
             <p className="mb-2">
-              Phát bằng player nhúng chính thức của YouTube, bản quyền thuộc kênh gốc. App không tải hay chỉnh sửa video.
+              Phát bằng player nhúng chính thức của YouTube (ẩn nút điều khiển khi làm nền), bản quyền thuộc kênh gốc.
+              App không tải hay chỉnh sửa video.
             </p>
             <ul className="mb-3 space-y-1.5">
               {YOUTUBE_PRESETS.map((p) => (
@@ -292,7 +334,7 @@ export default function BackgroundPicker({ saved, previewStatus, stillNote, onPr
                 </li>
               ))}
             </ul>
-            <p className="mb-1 font-semibold text-ink">Nền phủ</p>
+            <p className="mb-1 font-semibold text-ink">Cảnh có sẵn (MP4)</p>
             <p className="mb-2">
               Tất cả từ Wikimedia Commons. Đã cắt ngắn, nén lại và bỏ tiếng; ảnh nhỏ là khung hình của chính video.
             </p>
@@ -351,9 +393,7 @@ function ModeChip({ mode }: { mode: "none" | "overlay" | "player" }) {
   return (
     <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-indigo/40 bg-indigo/15 px-3 py-1 text-xs font-semibold text-indigo-ink">
       {mode === "player" ? <PlayIcon small /> : <LayersIcon />}
-      {mode === "player"
-        ? "Chế độ player YouTube: video ở khung riêng, đồng hồ bên cạnh"
-        : "Chế độ nền phủ: hình / video phủ kín phía sau đồng hồ"}
+      {mode === "player" ? "Link YouTube: video YouTube làm cảnh nền" : "Link trực tiếp: ảnh / video làm cảnh nền"}
     </p>
   );
 }

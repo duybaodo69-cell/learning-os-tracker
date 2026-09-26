@@ -464,15 +464,28 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 
 ### Focus-session backgrounds — rules to keep
 
-- **Two display modes** (`displayMode()` in `lib/background.ts`):
-  - **overlay** — preset scenes / direct image-GIF-MP4-WebM links, full screen BEHIND the clock
-    (`FocusBackdrop.tsx`).
-  - **player** — YouTube links / YouTube presets, played with the official embedded player
-    (`YouTubePlayer.tsx`, IFrame API loaded on demand by `lib/youtubeApi.ts`, host
-    youtube-nocookie.com) in its OWN region: landscape = video left (~60%), clock column right
-    (`min(340px,42vw)`); portrait = 16:9 video on top, clock below. Nothing of the app may sit
-    on top of the player (YouTube terms) — no overlay, no hidden iframe, never as a backdrop.
-    A test asserts the clock and buttons are outside the player region.
+- **Layout (openquiz.ai style, chosen by the owner 2026-09-26):** every scene — preset MP4,
+  direct image/video link, or YouTube — covers the whole screen BEHIND the clock
+  (`FocusBackdrop.tsx`, layer `fixed inset-0 pointer-events-none`). Big clock dead centre on a
+  radial dark gradient; small top row (area, "Bật/Tắt video", ⚙ Cài đặt, fullscreen); bottom
+  row (+1 phân tâm, Chen ngang sheet, Huỷ, Hoàn thành). Colours on this screen are explicit
+  white/black (the text always sits on a darkened video), not theme tokens.
+- **YouTube as a backdrop goes against the YouTube API policies** (overlaying the player,
+  hiding its controls, blocking taps). The owner accepted that risk after seeing the options:
+  YouTube may block embedding on this origin, and ads under the overlay cannot be interacted
+  with. Implementation copies openquiz.ai's CSS cover trick (iframe
+  `max(177.78vh,100vw)` x `max(56.25vw,100vh)`, centred) but uses the IFrame API
+  (`YouTubePlayer variant="background"`: controls 0, loop via `playlist`, muted autoplay,
+  youtube-nocookie) so errors and blocked autoplay are detected — openquiz.ai's plain iframe
+  cannot tell. The picker still previews YouTube in an interactive mini player.
+- **Video on/off** (`learning-os:focus-video`) is independent of the session: off unmounts the
+  video (static gradient, nothing downloads); on reuses the saved scene. **Độ tối**
+  (`learning-os:focus-dim`, Vừa/Đậm) scales the overlay; `DIM_LEVELS` is tested so white text
+  stays >= 4.5:1 even on a pure-white frame. Both apply instantly from ⚙; scene changes still
+  need Áp dụng.
+- **Fallbacks:** YouTube error -> iframe hidden, static gradient + notice with "Đổi nền";
+  blocked autoplay -> notice with the app's own "Phát video" button (`playRequest`); MP4 error
+  -> poster.
 - **Files:** `BackgroundPicker.tsx` (the "Hình nền" dialog), `lib/background.ts` (link check →
   mode, storage, still-image rules), `lib/youtube.ts` (link → video id + start, error texts),
   `config/youtubePresets.ts` (6 study-with-me videos, embeddable per oEmbed 2026-09-26),
@@ -520,7 +533,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 ```bash
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # type-check + production build
-npm test                # unit tests (341: lib/ logic, db upgrade, hooks, background picker, worker)
+npm test                # unit tests (347: lib/ logic, db upgrade, hooks, background picker, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

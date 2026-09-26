@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /** Test kiểm tra link nền, đọc/ghi lựa chọn và phương án ảnh tĩnh. */
 import { describe, expect, it } from "vitest";
 import { checkBackgroundUrl, describeBackground, displayMode, parseBackground, sameBackground, stillReason } from "./background";
@@ -160,9 +161,47 @@ describe("displayMode / describeBackground — phân biệt hai chế độ", ()
   it("dòng 'Nền hiện tại' ghi rõ chế độ", () => {
     expect(describeBackground({ kind: "youtube", videoId: "HFM-EHduRrQ" })).toBe("YouTube · Thượng Hải tới hoàng hôn");
     expect(describeBackground({ kind: "youtube", videoId: "abcdefghijk" })).toBe("YouTube · video abcdefghijk");
-    expect(describeBackground({ kind: "preset", id: "city-day-tokyo" })).toBe("Nền phủ · Tokyo trong sương sớm");
+    expect(describeBackground({ kind: "preset", id: "city-day-tokyo" })).toBe("Cảnh có sẵn · Tokyo trong sương sớm");
   });
   it("hai video YouTube khác nhau không bị coi là một", () => {
     expect(sameBackground({ kind: "youtube", videoId: "HFM-EHduRrQ" }, { kind: "youtube", videoId: "AdV-Gt6KjzI" })).toBe(false);
+  });
+});
+
+describe("tuỳ chọn hiển thị", () => {
+  it("video nền mặc định bật; tắt/bật được và nhớ trên máy", async () => {
+    const { getVideoOn, saveVideoOn } = await import("./background");
+    localStorage.clear();
+    expect(getVideoOn()).toBe(true);
+    saveVideoOn(false);
+    expect(getVideoOn()).toBe(false);
+    saveVideoOn(true);
+    expect(getVideoOn()).toBe(true);
+  });
+
+  it("độ tối: mặc định vừa, giá trị lạ quay về vừa", async () => {
+    const { DIM_KEY, getDim, saveDim } = await import("./background");
+    localStorage.clear();
+    expect(getDim()).toBe("normal");
+    saveDim("strong");
+    expect(getDim()).toBe("strong");
+    localStorage.setItem(DIM_KEY, "tím");
+    expect(getDim()).toBe("normal");
+  });
+
+  it("mọi mức độ tối giữ chữ trắng >= 4.5:1 ở vòng chữ, kể cả trên khung hình trắng xoá", async () => {
+    const { DIM_LEVELS } = await import("./background");
+    const lum = (v: number) => {
+      const c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    for (const lv of Object.values(DIM_LEVELS)) {
+      const alpha = 1 - (1 - lv.base) * (1 - lv.ring); // hai lớp đen chồng nhau
+      const grey = 255 * (1 - alpha); // video trắng xoá phía sau
+      expect(1.05 / (lum(grey) + 0.05)).toBeGreaterThanOrEqual(4.5);
+      // Nút ở mép: chữ trắng trên nền nút đen 60% + lớp mép
+      const btn = 255 * (1 - lv.bars) * (1 - 0.6);
+      expect(1.05 / (lum(btn) + 0.05)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });

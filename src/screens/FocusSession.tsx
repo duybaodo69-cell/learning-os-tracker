@@ -7,16 +7,18 @@
  * Mọi con số đều tính từ dữ liệu lưu trong localStorage (mốc bắt đầu, số
  * phân tâm, việc chen ngang), nên đóng app rồi mở lại vẫn quay về đúng phiên.
  *
- * HÌNH NỀN (BackgroundPicker), hai chế độ:
- *   - NỀN PHỦ (FocusBackdrop): cảnh động phủ kín màn hình phía sau đồng hồ.
- *   - PLAYER YOUTUBE (YouTubePlayer): video trong khung riêng — ngang thì
- *     video bên trái, cột đồng hồ bên phải; dọc thì video trên, đồng hồ dưới.
- *     Không có gì của app nằm đè lên player.
- * Cả hai chỉ là lớp trang trí — đổi nền, xem trước, video lỗi hay vào/thoát
- * toàn màn hình KHÔNG đụng tới mốc bắt đầu, nên không thể làm sai thời gian phiên.
+ * BỐ CỤC (kiểu openquiz.ai): cảnh nền phủ kín màn hình (FocusBackdrop — video
+ * MP4, ảnh, hoặc video YouTube), đồng hồ lớn nổi CHÍNH GIỮA trên một gradient
+ * tối tỏa tròn, một hàng nút nhỏ ở trên (bật/tắt video, ⚙ Cài đặt, toàn màn
+ * hình) và một hàng nút ở dưới (phân tâm, chen ngang, huỷ, hoàn thành).
+ * Cảnh nền không nhận chạm: mọi thao tác là của đồng hồ và nút của app.
  *
- * XOAY NGANG: màn hình ngang chia hai cột (đồng hồ | nút bấm). Nút toàn màn
- * hình thử khoá hướng ngang; trình duyệt không cho thì nhắc tự xoay máy.
+ * Cảnh nền chỉ là lớp trang trí — tải video, bật/tắt video, mở Cài đặt, đổi
+ * nền hay video lỗi KHÔNG đụng tới mốc bắt đầu, nên không thể làm sai thời
+ * gian phiên (có test trong BackgroundPicker.test.tsx).
+ *
+ * Màu ở màn này cố ý dùng trắng/đen trực tiếp thay vì biến theme: chữ luôn
+ * nằm trên một cảnh video tối hoá, ở cả giao diện sáng lẫn tối.
  */
 import { useCallback, useEffect, useState } from "react";
 
@@ -36,25 +38,33 @@ import {
   isSuspiciousDuration,
   removeTimerDistraction,
 } from "../lib/timer";
-import { NO_BACKGROUND, displayMode, getBackground, readDeviceHints, saveBackground, stillReason } from "../lib/background";
-import type { FocusBackground } from "../lib/background";
+import {
+  DIM_LEVELS,
+  getBackground,
+  getDim,
+  getVideoOn,
+  readDeviceHints,
+  saveBackground,
+  saveDim,
+  saveVideoOn,
+  stillReason,
+} from "../lib/background";
+import type { DimLevel, FocusBackground } from "../lib/background";
 import { canFullscreen, enterFullscreen, exitFullscreen, isFullscreen, onFullscreenChange } from "../lib/fullscreen";
 
 import BackgroundPicker from "../components/BackgroundPicker";
 import FocusBackdrop from "../components/FocusBackdrop";
 import type { BackdropStatus } from "../components/FocusBackdrop";
-import YouTubePlayer from "../components/YouTubePlayer";
-import type { PlayerStatus } from "../components/YouTubePlayer";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FocusBlockForm from "../components/FocusBlockForm";
-import { Button, SectionLabel, Tag } from "../components/ui";
+import { Button, SectionLabel } from "../components/ui";
 
 /** Mốc tham chiếu cho vòng tròn tiến độ: 45 phút là một vòng đầy. */
 const REFERENCE_MINUTES = 45;
 
-// Các class `[@media(max-height:500px)]:...` = màn hình thấp (điện thoại xoay
-// ngang): thu nhỏ đồng hồ và khoảng cách. Phải viết nguyên văn, vì Tailwind
-// chỉ nhận ra class viết thẳng trong code, không nhận class ghép từ biến.
+/** Nút nhỏ nổi trên cảnh nền: nền đen 60% để chữ trắng luôn đọc rõ. */
+const CHIP =
+  "tap-target flex items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-black/60 px-3 text-sm font-semibold text-white active:bg-black/80";
 
 /** Số liệu chốt lại tại lúc bấm "Hoàn thành phiên". */
 type Snapshot = {
@@ -76,6 +86,7 @@ export default function FocusSession({
   const [distractions, setDistractions] = useState<number>(getTimerDistractions);
   const [captures, setCaptures] = useState<string[]>(getTimerCaptures);
   const [captureText, setCaptureText] = useState("");
+  const [captureOpen, setCaptureOpen] = useState(false);
 
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [longSession, setLongSession] = useState<Snapshot | null>(null);
@@ -96,21 +107,37 @@ export default function FocusSession({
   const startLabel = `${String(started.getHours()).padStart(2, "0")}:${String(started.getMinutes()).padStart(2, "0")}`;
   const area = getLastArea();
 
-  /* ----- Hình nền ----- */
+  /* ----- Cảnh nền ----- */
   const [savedBg, setSavedBg] = useState<FocusBackground>(getBackground);
-  // Bản đang xem thử trong hộp chọn; null = hiện nền đã lưu.
+  // Bản đang xem thử trong Cài đặt; null = hiện nền đã lưu.
   const [previewBg, setPreviewBg] = useState<FocusBackground | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [bgStatus, setBgStatus] = useState<BackdropStatus>("none");
-  // Đọc một lần: máy yếu / giảm chuyển động / tiết kiệm dữ liệu -> ảnh tĩnh.
+  const [bgMessage, setBgMessage] = useState<string | undefined>();
+  const [playRequest, setPlayRequest] = useState(0);
+  // Đọc một lần: máy yếu / giảm chuyển động / tiết kiệm dữ liệu -> không tự phát.
   const [stillNote] = useState(() => stillReason(readDeviceHints()));
-  const shownBg = previewBg ?? savedBg;
-  // Hai chế độ: "overlay" = nền phủ sau đồng hồ; "player" = YouTube trong
-  // khung riêng, đồng hồ ở vùng khác và KHÔNG phủ lên video.
-  const isPlayer = displayMode(shownBg) === "player";
-  // Thẻ trong suốt chỉ cần khi có nền phủ phía sau.
-  const hasBg = displayMode(shownBg) === "overlay";
-  const [playerStatus, setPlayerStatus] = useState<PlayerStatus>({ state: "loading" });
+  // YouTube xem trước ngay trong hộp Cài đặt, nên phía sau vẫn là nền đã lưu.
+  const shownBg = previewBg && previewBg.kind !== "youtube" ? previewBg : savedBg;
+
+  /* ----- Tuỳ chọn hiển thị (đổi ngay, nhớ trên máy) ----- */
+  const [videoOn, setVideoOnState] = useState(getVideoOn);
+  const [dim, setDimState] = useState<DimLevel>(getDim);
+  const d = DIM_LEVELS[dim];
+
+  function setVideoOn(on: boolean) {
+    saveVideoOn(on);
+    setVideoOnState(on);
+  }
+  function setDim(level: DimLevel) {
+    saveDim(level);
+    setDimState(level);
+  }
+
+  const handleStatus = useCallback((s: BackdropStatus, message?: string) => {
+    setBgStatus(s);
+    setBgMessage(message);
+  }, []);
 
   const handlePreview = useCallback((bg: FocusBackground | null) => {
     setPreviewBg(bg);
@@ -123,12 +150,14 @@ export default function FocusSession({
     saveBackground(bg);
     setSavedBg(bg);
     setPreviewBg(null);
-    setPickerOpen(false);
+    setSettingsOpen(false);
+    // Chọn cảnh mới thì hiển nhiên muốn thấy nó.
+    if (bg.kind !== "none") setVideoOn(true);
   }
 
-  function closePicker() {
+  function closeSettings() {
     setPreviewBg(null);
-    setPickerOpen(false);
+    setSettingsOpen(false);
   }
 
   /* ----- Toàn màn hình + xoay ngang ----- */
@@ -159,14 +188,6 @@ export default function FocusSession({
     setWantLandscape(!r.locked);
   }
   const showRotateHint = wantLandscape && portrait;
-
-  // Khung thẻ: có nền thì hơi trong suốt để thấy cảnh. Độ đậm lấy từ biến
-  // --glass trong index.css (tối 90%, sáng 94%), tính cho trường hợp xấu nhất
-  // — video trắng xoá hoặc đen kịt ngay sau thẻ — chữ mờ nhất vẫn >= 4.5:1. Không dùng hiệu ứng làm mờ (blur) phía sau vì blur chồng
-  // lên video rất tốn pin trên điện thoại.
-  const panel = hasBg
-    ? "rounded-lg border border-white/10 bg-[color-mix(in_srgb,var(--surface)_var(--glass),transparent)] p-4"
-    : "rounded-lg border border-line bg-surface p-4";
 
   /* ----- Vòng tròn tiến độ tới mốc 45 phút ----- */
   const R = 88;
@@ -212,239 +233,247 @@ export default function FocusSession({
     onExit();
   }
 
+  const hasScene = savedBg.kind !== "none";
+
   return (
-    <div className={`relative flex h-full flex-col ${isPlayer ? "bg-black landscape:flex-row" : ""}`}>
-      <FocusBackdrop background={isPlayer ? NO_BACKGROUND : shownBg} still={stillNote !== null} onStatus={setBgStatus} />
+    <div className="relative h-full overflow-hidden bg-[#0c0e12] text-white">
+      {/* ---------- Cảnh nền (không nhận chạm) ---------- */}
+      <FocusBackdrop
+        background={shownBg}
+        still={stillNote !== null}
+        videoOn={videoOn || previewBg !== null}
+        playRequest={playRequest}
+        onStatus={handleStatus}
+      />
 
-      {/* ---------- Chế độ player: YouTube trong khung riêng ----------
-          Dọc: khung 16:9 ở trên, đồng hồ bên dưới.
-          Ngang: video chiếm phần lớn bên trái, cột đồng hồ bên phải.
-          Không có phần tử nào của app nằm đè lên khung này. */}
-      {isPlayer && shownBg.kind === "youtube" && (
-        <section
-          aria-label="Video YouTube"
-          className="relative z-10 aspect-video w-full shrink-0 bg-black landscape:aspect-auto landscape:h-full landscape:w-auto landscape:min-w-0 landscape:flex-1"
-        >
-          <YouTubePlayer
-            key={`${shownBg.videoId}:${shownBg.start ?? 0}`}
-            videoId={shownBg.videoId}
-            start={shownBg.start}
-            autoplay={stillNote === null}
-            onStatus={setPlayerStatus}
-          />
-        </section>
-      )}
-
-      {/* Vùng đồng hồ + nút. Ở chế độ nền phủ, "contents" làm lớp bọc này
-          biến mất khỏi bố cục — y như trước khi có chế độ player. */}
+      {/* ---------- Lớp phủ tối ----------
+          Nhẹ cả màn hình + đậm ở mép trên/dưới (sau các nút). Độ đậm theo tuỳ
+          chọn "Độ tối"; mức nhẹ nhất vẫn giữ chữ trắng >= 4.5:1 trên khung
+          hình trắng xoá (test trong background.test.ts). */}
       <div
-        className={
-          isPlayer
-            ? "relative z-10 flex min-h-0 flex-1 flex-col bg-canvas landscape:w-[min(340px,42vw)] landscape:flex-none landscape:border-l landscape:border-line"
-            : "contents"
-        }
+        className="pointer-events-none fixed inset-0 z-[1]"
+        style={{
+          background: `linear-gradient(to bottom, rgba(0,0,0,${d.bars}) 0%, rgba(0,0,0,${d.base}) 22%, rgba(0,0,0,${d.base}) 78%, rgba(0,0,0,${d.bars}) 100%)`,
+        }}
+        aria-hidden="true"
+      />
+
+      <div
+        className="relative z-10 flex h-full flex-col"
+        style={{
+          paddingTop: "max(0.75rem, env(safe-area-inset-top))",
+          paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+          paddingLeft: "max(1rem, env(safe-area-inset-left))",
+          paddingRight: "max(1rem, env(safe-area-inset-right))",
+        }}
       >
-      <header
-        className={`relative z-10 border-b px-4 pt-4 pb-3 [@media(max-height:500px)]:pt-2 [@media(max-height:500px)]:pb-2 ${
-          hasBg ? "border-white/10 bg-[color-mix(in_srgb,var(--canvas)_var(--glass),transparent)]" : "border-line bg-canvas/95"
-        }`}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="flex items-center gap-2 text-lg font-semibold tracking-wide text-ink uppercase">
+        {/* ---------- Hàng trên ---------- */}
+        <header className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-good" aria-hidden="true" />
-            Phiên tập trung
-          </h1>
-          <div className="flex items-center gap-1.5">
-            <Tag tone="indigo">{area}</Tag>
-            <button
-              type="button"
-              onClick={() => setPickerOpen(true)}
-              className="tap-target flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 text-sm font-semibold text-ink active:bg-surface"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="9" cy="9" r="2" />
-                <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
-              </svg>
-              Hình nền
+            <h1 className="sr-only">Phiên tập trung</h1>
+            <span className="truncate rounded-lg border border-white/20 bg-black/60 px-2.5 py-1 text-sm font-semibold text-white">
+              {area}
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {hasScene && (
+              <button
+                type="button"
+                onClick={() => setVideoOn(!videoOn)}
+                className={CHIP}
+                aria-pressed={videoOn}
+                aria-label={videoOn ? "Tắt video nền" : "Bật video nền"}
+                title={videoOn ? "Tắt video nền" : "Bật video nền"}
+              >
+                <VideoIcon off={!videoOn} />
+                <span className="hidden sm:inline landscape:inline">{videoOn ? "Tắt video" : "Bật video"}</span>
+              </button>
+            )}
+            <button type="button" onClick={() => setSettingsOpen(true)} className={CHIP} aria-label="Cài đặt phiên" title="Cài đặt phiên">
+              <GearIcon />
+              <span className="hidden sm:inline landscape:inline">Cài đặt</span>
             </button>
             <button
               type="button"
               onClick={() => void toggleFullscreen()}
-              className="tap-target flex items-center justify-center rounded-lg border border-line bg-surface-2 px-2.5 text-ink active:bg-surface"
+              className={CHIP}
               aria-label={fullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
               title={fullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                {fullscreen ? (
-                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
-                ) : (
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                )}
-              </svg>
+              <FullscreenIcon exit={fullscreen} />
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* Nền không hiện được như đã chọn -> nói rõ, không im lặng. */}
-        {!pickerOpen && bgStatus === "fallback" && (
-          <p className="mt-2 text-xs text-warn">Video nền không phát được — đang dùng ảnh tĩnh của cảnh này.</p>
-        )}
-        {!pickerOpen && bgStatus === "error" && hasBg && (
-          <p className="mt-2 text-xs text-warn">Không tải được hình nền — đang dùng màu nền mặc định.</p>
-        )}
-        {/* Trạng thái video YouTube — hiện ở vùng đồng hồ, không đè lên player. */}
-        {isPlayer && !pickerOpen && playerStatus.state === "error" && (
-          <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-bad/40 bg-surface-2 px-3 py-2 text-sm text-bad-ink">
-            <span>Video không phát được: {playerStatus.message}</span>
-            <button type="button" onClick={() => setPickerOpen(true)} className="tap-target shrink-0 px-2 text-sm font-semibold text-ink">
-              Đổi video
-            </button>
-          </div>
-        )}
-        {isPlayer && !pickerOpen && playerStatus.state === "blocked" && (
-          <p className="mt-2 text-xs text-warn">{playerStatus.message}</p>
-        )}
-        {showRotateHint && (
-          <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-accent/40 bg-surface-2 px-3 py-2 text-sm text-ink">
-            <span>
+        {/* ---------- Thông báo (không bao giờ im lặng khi nền không như đã chọn) ---------- */}
+        <div className="mx-auto mt-2 flex w-full max-w-xl flex-col gap-2" aria-live="polite">
+          {videoOn && !settingsOpen && bgStatus === "blocked" && (
+            <Notice
+              action={{ label: "Phát video", onClick: () => setPlayRequest((n) => n + 1) }}
+            >
+              {stillNote ? `${stillNote.replace("nên nền là ảnh tĩnh", "nên video không tự phát")}` : "Trình duyệt chưa cho tự phát video."}
+            </Notice>
+          )}
+          {videoOn && !settingsOpen && bgStatus === "fallback" && (
+            <Notice>Video nền không phát được — đang dùng ảnh tĩnh của cảnh này.</Notice>
+          )}
+          {videoOn && !settingsOpen && bgStatus === "error" && hasScene && (
+            <Notice tone="bad" action={{ label: "Đổi nền", onClick: () => setSettingsOpen(true) }}>
+              Video nền không phát được{bgMessage ? `: ${bgMessage}` : ""} Đang dùng nền tĩnh.
+            </Notice>
+          )}
+          {showRotateHint && (
+            <Notice action={{ label: "Đóng", onClick: () => setWantLandscape(false) }}>
               {canFullscreen()
                 ? "Xoay ngang điện thoại để xem toàn cảnh."
                 : "Trình duyệt này không có chế độ toàn màn hình. Xoay ngang máy để xem toàn cảnh; trên iPhone, thêm app vào Màn hình chính để ẩn thanh địa chỉ."}
-            </span>
-            <button type="button" onClick={() => setWantLandscape(false)} className="tap-target shrink-0 px-2 text-sm text-ink-2">
-              Đóng
-            </button>
-          </div>
-        )}
-      </header>
+            </Notice>
+          )}
+        </div>
 
-      <main className={`relative z-10 flex-1 overflow-y-auto px-4 py-4 [@media(max-height:500px)]:py-2`}>
-        <div
-          className={
-            isPlayer
-              ? "mx-auto w-full max-w-xl"
-              : "mx-auto w-full max-w-5xl landscape:grid landscape:grid-cols-2 landscape:items-start landscape:gap-4"
-          }
-        >
-          {/* ---------- Đồng hồ (cột trái khi xoay ngang) ---------- */}
-          <div className={`${panel} mb-4 flex flex-col items-center py-6 [@media(max-height:500px)]:py-3`}>
-            <div className={`relative h-52 w-52 [@media(max-height:500px)]:h-40 [@media(max-height:500px)]:w-40`}>
-              <svg viewBox="0 0 200 200" className="h-full w-full -rotate-90">
-                <circle cx="100" cy="100" r={R} fill="none" stroke="var(--line)" strokeWidth="8" />
+        {/* ---------- Đồng hồ chính giữa ---------- */}
+        <main className="flex min-h-0 flex-1 items-center justify-center">
+          <div className="relative flex items-center justify-center">
+            {/* Gradient tỏa tròn: đậm sau chữ, mờ dần ra ngoài — vẫn thấy rõ cảnh. */}
+            <div
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[170%] w-[170%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={{
+                background: `radial-gradient(closest-side, rgba(0,0,0,${d.center}) 0%, rgba(0,0,0,${d.ring}) 60%, rgba(0,0,0,0) 100%)`,
+              }}
+              aria-hidden="true"
+            />
+            <div className="relative h-[min(19rem,58vh,72vw)] w-[min(19rem,58vh,72vw)]">
+              <svg viewBox="0 0 200 200" className="h-full w-full -rotate-90" aria-hidden="true">
+                <circle cx="100" cy="100" r={R} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="6" />
                 <circle
                   cx="100"
                   cy="100"
                   r={R}
                   fill="none"
                   stroke="var(--accent)"
-                  strokeWidth="8"
+                  strokeWidth="6"
                   strokeLinecap="round"
                   strokeDasharray={CIRC}
                   strokeDashoffset={CIRC * (1 - progress)}
                 />
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xs tracking-wider text-ink-2 uppercase">Đã trôi qua</span>
-                <span className={`font-num text-5xl font-semibold text-ink [@media(max-height:500px)]:text-4xl`}>{clock}</span>
-                <span className="mt-1 text-xs text-ink-3">vòng đầy = {REFERENCE_MINUTES} phút</span>
+              <div
+                className="absolute inset-0 flex flex-col items-center justify-center"
+                style={{ textShadow: "0 1px 3px rgba(0,0,0,0.7)" }}
+              >
+                <span className="text-xs tracking-wider text-white/85 uppercase">Đã trôi qua</span>
+                <span className="font-num text-[clamp(3rem,15vh,5.5rem)] leading-none font-semibold text-white">
+                  {clock}
+                </span>
+                <span className="mt-2 text-sm text-white/85">
+                  Bắt đầu <span className="font-num text-white">{startLabel}</span>
+                </span>
               </div>
             </div>
-            <p className="mt-3 text-sm text-ink-2">
-              Bắt đầu <span className="font-num text-ink">{startLabel}</span>
-            </p>
           </div>
+        </main>
 
-          {/* ---------- Các nút (cột phải khi xoay ngang) ---------- */}
-          <div>
-            {/* +1 phân tâm: MỘT nút lớn, số đếm nằm bên trong */}
-            <button
-              type="button"
-              onClick={() => setDistractions(addTimerDistraction())}
-              className={`mb-2 flex min-h-16 w-full items-center justify-between rounded-lg border border-warn/50 px-5 text-left active:bg-warn/25 ${
-                // Có nền: lót màu thẻ gần như đặc, nếu không lớp cam trong suốt
-                // nằm thẳng trên video và chữ cam mất tương phản.
-                hasBg ? "bg-[color-mix(in_srgb,var(--surface)_88%,var(--warn))]" : "bg-warn/12"
-              }`}
-            >
-              <span className="text-xl font-bold text-warn">+1 phân tâm</span>
-              <span className="rounded-lg border border-warn/40 bg-canvas px-4 py-1 font-num text-2xl font-semibold text-warn">
-                {distractions}
-              </span>
-            </button>
-            <div className={`mb-4 flex items-center justify-between px-1 ${hasBg ? "rounded-lg bg-[color-mix(in_srgb,var(--canvas)_var(--glass),transparent)] px-2" : ""}`}>
-              <p className="text-xs text-ink-3">Bấm ngay lúc vừa bị phân tâm — nhớ lại sau luôn thiếu.</p>
-              {distractions > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setDistractions(removeTimerDistraction())}
-                  className="tap-target shrink-0 px-2 text-sm text-ink-2"
-                >
-                  Bớt 1
-                </button>
-              )}
-            </div>
-
-            {/* Việc chen ngang */}
-            <div className={`${panel} mb-4`}>
-              <SectionLabel right="mỗi ghi chú +1 phân tâm">Việc chen ngang</SectionLabel>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={captureText}
-                  onChange={(e) => setCaptureText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCapture();
-                  }}
-                  placeholder="Ghi ra để khỏi giữ trong đầu..."
-                  className="tap-target min-w-0 flex-1 rounded-lg border border-line bg-surface-2 px-3 text-base text-ink placeholder:text-ink-3 focus:border-accent focus:outline focus:outline-1 focus:outline-accent"
-                />
-                <Button onClick={handleCapture} disabled={captureText.trim() === ""} className="shrink-0">
-                  Ghi
-                </Button>
-              </div>
-              {captures.length > 0 && (
-                <ul className="mt-3 space-y-1.5">
-                  {captures.map((c, i) => (
-                    <li key={i} className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink-2">
-                      {c}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {/* Kết thúc */}
-            <div className="mb-6 grid grid-cols-[1fr_2fr] gap-2">
-              <Button variant="secondary" onClick={() => setConfirmCancel(true)}>
-                Huỷ phiên
-              </Button>
-              <Button onClick={handleFinish} className="py-3 text-base">
-                Hoàn thành phiên
-              </Button>
-            </div>
-          </div>
-        </div>
-      </main>
+        {/* ---------- Hàng dưới ---------- */}
+        <footer className="mx-auto grid w-full max-w-3xl grid-cols-2 gap-2 landscape:grid-cols-[1.2fr_1fr_0.8fr_1.4fr]">
+          <button
+            type="button"
+            onClick={() => setDistractions(addTimerDistraction())}
+            className="tap-target flex items-center justify-between gap-2 rounded-lg border border-warn/60 bg-black/70 px-4 font-bold text-warn active:bg-black/85"
+          >
+            <span>+1 phân tâm</span>
+            <span className="font-num text-xl">{distractions}</span>
+          </button>
+          <button type="button" onClick={() => setCaptureOpen(true)} className={CHIP}>
+            <PencilIcon />
+            Chen ngang{captures.length > 0 && <span className="font-num">({captures.length})</span>}
+          </button>
+          <button type="button" onClick={() => setConfirmCancel(true)} className={CHIP}>
+            Huỷ phiên
+          </button>
+          <Button onClick={handleFinish} className="text-base">
+            Hoàn thành phiên
+          </Button>
+        </footer>
       </div>
 
-      {/* ---------- Hộp chọn hình nền ---------- */}
-      {pickerOpen && (
+      {/* ---------- Cài đặt phiên (⚙): hiển thị + chọn cảnh nền ---------- */}
+      {settingsOpen && (
         <BackgroundPicker
           saved={savedBg}
           previewStatus={bgStatus}
           stillNote={stillNote}
           onPreview={handlePreview}
           onApply={applyBackground}
-          onClose={closePicker}
+          onClose={closeSettings}
+          display={{ videoOn, onVideoOn: setVideoOn, dim, onDim: setDim }}
         />
+      )}
+
+      {/* ---------- Phân tâm & việc chen ngang ---------- */}
+      {captureOpen && (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={() => setCaptureOpen(false)}>
+          <div
+            className="max-h-[88dvh] w-full max-w-xl overflow-y-auto rounded-t-xl border-t border-accent/60 bg-surface-2 p-4 text-ink"
+            style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Phân tâm và việc chen ngang"
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" aria-hidden="true" />
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-sm text-ink-2">
+                Phân tâm trong phiên: <strong className="font-num text-lg text-ink">{distractions}</strong>
+              </span>
+              {distractions > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setDistractions(removeTimerDistraction())}
+                  className="tap-target rounded-lg px-3 text-sm text-ink-2 active:bg-surface"
+                >
+                  Bớt 1
+                </button>
+              )}
+            </div>
+            <SectionLabel right="mỗi ghi chú +1 phân tâm">Việc chen ngang</SectionLabel>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={captureText}
+                autoFocus
+                onChange={(e) => setCaptureText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCapture();
+                }}
+                placeholder="Ghi ra để khỏi giữ trong đầu..."
+                className="tap-target min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 text-base text-ink placeholder:text-ink-3 focus:border-accent focus:outline focus:outline-1 focus:outline-accent"
+              />
+              <Button onClick={handleCapture} disabled={captureText.trim() === ""} className="shrink-0">
+                Ghi
+              </Button>
+            </div>
+            {captures.length > 0 && (
+              <ul className="mt-3 space-y-1.5">
+                {captures.map((c, i) => (
+                  <li key={i} className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-2">
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Button variant="secondary" onClick={() => setCaptureOpen(false)} className="mt-4 w-full">
+              Xong
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* ---------- Bottom sheet: chỉ hiện SAU khi bấm "Hoàn thành phiên" ---------- */}
       {finishing && (
         <div className="fixed inset-0 z-40 flex items-end bg-black/70" onClick={() => setFinishing(null)}>
           <div
-            className="max-h-[88dvh] w-full overflow-y-auto rounded-t-xl border-t border-accent/60 bg-surface-2 p-4 shadow-[0_-8px_32px_rgba(0,0,0,0.65)]"
+            className="max-h-[88dvh] w-full overflow-y-auto rounded-t-xl border-t border-accent/60 bg-surface-2 p-4 text-ink shadow-[0_-8px_32px_rgba(0,0,0,0.65)]"
             style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
@@ -511,5 +540,72 @@ export default function FocusSession({
         onCancel={() => setLongSession(null)}
       />
     </div>
+  );
+}
+
+/* ---------- Mảnh nhỏ ---------- */
+
+function Notice({
+  children,
+  tone = "warn",
+  action,
+}: {
+  children: React.ReactNode;
+  tone?: "warn" | "bad";
+  action?: { label: string; onClick: () => void };
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-2 rounded-lg border bg-black/75 px-3 py-1.5 text-sm text-white ${
+        tone === "bad" ? "border-bad/60" : "border-warn/60"
+      }`}
+    >
+      <span>{children}</span>
+      {action && (
+        <button type="button" onClick={action.onClick} className="tap-target shrink-0 rounded-lg px-2 font-semibold text-accent">
+          {action.label}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function VideoIcon({ off }: { off: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <rect x="2" y="6" width="14" height="12" rx="2" />
+      <path d="m16 10 6-3v10l-6-3" />
+      {off && <path d="M3 3l18 18" />}
+    </svg>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+    </svg>
+  );
+}
+
+function FullscreenIcon({ exit }: { exit: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      {exit ? (
+        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+      ) : (
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+      )}
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4z" />
+    </svg>
   );
 }

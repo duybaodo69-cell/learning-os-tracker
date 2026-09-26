@@ -11,12 +11,17 @@ import type { PlayerStatus } from "./YouTubePlayer";
 
 // Player YouTube thật cần mạng + thư viện của YouTube. Ở đây thay bằng bản giả
 // để test tự điều khiển trạng thái: đang tải / bị chặn tự phát / đang phát / lỗi.
-const player = vi.hoisted(() => ({ report: null as null | ((s: PlayerStatus) => void), mounted: [] as string[] }));
+const player = vi.hoisted(() => ({
+  report: null as null | ((s: PlayerStatus) => void),
+  reports: {} as Record<string, (s: PlayerStatus) => void>,
+  mounted: [] as string[],
+}));
 vi.mock("./YouTubePlayer", () => ({
-  default: (props: { videoId: string; onStatus?: (s: PlayerStatus) => void }) => {
+  default: (props: { videoId: string; variant?: string; onStatus?: (s: PlayerStatus) => void }) => {
     player.report = props.onStatus ?? null;
+    if (props.onStatus) player.reports[props.variant ?? "interactive"] = props.onStatus;
     player.mounted.push(props.videoId);
-    return <div data-testid="yt-player" data-video={props.videoId} />;
+    return <div data-testid={`yt-${props.variant ?? "interactive"}`} data-video={props.videoId} />;
   },
 }));
 
@@ -53,13 +58,13 @@ afterEach(() => {
 });
 
 describe("BackgroundPicker", () => {
-  it("có nhóm YouTube, ba nhóm nền phủ và ba nút như bố cục reference", () => {
+  it("có nhóm YouTube, ba nhóm cảnh có sẵn và ba nút như bố cục reference", () => {
     setup();
     for (const g of [
       "YouTube · Study with me",
-      "Nền phủ · Thành phố buổi sáng",
-      "Nền phủ · Thành phố về đêm",
-      "Nền phủ · Study with me",
+      "Cảnh có sẵn · Thành phố buổi sáng",
+      "Cảnh có sẵn · Thành phố về đêm",
+      "Cảnh có sẵn · Study with me",
     ]) {
       expect(screen.getByText(g)).toBeTruthy();
     }
@@ -91,15 +96,15 @@ describe("BackgroundPicker", () => {
     expect(props.onApply).toHaveBeenCalledWith({ kind: "preset", id: "window-rain-night" });
   });
 
-  it("dán link YouTube -> chế độ player, xem trước TRONG hộp, không phủ phía sau", () => {
+  it("dán link YouTube -> xem trước TRONG hộp (player có nút bấm), phía sau giữ nền cũ", () => {
     const { props } = setup();
     fireEvent.change(screen.getByLabelText(/Link YouTube/), {
       target: { value: "https://youtu.be/HFM-EHduRrQ?si=abc" },
     });
-    expect(screen.getByText(/Chế độ player YouTube/)).toBeTruthy();
+    expect(screen.getByText(/Link YouTube: video YouTube làm cảnh nền/)).toBeTruthy();
     act(() => vi.advanceTimersByTime(500));
-    expect(screen.getByTestId("yt-player").getAttribute("data-video")).toBe("HFM-EHduRrQ");
-    // Phía sau hộp giữ nguyên nền đã lưu: YouTube không bao giờ làm nền phủ.
+    expect(screen.getByTestId("yt-interactive").getAttribute("data-video")).toBe("HFM-EHduRrQ");
+    // Phía sau hộp giữ nguyên nền đã lưu cho tới khi Áp dụng.
     expect(props.onPreview).toHaveBeenLastCalledWith(null);
   });
 
@@ -131,7 +136,7 @@ describe("BackgroundPicker", () => {
     expect((applyButton() as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByText(/Video đang phát/)).toBeNull();
     act(() => vi.advanceTimersByTime(500));
-    expect(screen.getByTestId("yt-player").getAttribute("data-video")).toBe("AdV-Gt6KjzI");
+    expect(screen.getByTestId("yt-interactive").getAttribute("data-video")).toBe("AdV-Gt6KjzI");
     expect((applyButton() as HTMLButtonElement).disabled).toBe(true);
     act(() => player.report!({ state: "playing" }));
     fireEvent.click(applyButton());
@@ -153,10 +158,20 @@ describe("BackgroundPicker", () => {
     expect((applyButton() as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("link file trực tiếp -> chế độ nền phủ", () => {
+  it("link file trực tiếp -> nhãn ảnh / video làm cảnh nền", () => {
     setup();
     fireEvent.change(screen.getByLabelText(/Link YouTube/), { target: { value: "https://example.com/canh.webm" } });
-    expect(screen.getByText(/Chế độ nền phủ/)).toBeTruthy();
+    expect(screen.getByText(/Link trực tiếp: ảnh \/ video làm cảnh nền/)).toBeTruthy();
+  });
+
+  it("tuỳ chọn hiển thị đổi NGAY, không cần Áp dụng", () => {
+    const onVideoOn = vi.fn();
+    const onDim = vi.fn();
+    setup({ display: { videoOn: true, onVideoOn, dim: "normal", onDim } });
+    fireEvent.click(screen.getByRole("switch"));
+    expect(onVideoOn).toHaveBeenCalledWith(false);
+    fireEvent.click(screen.getByRole("radio", { name: "Đậm" }));
+    expect(onDim).toHaveBeenCalledWith("strong");
   });
 
   it("link video: Áp dụng bị khoá tới khi tải được thật", () => {
@@ -194,7 +209,7 @@ describe("FocusSession — đổi nền không làm sai phiên học", () => {
     render(<FocusSession startedAt={startedAt} onExit={() => {}} />);
     expect(screen.getByText("01:05")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: /Hình nền/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Cài đặt phiên" }));
     fireEvent.click(screen.getByRole("button", { name: "Singapore về đêm" }));
     act(() => vi.advanceTimersByTime(10_000));
     fireEvent.click(applyButton());
@@ -206,31 +221,60 @@ describe("FocusSession — đổi nền không làm sai phiên học", () => {
     expect(JSON.parse(localStorage.getItem(BACKGROUND_KEY)!)).toEqual({ kind: "preset", id: "city-night-singapore" });
   });
 
-  it("chế độ player: đồng hồ và nút nằm NGOÀI khung video", () => {
+  it("YouTube làm cảnh nền phủ kín, KHÔNG nhận chạm; đồng hồ và nút nằm ngoài lớp nền", () => {
     localStorage.setItem(BACKGROUND_KEY, JSON.stringify({ kind: "youtube", videoId: "HFM-EHduRrQ" }));
     render(<FocusSession startedAt={Date.now() - 5000} onExit={() => {}} />);
-    const frame = screen.getByRole("region", { name: "Video YouTube" });
-    expect(frame.querySelector("[data-testid=yt-player]")).toBeTruthy();
-    for (const el of [screen.getByText("00:05"), screen.getByRole("button", { name: "Hoàn thành phiên" }), screen.getByRole("button", { name: /Hình nền/ })]) {
-      expect(frame.contains(el)).toBe(false);
+    const bg = screen.getByTestId("yt-background");
+    const layer = bg.closest("[aria-hidden=true]") as HTMLElement;
+    expect(layer.className).toContain("pointer-events-none");
+    expect(layer.className).toContain("fixed");
+    for (const el of [screen.getByText("00:05"), screen.getByRole("button", { name: "Hoàn thành phiên" })]) {
+      expect(layer.contains(el)).toBe(false);
     }
   });
 
-  it("video YouTube lỗi giữa phiên: báo ở vùng đồng hồ, đồng hồ vẫn chạy", () => {
+  it("bật/tắt video nền: tắt thì gỡ video (gradient tĩnh), bật lại dùng đúng video; đồng hồ không reset", () => {
+    vi.setSystemTime(new Date("2026-09-26T09:00:00"));
+    const startedAt = Date.now() - 30_000;
+    localStorage.setItem("learning-os:timer-started-at", String(startedAt));
+    localStorage.setItem(BACKGROUND_KEY, JSON.stringify({ kind: "youtube", videoId: "AdV-Gt6KjzI" }));
+    render(<FocusSession startedAt={startedAt} onExit={() => {}} />);
+    expect(screen.getByTestId("yt-background")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Tắt video nền" }));
+    expect(screen.queryByTestId("yt-background")).toBeNull();
+    expect(localStorage.getItem("learning-os:focus-video")).toBe("off");
+    act(() => vi.advanceTimersByTime(5000));
+    expect(screen.getByText("00:35")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Bật video nền" }));
+    expect(screen.getByTestId("yt-background").getAttribute("data-video")).toBe("AdV-Gt6KjzI");
+    expect(localStorage.getItem("learning-os:timer-started-at")).toBe(String(startedAt));
+  });
+
+  it("tự phát bị chặn: nút Phát video của app, không phải nút trong player", () => {
+    localStorage.setItem(BACKGROUND_KEY, JSON.stringify({ kind: "youtube", videoId: "HFM-EHduRrQ" }));
+    render(<FocusSession startedAt={Date.now()} onExit={() => {}} />);
+    act(() => player.reports.background!({ state: "blocked", message: "x" }));
+    expect(screen.getByRole("button", { name: "Phát video" })).toBeTruthy();
+  });
+
+  it("video YouTube lỗi giữa phiên: nền tĩnh + thông báo, đồng hồ vẫn chạy", () => {
     vi.setSystemTime(new Date("2026-09-26T09:00:00"));
     const startedAt = Date.now() - 60_000;
     localStorage.setItem(BACKGROUND_KEY, JSON.stringify({ kind: "youtube", videoId: "HFM-EHduRrQ" }));
     render(<FocusSession startedAt={startedAt} onExit={() => {}} />);
-    act(() => player.report!({ state: "error", message: "Video không tồn tại hoặc đã chuyển sang riêng tư." }));
+    act(() => player.reports.background!({ state: "error", message: "Video không tồn tại hoặc đã chuyển sang riêng tư." }));
     act(() => vi.advanceTimersByTime(3000));
-    expect(screen.getByText(/Video không phát được: Video không tồn tại/)).toBeTruthy();
+    expect(screen.getByText(/Video nền không phát được: Video không tồn tại/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Đổi nền" })).toBeTruthy();
     expect(screen.getByText("01:03")).toBeTruthy();
   });
 
   it("Huỷ trong hộp chọn giữ nguyên nền đã lưu", () => {
     localStorage.setItem(BACKGROUND_KEY, JSON.stringify({ kind: "preset", id: "city-day-tokyo" }));
     render(<FocusSession startedAt={Date.now()} onExit={() => {}} />);
-    fireEvent.click(screen.getByRole("button", { name: /Hình nền/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Cài đặt phiên" }));
     fireEvent.click(screen.getByRole("button", { name: "Singapore về đêm" }));
     fireEvent.click(screen.getByRole("button", { name: "Huỷ" }));
     expect(JSON.parse(localStorage.getItem(BACKGROUND_KEY)!)).toEqual({ kind: "preset", id: "city-day-tokyo" });

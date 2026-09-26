@@ -1,11 +1,17 @@
 /**
- * Player YouTube nhúng chính thức, lấp đầy khung chứa nó.
+ * Player YouTube nhúng chính thức (qua IFrame API), lấp đầy khung chứa nó.
  *
- * Luật (theo điều khoản YouTube và yêu cầu của app):
- *   - Không có gì phủ lên player: đồng hồ, nút bấm đều nằm ở vùng khác.
- *     Người dùng luôn thấy và bấm được các nút của chính YouTube.
- *   - Tự phát ở chế độ tắt tiếng (trình duyệt chỉ cho tự phát khi tắt tiếng);
- *     muốn nghe thì bật tiếng bằng nút loa của YouTube.
+ * Hai kiểu:
+ *   interactive — player bình thường, có nút điều khiển (dùng để xem trước
+ *                 trong hộp Cài đặt, bấm ▶ được khi trình duyệt chặn tự phát).
+ *   background  — làm CẢNH NỀN phía sau đồng hồ, giống openquiz.ai: ẩn nút
+ *                 điều khiển, tự lặp, không nhận chạm (lớp chứa đặt
+ *                 pointer-events: none). Chủ app đã chọn cách này ngày
+ *                 2026-09-26 dù nó đi ngược Chính sách YouTube API (phủ lớp lên
+ *                 player, ẩn điều khiển) — rủi ro: YouTube có thể chặn nhúng.
+ *
+ * Chung cho cả hai:
+ *   - Tự phát ở chế độ tắt tiếng (trình duyệt chỉ cho tự phát khi tắt tiếng).
  *   - Dùng youtube-nocookie.com (chế độ bảo mật nâng cao của YouTube).
  *
  * Báo trạng thái lên trên để KHÔNG BAO GIỜ nói "áp dụng thành công" với một
@@ -31,6 +37,9 @@ type Props = {
   start?: number;
   /** false = không tự phát (máy bật giảm chuyển động / tiết kiệm dữ liệu). */
   autoplay: boolean;
+  variant?: "interactive" | "background";
+  /** Tăng số này để ra lệnh phát (nút "Phát video" của app, khi tự phát bị chặn). */
+  playRequest?: number;
   onStatus?: (s: PlayerStatus) => void;
   className?: string;
 };
@@ -38,8 +47,17 @@ type Props = {
 /** Sau bấy nhiêu giây mà vẫn chưa phát -> coi như bị chặn tự phát. */
 const BLOCKED_AFTER_MS = 6000;
 
-export default function YouTubePlayer({ videoId, start, autoplay, onStatus, className = "" }: Props) {
+export default function YouTubePlayer({
+  videoId,
+  start,
+  autoplay,
+  variant = "interactive",
+  playRequest = 0,
+  onStatus,
+  className = "",
+}: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<YTPlayer | null>(null);
   // Giữ callback mới nhất mà không phải dựng lại player mỗi lần vẽ.
   const statusRef = useRef(onStatus);
   useEffect(() => {
@@ -70,7 +88,7 @@ export default function YouTubePlayer({ videoId, start, autoplay, onStatus, clas
     loadYouTubeApi()
       .then((YT) => {
         if (cancelled) return;
-        player = new YT.Player(mount, {
+        player = playerRef.current = new YT.Player(mount, {
           host: "https://www.youtube-nocookie.com",
           videoId,
           width: "100%",
@@ -81,6 +99,16 @@ export default function YouTubePlayer({ videoId, start, autoplay, onStatus, clas
             playsinline: 1, // iPhone: phát ngay trong trang, không bật trình phát riêng
             rel: 0,
             ...(start ? { start } : {}),
+            ...(variant === "background"
+              ? {
+                  controls: 0, // cảnh nền: ẩn thanh điều khiển
+                  disablekb: 1,
+                  fs: 0,
+                  iv_load_policy: 3, // ẩn chú thích nổi
+                  loop: 1,
+                  playlist: videoId, // YouTube chỉ lặp khi có playlist
+                }
+              : {}),
             origin: window.location.origin,
           },
           events: {
@@ -98,6 +126,8 @@ export default function YouTubePlayer({ videoId, start, autoplay, onStatus, clas
               }, BLOCKED_AFTER_MS);
             },
             onStateChange: (e) => {
+              // Dự phòng cho việc lặp: hết video thì phát lại từ đầu.
+              if (variant === "background" && e.data === YT.PlayerState.ENDED) e.target.playVideo();
               if (e.data === YT.PlayerState.PLAYING) {
                 played = true;
                 clearTimeout(blockedTimer);
@@ -129,6 +159,7 @@ export default function YouTubePlayer({ videoId, start, autoplay, onStatus, clas
       cancelled = true;
       clearTimeout(blockedTimer);
       document.removeEventListener("visibilitychange", onVisibility);
+      playerRef.current = null;
       try {
         player?.destroy();
       } catch {
@@ -136,7 +167,12 @@ export default function YouTubePlayer({ videoId, start, autoplay, onStatus, clas
       }
       host.replaceChildren();
     };
-  }, [videoId, start, autoplay]);
+  }, [videoId, start, autoplay, variant]);
+
+  // Nút "Phát video" của app (bấm tay = trình duyệt cho phép phát).
+  useEffect(() => {
+    if (playRequest > 0) playerRef.current?.playVideo?.();
+  }, [playRequest]);
 
   return <div ref={hostRef} className={`h-full w-full bg-black [&>iframe]:block [&>iframe]:h-full [&>iframe]:w-full ${className}`} />;
 }

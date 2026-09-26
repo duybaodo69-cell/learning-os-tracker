@@ -21,8 +21,8 @@ export type MediaKind = "image" | "video";
  *   url     — link ảnh/video trực tiếp người dùng tự dán. `media` = "unknown"
  *             khi đuôi file không cho biết loại; lúc hiển thị thử ảnh trước, video sau.
  *
- * PLAYER YOUTUBE trong khung riêng (YouTubePlayer), đồng hồ nằm bên cạnh /
- * bên dưới, KHÔNG phủ lên video:
+ * VIDEO YOUTUBE làm cảnh nền phủ kín (YouTubePlayer variant="background"),
+ * xem trước trong hộp Cài đặt bằng player có nút bấm:
  *   youtube — mã video 11 ký tự + giây bắt đầu (nếu link có &t=)
  *
  *   none    — không có nền (màu nền app như cũ)
@@ -33,7 +33,7 @@ export type FocusBackground =
   | { kind: "url"; url: string; media: MediaKind | "unknown" }
   | { kind: "youtube"; videoId: string; start?: number };
 
-/** Chế độ hiển thị của một lựa chọn: phủ sau đồng hồ, hay player riêng. */
+/** Loại cảnh: "player" = video YouTube (xem trước trong hộp), "overlay" = ảnh / MP4. */
 export function displayMode(bg: FocusBackground): "none" | "overlay" | "player" {
   if (bg.kind === "none") return "none";
   return bg.kind === "youtube" ? "player" : "overlay";
@@ -60,11 +60,10 @@ function hostIs(host: string, domain: string): boolean {
 /**
  * Link dán vào dùng được không, và dùng ở chế độ nào.
  *
- *   Link YouTube có mã video  -> chế độ PLAYER (player nhúng chính thức, khung riêng)
- *   Link file ảnh/video https -> chế độ NỀN PHỦ sau đồng hồ
- *
- * YouTube KHÔNG BAO GIỜ được đặt làm nền phủ hay ẩn dưới đồng hồ: điều khoản
- * của YouTube cấm che player, và app cũng không tải file video từ YouTube.
+ *   Link YouTube có mã video  -> video YouTube (player nhúng chính thức)
+ *   Link file ảnh/video https -> ảnh / video trực tiếp
+ * Cả hai đều làm cảnh nền phủ kín phía sau đồng hồ. App không bao giờ tải
+ * file video từ YouTube.
  */
 export function checkBackgroundUrl(input: string): UrlCheck {
   const text = input.trim();
@@ -166,12 +165,12 @@ export function sameBackground(a: FocusBackground, b: FocusBackground): boolean 
 /** Mô tả ngắn để hiện dòng "Nền hiện tại". */
 export function describeBackground(bg: FocusBackground): string {
   if (bg.kind === "none") return "Không có";
-  if (bg.kind === "preset") return `Nền phủ · ${findPreset(bg.id)?.label ?? "?"}`;
+  if (bg.kind === "preset") return `Cảnh có sẵn · ${findPreset(bg.id)?.label ?? "?"}`;
   if (bg.kind === "youtube") {
     const p = findYouTubePreset(bg.videoId);
     return `YouTube · ${p ? p.label : `video ${bg.videoId}`}`;
   }
-  return `Nền phủ · ${bg.url}`;
+  return `Link · ${bg.url}`;
 }
 
 /* ==================== Tiết kiệm tài nguyên ==================== */
@@ -210,4 +209,68 @@ export function readDeviceHints(): DeviceHints {
     deviceMemory: nav.deviceMemory,
     cpuCores: nav.hardwareConcurrency || undefined,
   };
+}
+
+/* ==================== Tuỳ chọn hiển thị (lưu trên máy) ==================== */
+
+/**
+ * Bật/tắt video nền — độc lập với việc bắt đầu/kết thúc phiên.
+ * Tắt: chỉ còn gradient tĩnh, không tải video; bật lại dùng đúng cảnh đã chọn.
+ */
+export const VIDEO_ON_KEY = "learning-os:focus-video";
+
+export function getVideoOn(): boolean {
+  try {
+    return localStorage.getItem(VIDEO_ON_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
+
+export function saveVideoOn(on: boolean): void {
+  try {
+    if (on) localStorage.removeItem(VIDEO_ON_KEY);
+    else localStorage.setItem(VIDEO_ON_KEY, "off");
+  } catch {
+    /* bỏ qua */
+  }
+}
+
+/**
+ * Độ tối của lớp phủ sau đồng hồ. Cả hai mức đều giữ chữ trắng >= 4.5:1
+ * ngay cả khi video trắng xoá (xem DIM_LEVELS); "strong" cho video rất sáng
+ * hoặc rất rối mắt.
+ */
+export type DimLevel = "normal" | "strong";
+export const DIM_KEY = "learning-os:focus-dim";
+
+/**
+ * Độ mờ (alpha đen) của từng lớp:
+ *   center — giữa gradient tỏa tròn, ngay sau đồng hồ
+ *   ring   — ở 60% bán kính, nơi có chữ nhỏ ngoài cùng của đồng hồ
+ *   base   — phủ nhẹ cả màn hình
+ *   bars   — mép trên/dưới, sau các nút
+ * Chữ trắng trên nền trắng xoá cần nền <= xám 118 (alpha tổng >= 0.54) để đạt
+ * 4.5:1. Mức "normal" ở vòng chữ: 1 - (1-0.15)(1-0.5) = 0.575 -> 4.9:1.
+ */
+export const DIM_LEVELS: Record<DimLevel, { center: number; ring: number; base: number; bars: number }> = {
+  normal: { center: 0.58, ring: 0.5, base: 0.15, bars: 0.55 },
+  strong: { center: 0.72, ring: 0.66, base: 0.3, bars: 0.65 },
+};
+
+export function getDim(): DimLevel {
+  try {
+    return localStorage.getItem(DIM_KEY) === "strong" ? "strong" : "normal";
+  } catch {
+    return "normal";
+  }
+}
+
+export function saveDim(level: DimLevel): void {
+  try {
+    if (level === "normal") localStorage.removeItem(DIM_KEY);
+    else localStorage.setItem(DIM_KEY, level);
+  } catch {
+    /* bỏ qua */
+  }
 }

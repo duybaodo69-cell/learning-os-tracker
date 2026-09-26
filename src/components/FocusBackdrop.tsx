@@ -1,6 +1,13 @@
 /**
  * Lớp nền phủ kín màn hình PHÍA SAU đồng hồ của "Phiên tập trung".
  *
+ * Luôn có một nền gradient tĩnh ở dưới cùng. Phía trên là cảnh đã chọn:
+ * video MP4 có sẵn, ảnh/video tự dán, hoặc video YouTube (phủ kín kiểu
+ * openquiz.ai, xem YouTubePlayer variant="background"). Tắt "video nền",
+ * chưa chọn gì hay cảnh bị lỗi -> chỉ còn gradient tĩnh.
+ * Cả lớp không nhận chạm: mọi thao tác đi thẳng tới đồng hồ và nút của app.
+ * Lớp phủ tối (gradient tỏa tròn sau đồng hồ) do FocusSession vẽ.
+ *
  * Nguyên tắc:
  *   - Video: phủ kín kiểu cover, tự lặp, tắt tiếng, phát ngay trong trang
  *     (playsInline — iPhone không bật trình phát toàn màn hình riêng).
@@ -16,44 +23,96 @@ import { useEffect, useRef, useState } from "react";
 
 import { findPreset } from "../config/backgrounds";
 import type { FocusBackground } from "../lib/background";
+import YouTubePlayer from "./YouTubePlayer";
 
 /**
  * Trạng thái để báo lên trên:
  *   ready    — đang hiện đúng thứ đã chọn
  *   still    — là video nhưng đang hiện ảnh tĩnh (máy yếu, không tự phát được...)
  *   fallback — video lỗi, đang hiện ảnh tĩnh thay thế
- *   error    — không hiện được gì (link hỏng / bị chặn)
+ *   blocked  — YouTube tải được nhưng chưa phát (tự phát bị chặn / tắt vì
+ *              giảm chuyển động) — cần bấm nút "Phát video" của app
+ *   error    — không hiện được gì (link hỏng / bị chặn / YouTube từ chối)
+ *   none     — không có cảnh (chưa chọn, hoặc đang tắt video nền)
  */
-export type BackdropStatus = "none" | "loading" | "ready" | "still" | "fallback" | "error";
+export type BackdropStatus = "none" | "loading" | "ready" | "still" | "fallback" | "blocked" | "error";
 
 type Props = {
   background: FocusBackground;
   /** true = không phát video, chỉ hiện ảnh tĩnh (xem stillReason trong lib/background.ts). */
   still: boolean;
-  onStatus?: (status: BackdropStatus) => void;
+  /** false = người dùng tắt video nền: chỉ hiện gradient tĩnh, không tải gì. */
+  videoOn?: boolean;
+  /** Tăng số này để phát video YouTube (nút "Phát video" khi tự phát bị chặn). */
+  playRequest?: number;
+  onStatus?: (status: BackdropStatus, message?: string) => void;
 };
 
-export default function FocusBackdrop({ background, still, onStatus }: Props) {
+/** Nền tĩnh khi không có cảnh: tối, sáng nhẹ ở giữa — không chuyển động. */
+const STATIC_GRADIENT = "radial-gradient(ellipse at 50% 42%, #1f2937 0%, #111827 45%, #0c0e12 100%)";
+
+export default function FocusBackdrop({ background, still, videoOn = true, playRequest = 0, onStatus }: Props) {
   // Mỗi lựa chọn mới dựng lại phần tử media từ đầu (key), nên trạng thái
   // lỗi của nền cũ không dính sang nền mới.
   const key =
-    background.kind === "preset" ? `p:${background.id}` : background.kind === "url" ? `u:${background.url}` : "none";
+    background.kind === "preset"
+      ? `p:${background.id}`
+      : background.kind === "url"
+        ? `u:${background.url}`
+        : background.kind === "youtube"
+          ? `y:${background.videoId}:${background.start ?? 0}`
+          : "none";
+  const show = videoOn && background.kind !== "none";
 
   useEffect(() => {
-    if (background.kind === "none") onStatus?.("none");
-  }, [background.kind, onStatus]);
-
-  if (background.kind === "none") return null;
+    if (!show) onStatus?.("none");
+  }, [show, onStatus]);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-canvas" aria-hidden="true">
-      <Media key={`${key}:${still}`} background={background} still={still} onStatus={onStatus} />
-      {/* Lớp phủ tối: đậm hơn ở trên (tiêu đề) và dưới (nút), nhẹ ở giữa để thấy cảnh. */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.42) 35%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0.65) 100%)",
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" style={{ background: STATIC_GRADIENT }} aria-hidden="true">
+      {show && background.kind === "youtube" && (
+        <YouTubeCover key={key} background={background} still={still} playRequest={playRequest} onStatus={onStatus} />
+      )}
+      {show && background.kind !== "youtube" && (
+        <Media key={`${key}:${still}`} background={background} still={still} onStatus={onStatus} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Video YouTube phủ kín màn hình (cách của openquiz.ai): khung 16:9 được
+ * phóng tới khi phủ hết màn hình ở mọi hướng, phần thừa tràn ra ngoài và bị
+ * cắt. Không nhận chạm (lớp cha pointer-events: none).
+ */
+function YouTubeCover({
+  background,
+  still,
+  playRequest,
+  onStatus,
+}: {
+  background: Extract<FocusBackground, { kind: "youtube" }>;
+  still: boolean;
+  playRequest: number;
+  onStatus?: Props["onStatus"];
+}) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <div
+      className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-700 ${failed ? "opacity-0" : "opacity-100"}`}
+      style={{ width: "max(177.78vh, 100vw)", height: "max(56.25vw, 100vh)" }}
+    >
+      <YouTubePlayer
+        videoId={background.videoId}
+        start={background.start}
+        autoplay={!still}
+        variant="background"
+        playRequest={playRequest}
+        onStatus={(st) => {
+          // Lỗi -> ẩn khung (gradient tĩnh lộ ra), không để màn lỗi của YouTube.
+          setFailed(st.state === "error");
+          const map = { loading: "loading", playing: "ready", blocked: "blocked", error: "error" } as const;
+          onStatus?.(map[st.state], st.message);
         }}
       />
     </div>

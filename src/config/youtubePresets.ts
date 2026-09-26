@@ -1,11 +1,11 @@
 /**
- * Video YouTube mẫu cho chế độ PLAYER của màn "Phiên tập trung".
+ * Video YouTube mẫu làm cảnh nền cho màn "Phiên tập trung".
  *
  * Các video này KHÔNG nằm trong app: chúng được phát bằng player nhúng chính
- * thức của YouTube, trong khung riêng, đúng như chủ kênh cho phép (chủ kênh
- * có thể tắt nhúng bất cứ lúc nào — app sẽ báo lỗi rõ ràng, xem
- * describeYouTubeError). Bản quyền thuộc kênh gốc; app chỉ ghi tên kênh và
- * dẫn link, không tải, không cắt, không phủ gì lên video.
+ * thức của YouTube (chủ kênh có thể tắt nhúng bất cứ lúc nào — app sẽ báo lỗi
+ * rõ ràng, xem describeYouTubeError). Bản quyền thuộc kênh gốc; app chỉ ghi
+ * tên kênh và dẫn link, không tải, không cắt video. Khi làm nền, player bị
+ * phủ lớp và ẩn điều khiển — xem ghi chú rủi ro trong CLAUDE.md.
  *
  * Đã kiểm tra ngày 2026-09-26 qua YouTube oEmbed: cả 6 video còn tồn tại và
  * cho phép nhúng. Thumbnail lấy thẳng từ YouTube (i.ytimg.com).
