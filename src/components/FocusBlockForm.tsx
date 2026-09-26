@@ -119,7 +119,7 @@ export default function FocusBlockForm({
               max={600}
               value={minutes}
               onChange={(e) => changeMinutes(Math.max(1, Number(e.target.value) || 0))}
-              className="tap-target w-full rounded-xl border border-slate-200 px-3 text-base font-semibold"
+              className="tap-target w-full rounded-lg border border-line px-3 text-base font-semibold"
               placeholder="Số phút"
             />
           ) : (
@@ -183,7 +183,7 @@ export default function FocusBlockForm({
       </div>
 
       {focusRating === null && (
-        <p className="mt-2 text-center text-xs text-slate-400">Chọn độ tập trung để lưu</p>
+        <p className="mt-2 text-center text-xs text-ink-3">Chọn độ tập trung để lưu</p>
       )}
     </div>
   );

@@ -57,10 +57,10 @@ export default function CheckinForm({ date, previous, existing, onSave, onCancel
       </div>
 
       {/* Kết quả tính tự động — để bạn phát hiện ngay nếu bấm nhầm giờ. */}
-      <div className="mb-4 rounded-xl bg-blue-50 px-4 py-3 text-center">
-        <span className="text-sm text-slate-500">Ngủ được </span>
-        <span className="text-xl font-bold text-blue-700">{sleepHours}</span>
-        <span className="text-sm text-slate-500"> giờ</span>
+      <div className="mb-4 rounded-lg bg-accent/10 px-4 py-3 text-center">
+        <span className="text-sm text-ink-2">Ngủ được </span>
+        <span className="text-xl font-bold text-accent">{sleepHours}</span>
+        <span className="text-sm text-ink-2"> giờ</span>
       </div>
 
       <Field label="Năng lượng sáng nay" hint="bắt buộc">
@@ -83,7 +83,7 @@ export default function CheckinForm({ date, previous, existing, onSave, onCancel
       </div>
 
       {energy === null && (
-        <p className="mt-2 text-center text-xs text-slate-400">Chọn mức năng lượng để lưu</p>
+        <p className="mt-2 text-center text-xs text-ink-3">Chọn mức năng lượng để lưu</p>
       )}
     </div>
   );

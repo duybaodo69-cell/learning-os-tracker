@@ -13,8 +13,8 @@ export default function ProtocolBanner({ date }: { date: string }) {
   const index = findProtocolPhaseIndex(date);
 
   return (
-    <div className="mb-4 rounded-2xl bg-slate-900 px-4 py-3 text-white">
-      <div className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+    <div className="mb-4 rounded-lg border border-line bg-surface px-4 py-3 text-ink">
+      <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
         Giai đoạn {index}/{PROTOCOL_PHASES.length}
       </div>
       <div className="mt-0.5 text-sm font-semibold">{phase.label}</div>

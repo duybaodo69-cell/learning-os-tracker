@@ -135,16 +135,16 @@ export default function DashboardScreen() {
       {/* ---------- 1. Bảng chỉ số ---------- */}
       <Card className="mb-4">
         <div className="mb-2 flex items-baseline justify-between gap-2">
-          <span className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+          <span className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
             Tuần này so với tuần trước
           </span>
           {/* Nói rõ đang so cùng số ngày, để bạn không nghi ngờ con số. */}
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-ink-3">
             so cùng số ngày ({daysThisWeek})
           </span>
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-line">
           {METRIC_SPECS.map((spec) => (
             <MetricRow
               key={spec.key}
@@ -158,12 +158,12 @@ export default function DashboardScreen() {
         </div>
 
         {showBaseline ? (
-          <p className="mt-3 text-xs text-slate-400">
+          <p className="mt-3 text-xs text-ink-3">
             Cột thứ ba so với baseline ({BASELINE_FROM.slice(5)} → {BASELINE_TO.slice(5)}), đã quy
             về mức mỗi tuần.
           </p>
         ) : (
-          <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          <p className="mt-3 rounded-lg bg-surface-2 px-3 py-2 text-xs text-ink-2">
             Đang trong giai đoạn đo baseline ({BASELINE_FROM.slice(5)} → {BASELINE_TO.slice(5)}).
             Sau {BASELINE_TO.slice(5)} mỗi chỉ số sẽ có thêm phần so với baseline.
           </p>
@@ -172,15 +172,15 @@ export default function DashboardScreen() {
 
       {/* ---------- 2. Đều đặn ---------- */}
       <Card className="mb-4">
-        <div className="text-xs font-semibold tracking-wide text-slate-400 uppercase">Đều đặn</div>
+        <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">Đều đặn</div>
         <div className="mt-1 flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-slate-900 tabular-nums">{con.logged}</span>
-          <span className="text-sm text-slate-500">/ {con.total} ngày đã log</span>
+          <span className="text-3xl font-bold text-ink tabular-nums">{con.logged}</span>
+          <span className="text-sm text-ink-2">/ {con.total} ngày đã log</span>
         </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
-          <div className="h-full rounded-full bg-blue-600" style={{ width: `${con.percent}%` }} />
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-line">
+          <div className="h-full rounded-full bg-accent" style={{ width: `${con.percent}%` }} />
         </div>
-        <p className="mt-2 text-xs text-slate-400">
+        <p className="mt-2 text-xs text-ink-3">
           Đếm số ngày có check-in trong 14 ngày gần nhất. Nghỉ một hôm chỉ mất một hôm — không có
           chuỗi nào bị xoá về 0.
         </p>
@@ -190,7 +190,7 @@ export default function DashboardScreen() {
       <Suspense
         fallback={
           <Card className="mb-4">
-            <p className="py-10 text-center text-sm text-slate-400">Đang tải biểu đồ...</p>
+            <p className="py-10 text-center text-sm text-ink-3">Đang tải biểu đồ...</p>
           </Card>
         }
       >
@@ -225,9 +225,9 @@ function MetricRow({
 
   return (
     <div className="flex items-center justify-between gap-2 py-2">
-      <span className="text-sm text-slate-600">{spec.label}</span>
+      <span className="text-sm text-ink-2">{spec.label}</span>
       <div className="flex items-center gap-3">
-        <span className="text-base font-bold text-slate-900 tabular-nums">
+        <span className="text-base font-bold text-ink tabular-nums">
           {current === null ? "—" : spec.format(current)}
         </span>
         <DeltaTag delta={vsLast} spec={spec} width="w-16" />
@@ -248,7 +248,7 @@ function DeltaTag({
   width: string;
 }) {
   if (delta.diff === null) {
-    return <span className={`${width} text-right text-xs text-slate-300`}>—</span>;
+    return <span className={`${width} text-right text-xs text-ink-3`}>—</span>;
   }
 
   const sign = delta.diff > 0 ? "+" : "−";
@@ -257,10 +257,10 @@ function DeltaTag({
 
   const color =
     delta.better === true
-      ? "text-green-600"
+      ? "text-good"
       : delta.better === false
-        ? "text-red-500"
-        : "text-slate-400";
+        ? "text-bad-ink"
+        : "text-ink-3";
 
   return <span className={`${width} text-right text-xs font-semibold ${color}`}>{text}</span>;
 }
@@ -277,8 +277,8 @@ function ChartCard({
   return (
     <Card className="mb-4">
       <div className="mb-1 flex items-baseline justify-between">
-        <span className="text-sm font-bold text-slate-900">{title}</span>
-        {hint && <span className="text-xs text-slate-400">{hint}</span>}
+        <span className="text-sm font-bold text-ink">{title}</span>
+        {hint && <span className="text-xs text-ink-3">{hint}</span>}
       </div>
       {children}
     </Card>

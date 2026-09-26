@@ -135,7 +135,7 @@ export default function BrainDumpView() {
             {gapLines.length > 0 && ` (${gapLines.length} thẻ)`}
           </Button>
           {gapLines.length === 0 && (
-            <p className="mt-1 text-center text-xs text-slate-400">
+            <p className="mt-1 text-center text-xs text-ink-3">
               Viết chỗ hổng ở trên, mỗi dòng một ý
             </p>
           )}
@@ -159,14 +159,14 @@ export default function BrainDumpView() {
         </Button>
 
         {message && (
-          <p className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-center text-sm font-semibold text-green-700">
+          <p className="mt-3 rounded-lg bg-good/10 px-3 py-2 text-center text-sm font-semibold text-good">
             {message}
           </p>
         )}
       </CardBox>
 
       {/* ---------- Các lần gần đây ---------- */}
-      <div className="px-1 pb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase">
+      <div className="px-1 pb-2 text-xs font-semibold tracking-wide text-ink-3 uppercase">
         Gần đây
       </div>
 
@@ -177,16 +177,16 @@ export default function BrainDumpView() {
           {recent.map((d) => (
             <CardBox key={d.id}>
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-bold text-slate-900">{d.area}</span>
-                <span className="text-xs text-slate-400">
+                <span className="text-sm font-bold text-ink">{d.area}</span>
+                <span className="text-xs text-ink-3">
                   {formatDayLabel(d.date)} · {d.minutes}p
                 </span>
               </div>
               {d.recalled && (
-                <p className="mt-1 line-clamp-2 text-sm text-slate-600">{d.recalled}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-ink-2">{d.recalled}</p>
               )}
               {d.gaps && (
-                <p className="mt-1 line-clamp-2 text-sm text-amber-700">Hổng: {d.gaps}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-warn">Hổng: {d.gaps}</p>
               )}
             </CardBox>
           ))}

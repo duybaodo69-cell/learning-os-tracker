@@ -79,15 +79,15 @@ export default function SettingsScreen() {
           onChange={toggleDemo}
         />
 
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-3 text-sm text-ink-2">
           Dữ liệu mẫu nằm trong một kho <strong>hoàn toàn tách biệt</strong>. Bật hay tắt công tắc
           này <strong>không bao giờ</strong> đụng tới dữ liệu thật của bạn — app chỉ đổi sang đọc
           kho kia. Trang sẽ tự tải lại khi bạn gạt công tắc.
         </p>
 
         {demo && (
-          <div className="mt-4 rounded-xl bg-amber-50 p-3">
-            <p className="mb-3 text-sm font-semibold text-amber-800">
+          <div className="mt-4 rounded-lg bg-warn/10 p-3">
+            <p className="mb-3 text-sm font-semibold text-warn">
               Đang ở chế độ dữ liệu mẫu
             </p>
             <div className="flex flex-wrap gap-2">
@@ -109,40 +109,40 @@ export default function SettingsScreen() {
 
       {/* ---------- Đang có bao nhiêu dữ liệu ---------- */}
       <Card className="mb-4">
-        <div className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+        <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
           {demo ? "Kho dữ liệu mẫu" : "Kho dữ liệu thật"}
         </div>
         <ul className="mt-2 space-y-1 text-sm">
           <li className="flex justify-between">
-            <span className="text-slate-600">Check-in</span>
+            <span className="text-ink-2">Check-in</span>
             <span className="font-semibold tabular-nums">{checkinCount}</span>
           </li>
           <li className="flex justify-between">
-            <span className="text-slate-600">Focus block</span>
+            <span className="text-ink-2">Focus block</span>
             <span className="font-semibold tabular-nums">{blockCount}</span>
           </li>
           <li className="flex justify-between">
-            <span className="text-slate-600">Brain dump</span>
+            <span className="text-ink-2">Brain dump</span>
             <span className="font-semibold tabular-nums">{dumpCount}</span>
           </li>
           <li className="flex justify-between">
-            <span className="text-slate-600">Thẻ ôn tập</span>
+            <span className="text-ink-2">Thẻ ôn tập</span>
             <span className="font-semibold tabular-nums">{cardCount}</span>
           </li>
           <li className="flex justify-between">
-            <span className="text-slate-600">Lượt ôn đã ghi</span>
+            <span className="text-ink-2">Lượt ôn đã ghi</span>
             <span className="font-semibold tabular-nums">{logCount}</span>
           </li>
           <li className="flex justify-between">
-            <span className="text-slate-600">Dự đoán</span>
+            <span className="text-ink-2">Dự đoán</span>
             <span className="font-semibold tabular-nums">{predictionCount}</span>
           </li>
           <li className="flex justify-between">
-            <span className="text-slate-600">Tổng kết tuần</span>
+            <span className="text-ink-2">Tổng kết tuần</span>
             <span className="font-semibold tabular-nums">{reviewCount}</span>
           </li>
           <li className="flex justify-between">
-            <span className="text-slate-600">Nhãn thí nghiệm</span>
+            <span className="text-ink-2">Nhãn thí nghiệm</span>
             <span className="font-semibold tabular-nums">{tagCount}</span>
           </li>
         </ul>
@@ -160,10 +160,10 @@ export default function SettingsScreen() {
       {/* ---------- Phiên bản ---------- */}
       <Card className="mb-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-600">Phiên bản</span>
-          <span className="font-semibold text-slate-900 tabular-nums">{__BUILD_DATE__}</span>
+          <span className="text-sm text-ink-2">Phiên bản</span>
+          <span className="font-semibold text-ink tabular-nums">{__BUILD_DATE__}</span>
         </div>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-ink-3">
           Ngày đóng gói bản đang chạy. App tự cập nhật khi có bản mới — nếu số này cũ hơn ngày mình
           vừa deploy, đóng hẳn app rồi mở lại.
         </p>
@@ -199,18 +199,18 @@ function PersistenceCard({ status }: { status: PersistenceStatus }) {
   const d = describePersistence(status);
   const style =
     d.tone === "good"
-      ? "border-green-200 bg-green-50"
+      ? "border-good/30 bg-good/10"
       : d.tone === "warn"
-        ? "border-amber-200 bg-amber-50"
+        ? "border-warn/30 bg-warn/10"
         : "";
 
   return (
     <Card className={`mb-4 ${style}`}>
-      <div className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+      <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
         Bảo vệ dữ liệu
       </div>
-      <div className="mt-1 text-sm font-bold text-slate-900">{d.title}</div>
-      {d.detail && <p className="mt-1 text-sm text-slate-600">{d.detail}</p>}
+      <div className="mt-1 text-sm font-bold text-ink">{d.title}</div>
+      {d.detail && <p className="mt-1 text-sm text-ink-2">{d.detail}</p>}
     </Card>
   );
 }

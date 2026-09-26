@@ -8,10 +8,70 @@ import type { ReactNode } from "react";
 
 /* ---------------------------------------------------------- Card */
 
-/** Khung thẻ trắng bo góc — đơn vị bố cục cơ bản của app. */
+/**
+ * Khung thẻ — đơn vị bố cục cơ bản của app.
+ * Nền tầng 1 + viền mảnh 1px, KHÔNG đổ bóng: theo DESIGN.md, các tầng
+ * được phân biệt bằng màu nền, không bằng bóng mờ.
+ */
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-slate-200 bg-white p-4 ${className}`}>{children}</div>
+    <div className={`rounded-lg border border-line bg-surface p-4 ${className}`}>{children}</div>
+  );
+}
+
+/* ---------------------------------------------------------- SectionLabel */
+
+/**
+ * Nhãn nhỏ viết hoa ở đầu mỗi khối ("DEEP WORK HÔM NAY").
+ * 12px là cỡ nhỏ nhất cho phép trong app (thiết kế gốc có 10-11px, đã bỏ).
+ */
+export function SectionLabel({
+  children,
+  right,
+  className = "",
+}: {
+  children: ReactNode;
+  right?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`mb-2 flex items-baseline justify-between gap-2 ${className}`}>
+      <span className="text-xs font-semibold tracking-wider text-ink-2 uppercase">{children}</span>
+      {right && <span className="text-xs text-ink-3">{right}</span>}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------- Tag */
+
+/**
+ * Nhãn nhỏ có màu theo NGHĨA, không theo trang trí:
+ *   good = tốt lên, warn = cảnh báo, bad = xấu đi,
+ *   indigo = phân loại (area, category), neutral = thông tin trung tính.
+ */
+export function Tag({
+  children,
+  tone = "neutral",
+  className = "",
+}: {
+  children: ReactNode;
+  tone?: "good" | "warn" | "bad" | "indigo" | "accent" | "neutral";
+  className?: string;
+}) {
+  const styles = {
+    good: "border-good/30 bg-good/12 text-good",
+    warn: "border-warn/30 bg-warn/12 text-warn",
+    bad: "border-bad/30 bg-bad/12 text-bad-ink",
+    indigo: "border-indigo/40 bg-indigo/15 text-indigo-ink",
+    accent: "border-accent/30 bg-accent/12 text-accent",
+    neutral: "border-line bg-surface-2 text-ink-2",
+  };
+  return (
+    <span
+      className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${styles[tone]} ${className}`}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -26,11 +86,18 @@ type ButtonProps = {
   className?: string;
 };
 
+/**
+ * Kiểu nút theo DESIGN.md:
+ *   primary   — nền cyan, chữ tối: hành động chính của màn hình
+ *   secondary — nền tầng 1, viền mảnh, chữ sáng
+ *   danger    — nền tầng 2, viền đỏ mờ, chữ đỏ (không tô đỏ cả nút)
+ *   ghost     — trong suốt, cho thao tác phụ
+ */
 const BUTTON_STYLES = {
-  primary: "bg-blue-600 text-white active:bg-blue-700",
-  secondary: "bg-slate-100 text-slate-700 active:bg-slate-200",
-  danger: "bg-red-600 text-white active:bg-red-700",
-  ghost: "bg-transparent text-slate-500 active:bg-slate-100",
+  primary: "bg-accent font-bold text-on-accent active:brightness-110",
+  secondary: "border border-line bg-surface text-ink active:border-accent",
+  danger: "border border-bad/40 bg-surface-2 text-bad-ink active:bg-bad/15",
+  ghost: "bg-transparent text-ink-2 active:bg-surface-2",
 };
 
 export function Button({
@@ -46,7 +113,7 @@ export function Button({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`tap-target rounded-xl px-4 font-semibold disabled:opacity-40 ${BUTTON_STYLES[variant]} ${className}`}
+      className={`tap-target rounded-lg px-4 font-semibold transition-transform active:scale-[0.99] disabled:opacity-40 ${BUTTON_STYLES[variant]} ${className}`}
     >
       {children}
     </button>
@@ -60,8 +127,8 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
   return (
     <div className="mb-4">
       <div className="mb-1.5 flex items-baseline justify-between">
-        <span className="text-sm font-semibold text-slate-700">{label}</span>
-        {hint && <span className="text-xs text-slate-400">{hint}</span>}
+        <span className="text-sm font-medium text-ink">{label}</span>
+        {hint && <span className="text-xs text-ink-3">{hint}</span>}
       </div>
       {children}
     </div>
@@ -94,10 +161,10 @@ export function RatingRow({
             type="button"
             onClick={() => onChange(n)}
             className={
-              "tap-target flex-1 rounded-xl text-lg font-bold " +
+              "tap-target flex-1 rounded-lg border font-num text-lg font-semibold " +
               (value === n
-                ? "bg-blue-600 text-white"
-                : "bg-slate-100 text-slate-600 active:bg-slate-200")
+                ? "border-accent bg-accent text-on-accent"
+                : "border-line bg-surface-2 text-ink-2 active:border-accent")
             }
           >
             {n}
@@ -105,7 +172,7 @@ export function RatingRow({
         ))}
       </div>
       {(lowLabel || highLabel) && (
-        <div className="mt-1 flex justify-between text-xs text-slate-400">
+        <div className="mt-1 flex justify-between text-xs text-ink-3">
           <span>{lowLabel}</span>
           <span>{highLabel}</span>
         </div>
@@ -136,10 +203,10 @@ export function ChipGroup<T extends string | number>({
           type="button"
           onClick={() => onChange(opt)}
           className={
-            "tap-target rounded-full px-4 text-sm font-semibold " +
+            "tap-target rounded border px-3 text-sm font-medium " +
             (value === opt
-              ? "bg-blue-600 text-white"
-              : "bg-slate-100 text-slate-600 active:bg-slate-200")
+              ? "border-accent bg-accent text-on-accent"
+              : "border-line bg-surface-2 text-ink-2 active:border-accent")
           }
         >
           {format ? format(opt) : String(opt)}
@@ -158,16 +225,16 @@ export function Counter({ value, onChange }: { value: number; onChange: (v: numb
       <button
         type="button"
         onClick={() => onChange(Math.max(0, value - 1))}
-        className="tap-target rounded-xl bg-slate-100 px-5 text-2xl font-bold text-slate-600 active:bg-slate-200"
+        className="tap-target rounded-lg border border-line bg-surface-2 px-5 text-2xl font-bold text-ink-2 active:border-accent"
         aria-label="Giảm"
       >
         −
       </button>
-      <span className="min-w-10 text-center text-2xl font-bold tabular-nums">{value}</span>
+      <span className="min-w-10 text-center font-num text-2xl font-semibold text-ink">{value}</span>
       <button
         type="button"
         onClick={() => onChange(value + 1)}
-        className="tap-target rounded-xl bg-slate-100 px-5 text-2xl font-bold text-slate-600 active:bg-slate-200"
+        className="tap-target rounded-lg border border-line bg-surface-2 px-5 text-2xl font-bold text-ink-2 active:border-accent"
         aria-label="Tăng"
       >
         +
@@ -196,22 +263,22 @@ export function Toggle({
       onClick={() => onChange(!checked)}
       role="switch"
       aria-checked={checked}
-      className="tap-target flex w-full items-center justify-between gap-3 rounded-xl bg-slate-50 px-4 py-2 text-left active:bg-slate-100"
+      className="tap-target flex w-full items-center justify-between gap-3 rounded-lg border border-line bg-surface-2 px-4 py-2 text-left active:border-accent"
     >
       <span>
-        <span className="block text-sm font-semibold text-slate-700">{label}</span>
-        {description && <span className="block text-xs text-slate-400">{description}</span>}
+        <span className="block text-sm font-semibold text-ink">{label}</span>
+        {description && <span className="block text-xs text-ink-3">{description}</span>}
       </span>
       {/* Phần hình công tắc */}
       <span
         className={
           "relative h-7 w-12 shrink-0 rounded-full transition-colors " +
-          (checked ? "bg-blue-600" : "bg-slate-300")
+          (checked ? "bg-good" : "bg-line")
         }
       >
         <span
           className={
-            "absolute top-1 h-5 w-5 rounded-full bg-white transition-all " +
+            "absolute top-1 h-5 w-5 rounded-full bg-ink transition-all " +
             (checked ? "left-6" : "left-1")
           }
         />
@@ -229,7 +296,7 @@ export function TimeInput({ value, onChange }: { value: string; onChange: (v: st
       value={value}
       onChange={(e) => onChange(e.target.value)}
       // text-base (16px) là bắt buộc: chữ nhỏ hơn thì iOS tự phóng to trang khi bấm vào.
-      className="tap-target w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-semibold"
+      className="tap-target w-full rounded-lg border border-line bg-surface-2 px-3 font-num text-base font-medium text-ink focus:border-accent focus:outline focus:outline-1 focus:outline-accent"
     />
   );
 }
@@ -249,7 +316,7 @@ export function TextInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="tap-target w-full rounded-xl border border-slate-200 bg-white px-3 text-base"
+      className="tap-target w-full rounded-lg border border-line bg-surface-2 px-3 text-base text-ink placeholder:text-ink-3 focus:border-accent focus:outline focus:outline-1 focus:outline-accent"
     />
   );
 }
@@ -275,7 +342,7 @@ export function TextArea({
       placeholder={placeholder}
       rows={rows}
       // text-base (16px): chữ nhỏ hơn thì iOS tự phóng to trang khi bấm vào ô.
-      className="w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-base leading-relaxed"
+      className="w-full resize-y rounded-lg border border-line bg-surface-2 p-3 text-base leading-relaxed text-ink placeholder:text-ink-3 focus:border-accent focus:outline focus:outline-1 focus:outline-accent"
     />
   );
 }
@@ -293,7 +360,7 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="mb-4 flex gap-1 rounded-xl bg-slate-100 p-1">
+    <div className="mb-4 flex gap-1 rounded-lg border border-line bg-surface p-1">
       {options.map((opt) => (
         <button
           key={opt.id}
@@ -301,12 +368,12 @@ export function Segmented<T extends string>({
           onClick={() => onChange(opt.id)}
           className={
             "tap-target flex-1 rounded-lg px-2 text-sm font-semibold " +
-            (value === opt.id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500")
+            (value === opt.id ? "bg-accent font-bold text-on-accent" : "text-ink-2")
           }
         >
           {opt.label}
           {opt.badge !== undefined && opt.badge > 0 && (
-            <span className="ml-1 rounded-full bg-blue-600 px-1.5 py-0.5 text-[11px] text-white">
+            <span className="ml-1.5 rounded-full bg-canvas/30 px-1.5 py-0.5 font-num text-xs">
               {opt.badge}
             </span>
           )}
@@ -321,9 +388,9 @@ export function Segmented<T extends string>({
 /** Thông báo khi chưa có dữ liệu. */
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-      <p className="text-base font-semibold text-slate-600">{title}</p>
-      {hint && <p className="mt-1 text-sm text-slate-400">{hint}</p>}
+    <div className="rounded-lg border border-dashed border-line bg-surface p-8 text-center">
+      <p className="text-base font-medium text-ink-2">{title}</p>
+      {hint && <p className="mt-1 text-sm text-ink-3">{hint}</p>}
     </div>
   );
 }
@@ -349,7 +416,7 @@ export function Slider({
 }) {
   return (
     <div>
-      <div className="mb-1 text-center text-3xl font-bold text-blue-700 tabular-nums">
+      <div className="mb-1 text-center font-num text-3xl font-semibold text-accent">
         {value}
         {suffix}
       </div>
@@ -360,9 +427,9 @@ export function Slider({
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         // h-11 (44px) để vùng chạm đủ to theo quy tắc dự án.
-        className="h-11 w-full accent-blue-600"
+        className="h-11 w-full accent-accent"
       />
-      <div className="flex justify-between text-xs text-slate-400">
+      <div className="flex justify-between text-xs text-ink-3">
         <span>
           {min}
           {suffix}
@@ -384,7 +451,7 @@ export function DateInput({ value, onChange }: { value: string; onChange: (v: st
       type="date"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="tap-target w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-semibold"
+      className="tap-target w-full rounded-lg border border-line bg-surface-2 px-3 font-num text-base font-medium text-ink focus:border-accent focus:outline focus:outline-1 focus:outline-accent"
     />
   );
 }

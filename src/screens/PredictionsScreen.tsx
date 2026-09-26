@@ -191,21 +191,21 @@ function ListView({
       {dueToScore.length > 0 && (
         <Section title="Đến hạn chấm" count={dueToScore.length} tone="urgent">
           {dueToScore.map((p) => (
-            <Card key={p.id} className="border-amber-300">
+            <Card key={p.id} className="border-warn/40">
               <Statement p={p} today={today} />
               {/* Hai nút to, bấm một phát là xong. */}
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
                   onClick={() => onResolve(p, true)}
-                  className="tap-target flex-1 rounded-xl bg-green-600 font-bold text-white active:bg-green-700"
+                  className="tap-target flex-1 rounded-lg bg-good/15 border border-good/40 font-bold text-good active:bg-good/25"
                 >
                   Đúng
                 </button>
                 <button
                   type="button"
                   onClick={() => onResolve(p, false)}
-                  className="tap-target flex-1 rounded-xl bg-red-600 font-bold text-white active:bg-red-700"
+                  className="tap-target flex-1 rounded-lg bg-bad/15 border border-bad/40 font-bold text-bad-ink active:bg-bad/20"
                 >
                   Sai
                 </button>
@@ -240,12 +240,12 @@ function ListView({
                   <span
                     className={
                       "rounded-full px-2 py-0.5 text-xs font-bold " +
-                      (p.outcome ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")
+                      (p.outcome ? "bg-good/15 text-good" : "bg-bad/15 text-bad-ink")
                     }
                   >
                     {p.outcome ? "Đúng" : "Sai"}
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-ink-3">
                     Brier {brierScore(p.probability, p.outcome as boolean).toFixed(2)}
                   </span>
                 </div>
@@ -275,7 +275,7 @@ function Section({
       <div
         className={
           "mb-2 px-1 text-xs font-semibold tracking-wide uppercase " +
-          (tone === "urgent" ? "text-amber-600" : "text-slate-400")
+          (tone === "urgent" ? "text-warn" : "text-ink-3")
         }
       >
         {title} · {count}
@@ -291,18 +291,18 @@ function Statement({ p, today }: { p: Prediction; today: string }) {
   return (
     <>
       <div className="flex items-start gap-2">
-        <span className="shrink-0 rounded-lg bg-blue-600 px-2 py-0.5 text-sm font-bold text-white tabular-nums">
+        <span className="shrink-0 rounded-lg bg-accent px-2 py-0.5 text-sm font-bold text-on-accent font-num">
           {p.probability}%
         </span>
-        <span className="text-sm leading-snug font-semibold text-slate-900">{p.statement}</span>
+        <span className="text-sm leading-snug font-semibold text-ink">{p.statement}</span>
       </div>
-      <div className="mt-1 text-xs text-slate-400">
+      <div className="mt-1 text-xs text-ink-3">
         {p.category} · hạn {formatDayLabel(p.resolveBy)}
-        {overdue && <span className="font-semibold text-amber-600"> · quá hạn</span>}
+        {overdue && <span className="font-semibold text-warn"> · quá hạn</span>}
       </div>
-      {p.note && <div className="mt-1 text-xs text-slate-500">{p.note}</div>}
+      {p.note && <div className="mt-1 text-xs text-ink-2">{p.note}</div>}
       {p.preMortem && (
-        <div className="mt-1 rounded-lg bg-slate-50 px-2 py-1 text-xs text-slate-500">
+        <div className="mt-1 rounded-lg bg-surface-2 px-2 py-1 text-xs text-ink-2">
           Pre-mortem: {p.preMortem}
         </div>
       )}
@@ -315,7 +315,7 @@ function DeleteButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="tap-target shrink-0 rounded-xl px-3 text-sm font-semibold text-red-500 active:bg-red-50"
+      className="tap-target shrink-0 rounded-lg px-3 text-sm font-semibold text-bad-ink active:bg-bad/15"
       aria-label="Xoá dự đoán"
     >
       Xoá
@@ -336,31 +336,31 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
     <div className="pb-4">
       {/* ---------- Brier score ---------- */}
       <Card className="mb-4">
-        <div className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+        <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
           Brier score
         </div>
 
         <div className="mt-2 grid grid-cols-2 gap-3">
           <div>
-            <div className="text-3xl font-bold text-slate-900 tabular-nums">
+            <div className="text-3xl font-bold text-ink tabular-nums">
               {overall === null ? "—" : overall.toFixed(3)}
             </div>
-            <div className="text-xs text-slate-400">tất cả ({resolvedCount} đã chấm)</div>
+            <div className="text-xs text-ink-3">tất cả ({resolvedCount} đã chấm)</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-slate-900 tabular-nums">
+            <div className="text-3xl font-bold text-ink tabular-nums">
               {last30 === null ? "—" : last30.toFixed(3)}
             </div>
-            <div className="text-xs text-slate-400">30 ngày gần đây</div>
+            <div className="text-xs text-ink-3">30 ngày gần đây</div>
           </div>
         </div>
 
-        <p className="mt-3 text-sm font-semibold text-slate-700">{describeBrier(overall)}</p>
+        <p className="mt-3 text-sm font-semibold text-ink">{describeBrier(overall)}</p>
 
         {/* Thước đo để con số có ý nghĩa, thay vì chỉ là một số trơ trọi. */}
-        <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm">
-          <div className="mb-1.5 font-semibold text-slate-600">Mốc so sánh</div>
-          <ul className="space-y-1 text-slate-500">
+        <div className="mt-3 rounded-lg bg-surface-2 p-3 text-sm">
+          <div className="mb-1.5 font-semibold text-ink-2">Mốc so sánh</div>
+          <ul className="space-y-1 text-ink-2">
             <li className="flex justify-between">
               <span>Hoàn hảo</span>
               <span className="font-semibold tabular-nums">0.000</span>
@@ -374,7 +374,7 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
               <span className="font-semibold tabular-nums">1.000</span>
             </li>
           </ul>
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-ink-3">
             Càng thấp càng tốt. Nói 90% mà sai bị phạt 0.81; nói 50% thì luôn đúng 0.25 — an toàn
             nhưng vô dụng.
           </p>
@@ -383,17 +383,17 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
 
       {/* ---------- Calibration ---------- */}
       <Card className="mb-4">
-        <div className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+        <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
           Calibration
         </div>
-        <p className="mt-1 mb-2 text-sm text-slate-500">
+        <p className="mt-1 mb-2 text-sm text-ink-2">
           Chấm dưới đường chéo = nói cao hơn thực tế (quá tự tin). Chấm trên = quá dè dặt.
         </p>
 
         {/* Suspense hiện chỗ giữ chỗ trong lúc biểu đồ đang tải. */}
         <Suspense
           fallback={
-            <div className="flex aspect-square w-full items-center justify-center text-sm text-slate-400">
+            <div className="flex aspect-square w-full items-center justify-center text-sm text-ink-3">
               Đang tải biểu đồ...
             </div>
           }
@@ -404,7 +404,7 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
         {/* Bảng số liệu — biểu đồ trên điện thoại nhỏ, cần con số kèm theo. */}
         <table className="mt-3 w-full text-sm">
           <thead>
-            <tr className="text-xs text-slate-400">
+            <tr className="text-xs text-ink-3">
               <th className="py-1 text-left font-semibold">Khoảng</th>
               <th className="py-1 text-right font-semibold">Số DĐ</th>
               <th className="py-1 text-right font-semibold">Nói</th>
@@ -413,10 +413,10 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
           </thead>
           <tbody>
             {buckets.map((b) => (
-              <tr key={b.label} className="border-t border-slate-100">
-                <td className="py-1.5 text-slate-600">{b.label}</td>
+              <tr key={b.label} className="border-t border-line">
+                <td className="py-1.5 text-ink-2">{b.label}</td>
                 <td className="py-1.5 text-right tabular-nums">{b.count}</td>
-                <td className="py-1.5 text-right tabular-nums text-slate-500">
+                <td className="py-1.5 text-right tabular-nums text-ink-2">
                   {b.statedAverage === null ? "—" : `${Math.round(b.statedAverage)}%`}
                 </td>
                 <td className="py-1.5 text-right font-semibold tabular-nums">
@@ -428,7 +428,7 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
         </table>
 
         {!enough && (
-          <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-500">
+          <p className="mt-3 rounded-lg bg-surface-2 px-3 py-2 text-sm text-ink-2">
             Mới có {resolvedCount}/{MIN_RESOLVED_FOR_CONCLUSION} dự đoán đã chấm — chưa đủ dữ liệu
             để kết luận. Cứ tiếp tục ghi, đừng vội đổi cách ước lượng dựa trên biểu đồ này.
           </p>

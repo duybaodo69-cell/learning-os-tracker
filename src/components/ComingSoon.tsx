@@ -12,10 +12,10 @@ type ComingSoonProps = {
 
 export default function ComingSoon({ phase, description }: ComingSoonProps) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center">
-      <p className="text-sm font-semibold text-slate-400">Phase {phase}</p>
-      <p className="mt-2 text-base text-slate-600">{description}</p>
-      <p className="mt-4 text-sm text-slate-400">Màn hình này sẽ được xây ở Phase {phase}.</p>
+    <div className="rounded-lg border border-dashed border-line bg-surface p-6 text-center">
+      <p className="text-sm font-semibold text-ink-3">Phase {phase}</p>
+      <p className="mt-2 text-base text-ink-2">{description}</p>
+      <p className="mt-4 text-sm text-ink-3">Màn hình này sẽ được xây ở Phase {phase}.</p>
     </div>
   );
 }

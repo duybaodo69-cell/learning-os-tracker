@@ -2,13 +2,80 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------
-   Cài đặt chung cho toàn app.
-   Mục tiêu: dùng bằng 1 tay trên điện thoại, chữ dễ đọc.
+   FONT — tự host qua npm (@fontsource), KHÔNG lấy từ Google Fonts,
+   để app vẫn hiện đúng font khi offline (service worker lưu sẵn file).
+
+   - Be Vietnam Pro: MỌI chữ tiếng Việt (thiết kế riêng cho dấu tiếng Việt).
+   - Geist: CHỈ cho con số và bảng số liệu (class `font-num`).
+     Chỉ nạp bộ ký tự "latin" vì con số nằm trong đó — không cần tải cả
+     bảng chữ Cyrillic hay tiếng Việt của Geist.
+   --------------------------------------------------------------- */
+@import "@fontsource/be-vietnam-pro/vietnamese-400.css";
+@import "@fontsource/be-vietnam-pro/vietnamese-500.css";
+@import "@fontsource/be-vietnam-pro/vietnamese-600.css";
+@import "@fontsource/be-vietnam-pro/vietnamese-700.css";
+@import "@fontsource/be-vietnam-pro/latin-400.css";
+@import "@fontsource/be-vietnam-pro/latin-500.css";
+@import "@fontsource/be-vietnam-pro/latin-600.css";
+@import "@fontsource/be-vietnam-pro/latin-700.css";
+@import "@fontsource/geist/latin-500.css";
+@import "@fontsource/geist/latin-600.css";
+
+/* ---------------------------------------------------------------
+   BẢNG MÀU — "Quantitative Protocol" (design/quantitative_protocol/DESIGN.md)
+
+   Màu khai báo thành BIẾN CSS ở :root, rồi @theme bên dưới nối chúng vào
+   Tailwind. Nhờ vậy muốn thêm theme sáng sau này chỉ cần ghi đè các biến
+   dưới một selector khác (vd :root[data-theme="light"]) — không phải sửa
+   class nào trong code.
+
+   Chữ mờ (--ink-3) KHÔNG dùng #475569 của bản thiết kế: nó chỉ đạt tương
+   phản 2.2-2.55 trên nền tối, dưới mức tối thiểu 4.5. #8792a5 đạt >= 5.3
+   trên cả ba nền. Chữ đỏ và chữ tím cũng dùng bản sáng hơn vì lý do đó.
    --------------------------------------------------------------- */
 :root {
-  /* Chặn trình duyệt tự phóng to chữ khi xoay ngang màn hình. */
+  --canvas: #0c0e12;      /* nền sàn */
+  --surface: #12151c;     /* thẻ, panel (tầng 1) */
+  --surface-2: #1a1e28;   /* ô được chọn, hộp thoại (tầng 2) */
+  --line: #262c3a;        /* viền mảnh 1px */
+
+  --ink: #f1f5f9;         /* chữ chính */
+  --ink-2: #94a3b8;       /* chữ phụ */
+  --ink-3: #8792a5;       /* chữ mờ — vẫn >= 4.5:1 */
+
+  --accent: #38bdf8;      /* cyan: hành động chính, số liệu chính */
+  --on-accent: #0c0e12;   /* chữ đặt trên nền cyan */
+  --indigo: #6366f1;      /* nền nhãn phân loại */
+  --indigo-ink: #a5b4fc;  /* chữ nhãn phân loại */
+
+  --good: #10b981;        /* tốt lên */
+  --warn: #f59e0b;        /* cảnh báo */
+  --bad: #f43f5e;         /* xấu đi / xoá — dùng cho nền, viền */
+  --bad-ink: #fb7185;     /* chữ đỏ (bản sáng hơn cho đủ tương phản) */
+
   -webkit-text-size-adjust: 100%;
-  color-scheme: light;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-indigo: var(--indigo);
+  --color-indigo-ink: var(--indigo-ink);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --color-bad-ink: var(--bad-ink);
+
+  --font-sans: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-num: "Geist", "Be Vietnam Pro", system-ui, sans-serif;
 }
 
 html,
@@ -19,9 +86,9 @@ body,
 
 body {
   margin: 0;
-  background-color: #f8fafc; /* xám rất nhạt, đỡ chói mắt */
-  color: #0f172a;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
 
   /* Không cho kéo ngang -> vuốt trên điện thoại mượt hơn. */
   overscroll-behavior-y: none;
@@ -30,6 +97,12 @@ body {
 /* Bỏ hiệu ứng ô xanh khi chạm vào nút trên Android. */
 * {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Con số: Geist + chữ số cùng bề rộng để các cột thẳng hàng. */
+@utility font-num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------------------------------------------------------------

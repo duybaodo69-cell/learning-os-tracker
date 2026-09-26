@@ -84,7 +84,7 @@ type BottomNavProps = {
 export default function BottomNav({ activeTab, onTabChange, reviewBadge = 0 }: BottomNavProps) {
   return (
     <nav
-      className="border-t border-slate-200 bg-white"
+      className="border-t border-line bg-canvas"
       // `pb-[env(safe-area-inset-bottom)]`: chừa chỗ cho thanh gạt ngang
       // ở đáy iPhone, để nút không bị che.
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
@@ -100,7 +100,7 @@ export default function BottomNav({ activeTab, onTabChange, reviewBadge = 0 }: B
                 // `tap-target` đảm bảo tối thiểu 44px — quy tắc của dự án.
                 className={
                   "tap-target flex w-full flex-col items-center justify-center gap-1 px-1 py-2 " +
-                  (active ? "text-blue-600" : "text-slate-400")
+                  (active ? "text-accent" : "text-ink-3")
                 }
                 // Cho trình đọc màn hình biết tab nào đang mở.
                 aria-current={active ? "page" : undefined}
@@ -109,12 +109,12 @@ export default function BottomNav({ activeTab, onTabChange, reviewBadge = 0 }: B
                 <span className="relative">
                   <Icon active={active} />
                   {id === "review" && reviewBadge > 0 && (
-                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] rounded-full bg-red-600 px-1 text-[10px] leading-[18px] font-bold text-white">
+                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] rounded-full bg-bad px-1 text-xs leading-[18px] font-bold text-canvas">
                       {reviewBadge}
                     </span>
                   )}
                 </span>
-                <span className={"text-[11px] leading-none " + (active ? "font-semibold" : "font-medium")}>
+                <span className={"text-xs leading-none " + (active ? "font-semibold" : "font-medium")}>
                   {label}
                 </span>
               </button>

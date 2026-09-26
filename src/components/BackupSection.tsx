@@ -111,27 +111,27 @@ export default function BackupSection() {
 
   return (
     <Card className="mb-4">
-      <div className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase">
+      <div className="mb-2 text-xs font-semibold tracking-wide text-ink-3 uppercase">
         Sao lưu
       </div>
 
-      <p className="mb-3 text-sm text-slate-500">
+      <p className="mb-3 text-sm text-ink-2">
         Dữ liệu chỉ nằm trong trình duyệt của <strong>máy này</strong>. Xuất một bản{" "}
         <strong>mỗi tuần</strong> và cất ra ngoài máy.
       </p>
 
       {demo && (
-        <p className="mb-3 rounded-xl bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-900">
+        <p className="mb-3 rounded-lg bg-warn/15 px-3 py-2 text-sm font-semibold text-warn">
           Đang ở chế độ dữ liệu mẫu. Xuất bây giờ chỉ ra file mẫu, và KHÔNG được
           tính là đã sao lưu dữ liệu thật.
         </p>
       )}
 
-      <div className="mb-3 rounded-xl bg-slate-50 px-3 py-2 text-sm">
+      <div className="mb-3 rounded-lg bg-surface-2 px-3 py-2 text-sm">
         {lastExport === null ? (
-          <span className="font-semibold text-amber-700">Chưa xuất bản sao lưu nào.</span>
+          <span className="font-semibold text-warn">Chưa xuất bản sao lưu nào.</span>
         ) : (
-          <span className="text-slate-600">
+          <span className="text-ink-2">
             Lần xuất gần nhất: <strong>{lastExport}</strong>
             {daysSince !== null && daysSince > 0 && ` (${daysSince} ngày trước)`}
           </span>
@@ -162,24 +162,24 @@ export default function BackupSection() {
       />
 
       {message && (
-        <p className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
+        <p className="mt-3 rounded-lg bg-good/10 px-3 py-2 text-sm text-good">{message}</p>
       )}
       {error && (
-        <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="mt-3 rounded-lg bg-bad/10 px-3 py-2 text-sm text-bad-ink">{error}</p>
       )}
 
       {/* ---------- Xem trước trước khi ghi đè ---------- */}
       {preview && existing && (
-        <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3">
-          <div className="text-sm font-bold text-amber-900">Xem trước trước khi ghi đè</div>
-          <p className="mt-1 text-xs text-amber-800">
+        <div className="mt-4 rounded-lg border border-warn/40 bg-warn/10 p-3">
+          <div className="text-sm font-bold text-warn">Xem trước trước khi ghi đè</div>
+          <p className="mt-1 text-xs text-warn">
             File tạo lúc {preview.file.exportedAt.slice(0, 10)}. Bảng dưới so sánh dữ liệu{" "}
             <strong>đang có</strong> với dữ liệu <strong>trong file</strong>.
           </p>
 
           <table className="mt-2 w-full text-sm">
             <thead>
-              <tr className="text-xs text-amber-700">
+              <tr className="text-xs text-warn">
                 <th className="py-1 text-left font-semibold">Bảng</th>
                 <th className="py-1 text-right font-semibold">Đang có</th>
                 <th className="py-1 text-right font-semibold">Trong file</th>
@@ -187,18 +187,18 @@ export default function BackupSection() {
             </thead>
             <tbody>
               {TABLE_NAMES.map((n) => (
-                <tr key={n} className="border-t border-amber-200">
-                  <td className="py-1 text-amber-900">{TABLE_LABELS[n]}</td>
-                  <td className="py-1 text-right tabular-nums text-amber-800">{existing[n] ?? 0}</td>
-                  <td className="py-1 text-right font-semibold tabular-nums text-amber-900">
+                <tr key={n} className="border-t border-warn/30">
+                  <td className="py-1 text-warn">{TABLE_LABELS[n]}</td>
+                  <td className="py-1 text-right tabular-nums text-warn">{existing[n] ?? 0}</td>
+                  <td className="py-1 text-right font-semibold tabular-nums text-warn">
                     {preview.counts[n] ?? 0}
                   </td>
                 </tr>
               ))}
-              <tr className="border-t-2 border-amber-300 font-bold">
-                <td className="py-1 text-amber-900">Tổng</td>
-                <td className="py-1 text-right tabular-nums text-amber-800">{totalExisting}</td>
-                <td className="py-1 text-right tabular-nums text-amber-900">{totalInFile}</td>
+              <tr className="border-t-2 border-warn/40 font-bold">
+                <td className="py-1 text-warn">Tổng</td>
+                <td className="py-1 text-right tabular-nums text-warn">{totalExisting}</td>
+                <td className="py-1 text-right tabular-nums text-warn">{totalInFile}</td>
               </tr>
             </tbody>
           </table>

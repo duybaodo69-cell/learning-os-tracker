@@ -46,13 +46,13 @@ export default function WeeklyReviewCard({
 
   if (!open) {
     return (
-      <Card className={"mb-4 " + (done ? "" : "border-blue-300 bg-blue-50")}>
+      <Card className={"mb-4 " + (done ? "" : "border-accent/40 bg-accent/10")}>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-bold text-slate-900">
+            <div className="text-sm font-bold text-ink">
               {done ? "Đã tổng kết tuần này" : "Chủ Nhật — tổng kết tuần"}
             </div>
-            <div className="mt-0.5 text-xs text-slate-500">
+            <div className="mt-0.5 text-xs text-ink-2">
               {done ? "Bấm để xem lại hoặc sửa" : "3 câu hỏi, khoảng 5 phút"}
             </div>
           </div>
@@ -66,13 +66,13 @@ export default function WeeklyReviewCard({
 
   return (
     <Card className="mb-4">
-      <h2 className="mb-1 text-base font-bold text-slate-900">Tổng kết tuần</h2>
-      <p className="mb-3 text-xs text-slate-400">Tuần bắt đầu {weekStart}</p>
+      <h2 className="mb-1 text-base font-bold text-ink">Tổng kết tuần</h2>
+      <p className="mb-3 text-xs text-ink-3">Tuần bắt đầu {weekStart}</p>
 
       {/* Số liệu điền sẵn — bối cảnh cho câu hỏi thứ hai. */}
-      <div className="mb-4 rounded-xl bg-slate-50 p-3">
-        <div className="mb-1 text-xs font-semibold text-slate-500">Số liệu tuần này</div>
-        <p className="text-sm leading-relaxed text-slate-700">
+      <div className="mb-4 rounded-lg bg-surface-2 p-3">
+        <div className="mb-1 text-xs font-semibold text-ink-2">Số liệu tuần này</div>
+        <p className="text-sm leading-relaxed text-ink">
           {facts.length > 0 ? facts.join(" · ") : "Chưa có số liệu nào trong tuần."}
         </p>
       </div>

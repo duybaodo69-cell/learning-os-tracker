@@ -11,16 +11,27 @@ import type { ReactNode } from "react";
 type ScreenShellProps = {
   title: string;      // tiêu đề tiếng Việt, ví dụ "Hôm nay"
   subtitle?: string;  // dòng mô tả nhỏ bên dưới (không bắt buộc)
+  /** Nội dung đặt bên phải tiêu đề (vd nút chọn khoảng thời gian). */
+  right?: ReactNode;
   children: ReactNode; // nội dung của màn hình
 };
 
-export default function ScreenShell({ title, subtitle, children }: ScreenShellProps) {
+export default function ScreenShell({ title, subtitle, right, children }: ScreenShellProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Thanh tiêu đề: `sticky top-0` = luôn dính ở trên khi cuộn. */}
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 pt-4 pb-3 backdrop-blur">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
+      <header className="sticky top-0 z-10 border-b border-line bg-canvas/95 px-4 pt-4 pb-3 backdrop-blur">
+        {/* flex-wrap: nếu phần bên phải quá rộng thì xuống dòng, KHÔNG đè lên
+            tiêu đề ở màn hình 390px. */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="flex items-center gap-2 text-lg font-semibold tracking-wide text-ink uppercase">
+            {/* Chấm cyan nhỏ — dấu hiệu "đang ở màn hình này". */}
+            <span className="h-2 w-2 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+            {title}
+          </h1>
+          {right}
+        </div>
+        {subtitle && <p className="mt-1 text-sm text-ink-2">{subtitle}</p>}
       </header>
 
       {/* Vùng nội dung. `overflow-y-auto` = cuộn dọc khi nội dung dài. */}

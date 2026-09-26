@@ -61,7 +61,7 @@ export default function App() {
   return (
     // h-dvh = cao đúng bằng màn hình thật của điện thoại
     // (tính cả khi thanh địa chỉ của trình duyệt ẩn/hiện).
-    <div className="flex h-dvh flex-col overflow-hidden bg-slate-50">
+    <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
       {/* min-h-0 để phần màn hình cuộn được thay vì đẩy thanh tab xuống dưới. */}
       <div className="min-h-0 flex-1">{renderScreen()}</div>
 

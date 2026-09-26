@@ -157,6 +157,6 @@ export function RetentionChart({ points }: { points: WeeklyRetentionPoint[] }) {
 
 function NoData() {
   return (
-    <p className="py-10 text-center text-sm text-slate-400">Chưa đủ dữ liệu để vẽ biểu đồ.</p>
+    <p className="py-10 text-center text-sm text-ink-3">Chưa đủ dữ liệu để vẽ biểu đồ.</p>
   );
 }

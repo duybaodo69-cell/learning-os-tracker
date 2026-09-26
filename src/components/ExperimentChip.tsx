@@ -35,7 +35,7 @@ export default function ExperimentChip({
 
   return (
     <Card className="mb-4">
-      <div className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase">
+      <div className="mb-2 text-xs font-semibold tracking-wide text-ink-3 uppercase">
         Thí nghiệm hôm nay
       </div>
 
@@ -44,7 +44,7 @@ export default function ExperimentChip({
           const current = tags.find((t) => t.key === experimentTagKey(today, exp.id));
           return (
             <div key={exp.id}>
-              <div className="mb-1.5 text-sm font-semibold text-slate-700">{exp.name}</div>
+              <div className="mb-1.5 text-sm font-semibold text-ink">{exp.name}</div>
               <div className="flex gap-2">
                 {(["A", "B"] as const).map((cond) => {
                   const selected = current?.condition === cond;
@@ -54,10 +54,10 @@ export default function ExperimentChip({
                       type="button"
                       onClick={() => setCondition(exp, cond)}
                       className={
-                        "tap-target flex-1 rounded-xl px-3 text-sm font-semibold " +
+                        "tap-target flex-1 rounded-lg px-3 text-sm font-semibold " +
                         (selected
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-100 text-slate-600 active:bg-slate-200")
+                          ? "bg-accent text-on-accent"
+                          : "bg-surface-2 text-ink-2 active:bg-line")
                       }
                     >
                       {cond === "A" ? exp.labelA : exp.labelB}
@@ -66,7 +66,7 @@ export default function ExperimentChip({
                 })}
               </div>
               {current && (
-                <p className="mt-1 text-center text-xs text-slate-400">
+                <p className="mt-1 text-center text-xs text-ink-3">
                   Bấm lại để bỏ nhãn hôm nay
                 </p>
               )}

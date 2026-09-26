@@ -37,7 +37,7 @@ export default function ExperimentsManager() {
   return (
     <Card className="mb-4">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+        <span className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
           Thí nghiệm
         </span>
         {!formOpen && (
@@ -60,13 +60,13 @@ export default function ExperimentsManager() {
         {experiments.map((exp) => {
           const result = buildExperimentResult(tags, blocks, exp.id);
           return (
-            <div key={exp.id} className="rounded-xl border border-slate-200 p-3">
+            <div key={exp.id} className="rounded-lg border border-line p-3">
               <div className="flex items-start justify-between gap-2">
-                <span className="text-sm font-bold text-slate-900">{exp.name}</span>
+                <span className="text-sm font-bold text-ink">{exp.name}</span>
                 <button
                   type="button"
                   onClick={() => setToDelete(exp)}
-                  className="tap-target shrink-0 px-2 text-sm font-semibold text-red-500"
+                  className="tap-target shrink-0 px-2 text-sm font-semibold text-bad-ink"
                   aria-label="Xoá thí nghiệm"
                 >
                   Xoá
@@ -85,7 +85,7 @@ export default function ExperimentsManager() {
               {/* Bảng so sánh hai nhánh */}
               <table className="mt-3 w-full text-sm">
                 <thead>
-                  <tr className="text-xs text-slate-400">
+                  <tr className="text-xs text-ink-3">
                     <th className="py-1 text-left font-semibold"> </th>
                     <th className="py-1 text-right font-semibold">{exp.labelA}</th>
                     <th className="py-1 text-right font-semibold">{exp.labelB}</th>
@@ -108,7 +108,7 @@ export default function ExperimentsManager() {
               </table>
 
               {!result.enough && (
-                <p className="mt-2 rounded-lg bg-slate-50 px-2 py-1.5 text-xs text-slate-500">
+                <p className="mt-2 rounded-lg bg-surface-2 px-2 py-1.5 text-xs text-ink-2">
                   Chưa đủ ngày — cần ít nhất {EXPERIMENT_MIN_DAYS} ngày mỗi nhánh (đang có{" "}
                   {result.a.days} và {result.b.days}). Chênh lệch bây giờ chủ yếu là ngẫu nhiên.
                 </p>
@@ -150,8 +150,8 @@ function num(v: number | null): string {
 
 function Row({ label, a, b }: { label: string; a: string; b: string }) {
   return (
-    <tr className="border-t border-slate-100">
-      <td className="py-1.5 text-slate-600">{label}</td>
+    <tr className="border-t border-line">
+      <td className="py-1.5 text-ink-2">{label}</td>
       <td className="py-1.5 text-right font-semibold tabular-nums">{a}</td>
       <td className="py-1.5 text-right font-semibold tabular-nums">{b}</td>
     </tr>
@@ -181,7 +181,7 @@ function ExperimentForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="mb-4 rounded-xl bg-slate-50 p-3">
+    <div className="mb-4 rounded-lg bg-surface-2 p-3">
       <Field label="Tên thí nghiệm">
         <TextInput value={name} onChange={setName} placeholder="vd: Vị trí điện thoại" />
       </Field>

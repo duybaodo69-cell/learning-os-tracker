@@ -212,7 +212,7 @@ export default function TodayScreen({
   return (
     <ScreenShell title="Hôm nay" subtitle={formatDayLabel(today) /* "Thứ Bảy, 26/09" dễ đọc hơn "2026-09-26" */}>
       {isDemoMode() && (
-        <div className="mb-4 rounded-xl bg-amber-100 px-4 py-2 text-center text-sm font-semibold text-amber-800">
+        <div className="mb-4 rounded-lg bg-warn/15 px-4 py-2 text-center text-sm font-semibold text-warn">
           Đang xem DỮ LIỆU MẪU — không phải dữ liệu thật
         </div>
       )}
@@ -221,7 +221,7 @@ export default function TodayScreen({
 
       {/* Nhắc sao lưu — luật số 7. */}
       {remindBackup && (
-        <div className="mb-4 rounded-xl bg-amber-100 px-4 py-2 text-sm text-amber-900">
+        <div className="mb-4 rounded-lg bg-warn/15 px-4 py-2 text-sm text-warn">
           {sinceExport === null
             ? "Chưa sao lưu lần nào. Vào Cài đặt để xuất file JSON."
             : `Đã ${sinceExport} ngày chưa sao lưu. Vào Cài đặt để xuất file JSON.`}
@@ -252,7 +252,7 @@ export default function TodayScreen({
       {/* ---------- 1. Check-in sáng ---------- */}
       {loadingCheckin ? null : !checkin || editingCheckin ? (
         <Card className="mb-4">
-          <h2 className="mb-3 text-base font-bold text-slate-900">
+          <h2 className="mb-3 text-base font-bold text-ink">
             {editingCheckin ? "Sửa check-in" : "Check-in sáng nay"}
           </h2>
           <CheckinForm
@@ -267,16 +267,16 @@ export default function TodayScreen({
         <Card className="mb-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+              <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
                 Check-in
               </div>
-              <div className="mt-1 text-lg font-bold text-slate-900">
+              <div className="mt-1 text-lg font-bold text-ink">
                 {checkin.sleepHours}h ngủ · năng lượng {checkin.energy}/5
               </div>
-              <div className="mt-0.5 text-sm text-slate-500">
+              <div className="mt-0.5 text-sm text-ink-2">
                 {checkin.bedTime} → {checkin.wakeTime}
               </div>
-              {checkin.note && <div className="mt-1 text-sm text-slate-500">{checkin.note}</div>}
+              {checkin.note && <div className="mt-1 text-sm text-ink-2">{checkin.note}</div>}
             </div>
             <Button variant="secondary" onClick={() => setEditingCheckin(true)} className="text-sm">
               Sửa
@@ -320,10 +320,10 @@ export default function TodayScreen({
           <button
             type="button"
             onClick={() => setLiveDistractions(addTimerDistraction())}
-            className="tap-target flex-1 rounded-2xl bg-amber-500 py-4 text-lg font-bold text-white active:bg-amber-600"
+            className="tap-target flex-1 rounded-lg bg-warn py-4 text-lg font-bold text-canvas active:brightness-110"
           >
             +1 phân tâm
-            <span className="ml-2 rounded-full bg-white/25 px-2.5 py-0.5 text-base tabular-nums">
+            <span className="ml-2 rounded-full bg-black/25 px-2.5 py-0.5 text-base tabular-nums">
               {liveDistractions}
             </span>
           </button>
@@ -331,7 +331,7 @@ export default function TodayScreen({
             <button
               type="button"
               onClick={() => setLiveDistractions(removeTimerDistraction())}
-              className="tap-target rounded-2xl bg-slate-100 px-4 text-xl font-bold text-slate-500 active:bg-slate-200"
+              className="tap-target rounded-lg bg-surface-2 px-4 text-xl font-bold text-ink-2 active:bg-line"
               aria-label="Bớt một lần phân tâm"
             >
               −
@@ -356,7 +356,7 @@ export default function TodayScreen({
       )}
 
       {timerStart !== null && (
-        <p className="-mt-2 mb-4 text-center text-xs text-slate-400">
+        <p className="-mt-2 mb-4 text-center text-xs text-ink-3">
           Cứ thoát app thoải mái — bộ đếm dựa vào mốc bắt đầu nên không bị sai.
         </p>
       )}
@@ -364,7 +364,7 @@ export default function TodayScreen({
       {/* ---------- 3. Form thêm / sửa block ---------- */}
       {blockFormOpen && (
         <Card className="mb-4">
-          <h2 className="mb-3 text-base font-bold text-slate-900">
+          <h2 className="mb-3 text-base font-bold text-ink">
             {editingBlock ? "Sửa block" : "Block mới"}
           </h2>
           <FocusBlockForm
@@ -389,19 +389,19 @@ export default function TodayScreen({
 
       {/* ---------- 4. Tổng deep work hôm nay ---------- */}
       <Card className="mb-4">
-        <div className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+        <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
           Deep work hôm nay
         </div>
-        <div className="mt-1 text-3xl font-bold text-slate-900">{formatMinutes(totalMinutes)}</div>
+        <div className="mt-1 text-3xl font-bold text-ink">{formatMinutes(totalMinutes)}</div>
 
         {byArea.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-400">Chưa có block nào.</p>
+          <p className="mt-2 text-sm text-ink-3">Chưa có block nào.</p>
         ) : (
           <ul className="mt-3 space-y-1.5">
             {byArea.map(([area, minutes]) => (
               <li key={area} className="flex items-center justify-between text-sm">
-                <span className="text-slate-600">{area}</span>
-                <span className="font-semibold text-slate-900 tabular-nums">
+                <span className="text-ink-2">{area}</span>
+                <span className="font-semibold text-ink tabular-nums">
                   {formatMinutes(minutes)}
                 </span>
               </li>
@@ -413,7 +413,7 @@ export default function TodayScreen({
       {/* ---------- 5. Danh sách block ---------- */}
       {sortedBlocks.length > 0 && (
         <div className="space-y-2 pb-4">
-          <div className="px-1 text-xs font-semibold tracking-wide text-slate-400 uppercase">
+          <div className="px-1 text-xs font-semibold tracking-wide text-ink-3 uppercase">
             {sortedBlocks.length} block
           </div>
 
@@ -430,24 +430,24 @@ export default function TodayScreen({
                 className="flex-1 text-left"
               >
                 <div className="flex items-baseline gap-2">
-                  <span className="text-base font-bold text-slate-900">
+                  <span className="text-base font-bold text-ink">
                     {formatMinutes(block.minutes)}
                   </span>
-                  <span className="text-sm text-slate-600">{block.area}</span>
+                  <span className="text-sm text-ink-2">{block.area}</span>
                 </div>
-                <div className="mt-0.5 text-xs text-slate-400">
+                <div className="mt-0.5 text-xs text-ink-3">
                   {block.startTime} · tập trung {block.focusRating}/5 · phân tâm {block.distractions}
                   {block.phoneAway && " · điện thoại phòng khác"}
                 </div>
                 {block.resumeNote && (
-                  <div className="mt-1 text-xs text-slate-500">{block.resumeNote}</div>
+                  <div className="mt-1 text-xs text-ink-2">{block.resumeNote}</div>
                 )}
               </button>
 
               <button
                 type="button"
                 onClick={() => setBlockToDelete(block)}
-                className="tap-target shrink-0 rounded-xl px-3 text-sm font-semibold text-red-500 active:bg-red-50"
+                className="tap-target shrink-0 rounded-lg px-3 text-sm font-semibold text-bad-ink active:bg-bad/15"
                 aria-label="Xoá block"
               >
                 Xoá
@@ -473,6 +473,7 @@ export default function TodayScreen({
           )
         }
         confirmLabel="Vẫn dùng số này"
+        destructive={false}
         onConfirm={() => {
           if (longSession) openFormWith(longSession);
           setLongSession(null);

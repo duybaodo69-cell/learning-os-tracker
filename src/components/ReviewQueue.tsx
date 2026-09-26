@@ -23,10 +23,10 @@ const TEN_MINUTES_MS = 10 * 60 * 1000;
 
 /** Bốn nút chấm điểm. Thứ tự từ khó nhớ nhất tới dễ nhất. */
 const GRADE_BUTTONS: { grade: Grade; label: string; className: string }[] = [
-  { grade: "again", label: "Quên", className: "bg-red-600 text-white active:bg-red-700" },
-  { grade: "hard", label: "Khó", className: "bg-amber-500 text-white active:bg-amber-600" },
-  { grade: "good", label: "Được", className: "bg-blue-600 text-white active:bg-blue-700" },
-  { grade: "easy", label: "Dễ", className: "bg-green-600 text-white active:bg-green-700" },
+  { grade: "again", label: "Quên", className: "bg-surface-2 border border-bad/40 text-bad-ink active:bg-bad/20" },
+  { grade: "hard", label: "Khó", className: "bg-warn/15 border border-warn/50 text-warn active:bg-warn/25" },
+  { grade: "good", label: "Được", className: "bg-accent text-on-accent active:brightness-110" },
+  { grade: "easy", label: "Dễ", className: "bg-good/15 border border-good/40 text-good active:bg-good/25" },
 ];
 
 export default function ReviewQueue() {
@@ -127,14 +127,14 @@ export default function ReviewQueue() {
     return (
       <div className="pb-4">
         <CardBox className="mb-4 text-center">
-          <div className="text-5xl font-bold text-slate-900">{dueCards.length}</div>
-          <p className="mt-1 text-sm text-slate-500">
+          <div className="text-5xl font-bold text-ink">{dueCards.length}</div>
+          <p className="mt-1 text-sm text-ink-2">
             thẻ đến hạn hôm nay
             {allCards.length > dueCards.length && ` (tổng ${allCards.length} thẻ)`}
           </p>
 
           {dueCards.length >= DAILY_LIMIT && (
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-2 text-xs text-ink-3">
               Giới hạn {DAILY_LIMIT} thẻ/ngày. Thẻ quá hạn lâu nhất được ưu tiên.
             </p>
           )}
@@ -179,10 +179,10 @@ export default function ReviewQueue() {
   if (finished || stoppedByTimer) {
     return (
       <CardBox className="text-center">
-        <div className="text-2xl font-bold text-slate-900">
+        <div className="text-2xl font-bold text-ink">
           {stoppedByTimer ? "Hết 10 phút" : "Xong buổi ôn"}
         </div>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-ink-2">
           Đã ôn {position}/{queueIds.length} thẻ.
           {stoppedByTimer && " Phần còn lại vẫn đến hạn, ôn tiếp lúc nào cũng được."}
         </p>
@@ -200,7 +200,7 @@ export default function ReviewQueue() {
   if (!card) {
     return (
       <CardBox className="text-center">
-        <p className="text-sm text-slate-500">Thẻ này đã bị xoá.</p>
+        <p className="text-sm text-ink-2">Thẻ này đã bị xoá.</p>
         <Button onClick={() => setPosition((p) => p + 1)} className="mt-3 w-full">
           Thẻ tiếp theo
         </Button>
@@ -211,7 +211,7 @@ export default function ReviewQueue() {
   return (
     <div className="pb-4">
       {/* Thanh tiến độ */}
-      <div className="mb-3 flex items-center justify-between text-xs text-slate-400">
+      <div className="mb-3 flex items-center justify-between text-xs text-ink-3">
         <span>
           Thẻ {position + 1}/{queueIds.length}
         </span>
@@ -221,19 +221,19 @@ export default function ReviewQueue() {
           </span>
         )}
       </div>
-      <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-slate-200">
+      <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-line">
         <div
-          className="h-full bg-blue-600 transition-all"
+          className="h-full bg-accent transition-all"
           style={{ width: `${(position / queueIds.length) * 100}%` }}
         />
       </div>
 
       {/* Mặt trước */}
       <CardBox className="mb-3">
-        <div className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+        <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
           {card.area}
         </div>
-        <div className="mt-2 text-lg leading-relaxed font-semibold whitespace-pre-wrap text-slate-900">
+        <div className="mt-2 text-lg leading-relaxed font-semibold whitespace-pre-wrap text-ink">
           {card.front}
         </div>
       </CardBox>
@@ -244,19 +244,19 @@ export default function ReviewQueue() {
           <Button onClick={() => setAnswerShown(true)} className="w-full text-base">
             Hiện đáp án
           </Button>
-          <p className="mt-2 text-center text-xs text-slate-400">
+          <p className="mt-2 text-center text-xs text-ink-3">
             Cố nhớ ra trước đã — đó mới là phần có tác dụng
           </p>
         </>
       ) : (
         <>
-          <CardBox className="mb-4 border-blue-200 bg-blue-50">
+          <CardBox className="mb-4 border-accent/30 bg-accent/10">
             {card.back.trim() === "" ? (
-              <p className="text-sm text-amber-700">
+              <p className="text-sm text-warn">
                 Thẻ này chưa có mặt sau. Sang tab "Thẻ" để điền đáp án.
               </p>
             ) : (
-              <div className="leading-relaxed whitespace-pre-wrap text-slate-800">{card.back}</div>
+              <div className="leading-relaxed whitespace-pre-wrap text-ink">{card.back}</div>
             )}
           </CardBox>
 
@@ -277,10 +277,10 @@ export default function ReviewQueue() {
                   key={g}
                   type="button"
                   onClick={() => grade(card, g)}
-                  className={`tap-target flex flex-col items-center justify-center rounded-xl py-2 font-semibold ${className}`}
+                  className={`tap-target flex flex-col items-center justify-center rounded-lg py-2 font-semibold ${className}`}
                 >
                   <span className="text-sm">{label}</span>
-                  <span className="text-[10px] font-normal opacity-80">
+                  <span className="text-xs font-normal opacity-80">
                     {preview.intervalDays}d
                   </span>
                 </button>

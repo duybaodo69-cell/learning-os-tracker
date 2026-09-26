@@ -107,7 +107,7 @@ export default function PredictionForm({
       {/* Pre-mortem — chỉ cho Deal/VC */}
       {showPreMortem && (
         <Field label="Pre-mortem" hint="không bắt buộc">
-          <p className="mb-1.5 text-sm text-slate-500">
+          <p className="mb-1.5 text-sm text-ink-2">
             Giả sử 3 năm sau khoản này thất bại — vì sao?
           </p>
           <TextArea

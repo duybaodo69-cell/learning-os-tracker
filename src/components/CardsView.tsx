@@ -75,11 +75,11 @@ export default function CardsView() {
         >
           + Thẻ mới
         </Button>
-        <span className="shrink-0 text-sm text-slate-400">{allCards.length} thẻ</span>
+        <span className="shrink-0 text-sm text-ink-3">{allCards.length} thẻ</span>
       </div>
 
       {emptyBackCount > 0 && (
-        <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="mb-3 rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
           {emptyBackCount} thẻ chưa có mặt sau — bấm vào để điền đáp án.
         </p>
       )}
@@ -105,15 +105,15 @@ export default function CardsView() {
                 }}
                 className="flex-1 text-left"
               >
-                <div className="text-sm font-semibold text-slate-900">{card.front}</div>
+                <div className="text-sm font-semibold text-ink">{card.front}</div>
                 {card.back.trim() === "" ? (
-                  <div className="mt-1 text-sm font-semibold text-amber-600">
+                  <div className="mt-1 text-sm font-semibold text-warn">
                     (chưa có mặt sau)
                   </div>
                 ) : (
-                  <div className="mt-1 line-clamp-2 text-sm text-slate-500">{card.back}</div>
+                  <div className="mt-1 line-clamp-2 text-sm text-ink-2">{card.back}</div>
                 )}
-                <div className="mt-1 text-xs text-slate-400">
+                <div className="mt-1 text-xs text-ink-3">
                   {card.area} · đến hạn {card.dueDate}
                   {card.lapses > 0 && ` · quên ${card.lapses} lần`}
                 </div>
@@ -122,7 +122,7 @@ export default function CardsView() {
               <button
                 type="button"
                 onClick={() => setToDelete(card)}
-                className="tap-target shrink-0 rounded-xl px-3 text-sm font-semibold text-red-500 active:bg-red-50"
+                className="tap-target shrink-0 rounded-lg px-3 text-sm font-semibold text-bad-ink active:bg-bad/15"
                 aria-label="Xoá thẻ"
               >
                 Xoá
@@ -199,7 +199,7 @@ function CardForm({
 
   return (
     <CardBox className="mb-4">
-      <h2 className="mb-3 text-base font-bold text-slate-900">
+      <h2 className="mb-3 text-base font-bold text-ink">
         {existing ? "Sửa thẻ" : "Thẻ mới"}
       </h2>
 
@@ -216,7 +216,7 @@ function CardForm({
       </Field>
 
       {existing && (
-        <p className="mb-4 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+        <p className="mb-4 rounded-lg bg-surface-2 px-3 py-2 text-xs text-ink-2">
           Sửa nội dung không làm mất tiến độ ôn: thẻ vẫn đến hạn {existing.dueDate}, đã ôn{" "}
           {existing.reps} lần.
         </p>
