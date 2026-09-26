@@ -30,13 +30,17 @@ import {
 } from "../lib/timer";
 import { computeMetrics, isSunday, mondayOf } from "../lib/metrics";
 import { EXPORT_REMINDER_DAYS, daysSinceLastExport } from "../lib/backup";
+import { getLastArea, setLastArea } from "../lib/prefs";
+import { areaColor } from "../lib/areaColors";
+import { AREAS } from "../db/types";
+import type { Area } from "../db/types";
 
 import ScreenShell from "../components/ScreenShell";
 import ProtocolBanner from "../components/ProtocolBanner";
 import CheckinForm from "../components/CheckinForm";
 import FocusBlockForm from "../components/FocusBlockForm";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { Button, Card } from "../components/ui";
+import { Button, Card, ChipGroup, SectionLabel, Tag } from "../components/ui";
 import WeeklyReviewCard from "../components/WeeklyReviewCard";
 import ExperimentChip from "../components/ExperimentChip";
 import type { TabId } from "../components/BottomNav";
@@ -95,6 +99,9 @@ export default function TodayScreen({
     hasData && (sinceExport === null || sinceExport > EXPORT_REMINDER_DAYS);
 
   /* ----- Trạng thái giao diện ----- */
+  // Area chọn TRƯỚC khi bắt đầu đếm. Lưu làm "area gần nhất" để form kết thúc
+  // phiên điền sẵn đúng area này.
+  const [timerArea, setTimerArea] = useState<Area>(getLastArea);
   const [editingCheckin, setEditingCheckin] = useState(false);
   const [blockFormOpen, setBlockFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FocusBlock | null>(null);
@@ -212,21 +219,12 @@ export default function TodayScreen({
   return (
     <ScreenShell title="Hôm nay" subtitle={formatDayLabel(today) /* "Thứ Bảy, 26/09" dễ đọc hơn "2026-09-26" */}>
       {isDemoMode() && (
-        <div className="mb-4 rounded-lg bg-warn/15 px-4 py-2 text-center text-sm font-semibold text-warn">
+        <div className="mb-4 rounded-lg border border-warn/30 bg-warn/12 px-4 py-2 text-center text-sm font-semibold text-warn">
           Đang xem DỮ LIỆU MẪU — không phải dữ liệu thật
         </div>
       )}
 
       <ProtocolBanner date={today} />
-
-      {/* Nhắc sao lưu — luật số 7. */}
-      {remindBackup && (
-        <div className="mb-4 rounded-lg bg-warn/15 px-4 py-2 text-sm text-warn">
-          {sinceExport === null
-            ? "Chưa sao lưu lần nào. Vào Cài đặt để xuất file JSON."
-            : `Đã ${sinceExport} ngày chưa sao lưu. Vào Cài đặt để xuất file JSON.`}
-        </div>
-      )}
 
       {/* Tổng kết tuần — chỉ Chủ Nhật. */}
       {showWeeklyReview && weeklyReview !== undefined && (
@@ -249,12 +247,12 @@ export default function TodayScreen({
         />
       )}
 
-      {/* ---------- 1. Check-in sáng ---------- */}
+      {/* ---------- 1. Check-in sáng: HAI trạng thái tách biệt ----------
+          Chưa có (hoặc đang sửa) -> form đầy đủ.
+          Đã có -> đúng MỘT dòng tóm tắt, không lặp lại form. */}
       {loadingCheckin ? null : !checkin || editingCheckin ? (
         <Card className="mb-4">
-          <h2 className="mb-3 text-base font-bold text-ink">
-            {editingCheckin ? "Sửa check-in" : "Check-in sáng nay"}
-          </h2>
+          <SectionLabel>{editingCheckin ? "Sửa check-in" : "Check-in sáng nay"}</SectionLabel>
           <CheckinForm
             date={today}
             previous={yesterdayCheckin ?? undefined}
@@ -264,109 +262,94 @@ export default function TodayScreen({
           />
         </Card>
       ) : (
+        <Card className="mb-4 flex items-center justify-between gap-3 py-2.5">
+          <p className="min-w-0 truncate text-sm text-ink">
+            <span className="text-good">✓</span>{" "}
+            <span className="font-num font-semibold">{checkin.sleepHours}h</span> ngủ · năng lượng{" "}
+            <span className="font-num font-semibold">{checkin.energy}/5</span>
+            <span className="text-ink-2">
+              {" "}
+              · <span className="font-num">{checkin.bedTime}→{checkin.wakeTime}</span>
+            </span>
+          </p>
+          <Button variant="ghost" onClick={() => setEditingCheckin(true)} className="shrink-0 text-sm">
+            Sửa
+          </Button>
+        </Card>
+      )}
+
+      {/* ---------- 2. Bắt đầu làm việc ---------- */}
+      {!blockFormOpen && timerStart === null && (
         <Card className="mb-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
-                Check-in
-              </div>
-              <div className="mt-1 text-lg font-bold text-ink">
-                {checkin.sleepHours}h ngủ · năng lượng {checkin.energy}/5
-              </div>
-              <div className="mt-0.5 text-sm text-ink-2">
-                {checkin.bedTime} → {checkin.wakeTime}
-              </div>
-              {checkin.note && <div className="mt-1 text-sm text-ink-2">{checkin.note}</div>}
-            </div>
-            <Button variant="secondary" onClick={() => setEditingCheckin(true)} className="text-sm">
-              Sửa
+          <SectionLabel right="chọn 1">Lĩnh vực</SectionLabel>
+          <ChipGroup
+            options={AREAS}
+            value={timerArea}
+            onChange={(a) => {
+              setTimerArea(a);
+              setLastArea(a);
+            }}
+          />
+          <Button onClick={handleStartTimer} className="mt-4 w-full py-3 text-base">
+            Bắt đầu đếm
+          </Button>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setEditingBlock(null);
+                setTimerResult(null);
+                setBlockFormOpen(true);
+              }}
+              className="text-sm"
+            >
+              + Block (log sau)
+            </Button>
+            {/* Một chạm sang Brain dump — không phải tự đi tìm trong tab Ôn tập. */}
+            <Button
+              variant="secondary"
+              onClick={() => onNavigate("review", "braindump")}
+              className="text-sm"
+            >
+              Brain dump
             </Button>
           </div>
         </Card>
       )}
 
-      {/* ---------- 2. Bộ đếm giờ + thêm block ---------- */}
-      {!blockFormOpen && (
-        <div className="mb-4 flex gap-2">
-          {timerStart === null ? (
-            <>
-              <Button
-                onClick={() => {
-                  setEditingBlock(null);
-                  setTimerResult(null);
-                  setBlockFormOpen(true);
-                }}
-                className="flex-1 text-base"
-              >
-                + Block
-              </Button>
-              <Button variant="secondary" onClick={handleStartTimer} className="flex-1 text-base">
-                Bắt đầu đếm
-              </Button>
-            </>
-          ) : (
-            <Button variant="danger" onClick={handleStopTimer} className="flex-1 text-base">
-              Dừng · {elapsedClock(timerStart)}
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Nút đếm phân tâm — chỉ hiện khi bộ đếm đang chạy.
-          Cố ý để TO và tách riêng: bấm được bằng một ngón, không cần nhìn kỹ,
-          ngay lúc vừa bị phân tâm. Nhớ lại sau buổi làm luôn ra số thấp hơn thật. */}
+      {/* Bộ đếm đang chạy (sẽ chuyển sang màn hình phiên riêng) */}
       {timerStart !== null && !blockFormOpen && (
-        <div className="mb-4 flex items-stretch gap-2">
-          <button
-            type="button"
-            onClick={() => setLiveDistractions(addTimerDistraction())}
-            className="tap-target flex-1 rounded-lg bg-warn py-4 text-lg font-bold text-canvas active:brightness-110"
-          >
-            +1 phân tâm
-            <span className="ml-2 rounded-full bg-black/25 px-2.5 py-0.5 text-base tabular-nums">
-              {liveDistractions}
-            </span>
-          </button>
-          {liveDistractions > 0 && (
+        <Card className="mb-4">
+          <Button variant="danger" onClick={handleStopTimer} className="w-full text-base">
+            Dừng · <span className="font-num">{elapsedClock(timerStart)}</span>
+          </Button>
+          <div className="mt-2 flex items-stretch gap-2">
             <button
               type="button"
-              onClick={() => setLiveDistractions(removeTimerDistraction())}
-              className="tap-target rounded-lg bg-surface-2 px-4 text-xl font-bold text-ink-2 active:bg-line"
-              aria-label="Bớt một lần phân tâm"
+              onClick={() => setLiveDistractions(addTimerDistraction())}
+              className="tap-target flex-1 rounded-lg border border-warn/50 bg-warn/15 py-4 text-lg font-bold text-warn active:bg-warn/25"
             >
-              −
+              +1 phân tâm
+              <span className="ml-2 font-num">{liveDistractions}</span>
             </button>
-          )}
-        </div>
-      )}
-
-      {/* Một chạm sang Brain dump — không phải tự đi tìm trong tab Ôn tập. */}
-      {!blockFormOpen && (
-        <Button
-          variant="secondary"
-          onClick={() => onNavigate("review", "braindump")}
-          className="mb-4 w-full text-base"
-        >
-          Brain dump
-        </Button>
-      )}
-
-      {!blockFormOpen && (
-        <ExperimentChip experiments={experiments} tags={experimentTags} today={today} />
-      )}
-
-      {timerStart !== null && (
-        <p className="-mt-2 mb-4 text-center text-xs text-ink-3">
-          Cứ thoát app thoải mái — bộ đếm dựa vào mốc bắt đầu nên không bị sai.
-        </p>
+            {liveDistractions > 0 && (
+              <button
+                type="button"
+                onClick={() => setLiveDistractions(removeTimerDistraction())}
+                className="tap-target rounded-lg border border-line bg-surface-2 px-4 text-xl font-bold text-ink-2"
+                aria-label="Bớt một lần phân tâm"
+              >
+                −
+              </button>
+            )}
+          </div>
+        </Card>
       )}
 
       {/* ---------- 3. Form thêm / sửa block ---------- */}
       {blockFormOpen && (
         <Card className="mb-4">
-          <h2 className="mb-3 text-base font-bold text-ink">
-            {editingBlock ? "Sửa block" : "Block mới"}
-          </h2>
+          <SectionLabel>{editingBlock ? "Sửa block" : "Block mới"}</SectionLabel>
           <FocusBlockForm
             date={today}
             existing={editingBlock ?? undefined}
@@ -387,23 +370,32 @@ export default function TodayScreen({
         </Card>
       )}
 
-      {/* ---------- 4. Tổng deep work hôm nay ---------- */}
+      {!blockFormOpen && (
+        <ExperimentChip experiments={experiments} tags={experimentTags} today={today} />
+      )}
+
+      {/* ---------- 4. Tổng deep work hôm nay — hiện MỘT lần, dạng "3h05" ---------- */}
       <Card className="mb-4">
-        <div className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
+        <SectionLabel right={blocks.length > 0 ? `${blocks.length} block` : undefined}>
           Deep work hôm nay
-        </div>
-        <div className="mt-1 text-3xl font-bold text-ink">{formatMinutes(totalMinutes)}</div>
+        </SectionLabel>
+        <div className="font-num text-4xl font-semibold text-ink">{formatMinutes(totalMinutes)}</div>
 
         {byArea.length === 0 ? (
           <p className="mt-2 text-sm text-ink-3">Chưa có block nào.</p>
         ) : (
-          <ul className="mt-3 space-y-1.5">
+          <ul className="mt-3 divide-y divide-line">
             {byArea.map(([area, minutes]) => (
-              <li key={area} className="flex items-center justify-between text-sm">
-                <span className="text-ink-2">{area}</span>
-                <span className="font-semibold text-ink tabular-nums">
-                  {formatMinutes(minutes)}
+              <li key={area} className="flex items-center justify-between py-2 text-sm">
+                <span className="flex items-center gap-2 text-ink">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-sm"
+                    style={{ backgroundColor: areaColor(area) }}
+                    aria-hidden="true"
+                  />
+                  {area}
                 </span>
+                <span className="font-num text-ink-2">{formatMinutes(minutes)}</span>
               </li>
             ))}
           </ul>
@@ -412,48 +404,64 @@ export default function TodayScreen({
 
       {/* ---------- 5. Danh sách block ---------- */}
       {sortedBlocks.length > 0 && (
-        <div className="space-y-2 pb-4">
-          <div className="px-1 text-xs font-semibold tracking-wide text-ink-3 uppercase">
-            {sortedBlocks.length} block
-          </div>
+        <Card className="mb-4 px-0 pb-1">
+          <SectionLabel className="px-4" right="bấm để sửa">
+            Block đã log
+          </SectionLabel>
+          <ul className="divide-y divide-line">
+            {sortedBlocks.map((block) => (
+              <li key={block.id} className="flex items-start gap-2 px-4 py-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingBlock(block);
+                    setTimerResult(null);
+                    setBlockFormOpen(true);
+                  }}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-num text-sm text-ink-2">{block.startTime}</span>
+                    <span className="font-num text-sm font-semibold text-ink">
+                      {formatMinutes(block.minutes)}
+                    </span>
+                    <Tag tone="indigo">{block.area}</Tag>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-2">
+                    <span>
+                      Tập trung <span className="font-num">{block.focusRating}/5</span>
+                    </span>
+                    {/* Số phân tâm màu TRUNG TÍNH — đây là dữ liệu, không phải lời trách. */}
+                    <Tag tone="neutral">
+                      <span className="font-num">{block.distractions}</span>&nbsp;phân tâm
+                    </Tag>
+                    {block.phoneAway && <span>điện thoại phòng khác</span>}
+                  </div>
+                  {block.resumeNote && (
+                    <div className="mt-1 text-xs text-ink-2">↪ {block.resumeNote}</div>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBlockToDelete(block)}
+                  className="tap-target shrink-0 rounded-lg px-2 text-sm font-medium text-bad-ink active:bg-bad/15"
+                  aria-label="Xoá block"
+                >
+                  Xoá
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
-          {sortedBlocks.map((block) => (
-            <Card key={block.id} className="flex items-start justify-between gap-2">
-              {/* Bấm vào phần nội dung để sửa. */}
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingBlock(block);
-                  setTimerResult(null);
-                  setBlockFormOpen(true);
-                }}
-                className="flex-1 text-left"
-              >
-                <div className="flex items-baseline gap-2">
-                  <span className="text-base font-bold text-ink">
-                    {formatMinutes(block.minutes)}
-                  </span>
-                  <span className="text-sm text-ink-2">{block.area}</span>
-                </div>
-                <div className="mt-0.5 text-xs text-ink-3">
-                  {block.startTime} · tập trung {block.focusRating}/5 · phân tâm {block.distractions}
-                  {block.phoneAway && " · điện thoại phòng khác"}
-                </div>
-                {block.resumeNote && (
-                  <div className="mt-1 text-xs text-ink-2">{block.resumeNote}</div>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setBlockToDelete(block)}
-                className="tap-target shrink-0 rounded-lg px-3 text-sm font-semibold text-bad-ink active:bg-bad/15"
-                aria-label="Xoá block"
-              >
-                Xoá
-              </button>
-            </Card>
-          ))}
+      {/* Nhắc sao lưu — luật số 7. Chỉ hiện khi đã QUÁ 7 ngày chưa xuất
+          (hoặc chưa xuất bao giờ mà đã có dữ liệu). */}
+      {remindBackup && (
+        <div className="mb-4 rounded-lg border border-warn/30 bg-warn/12 px-4 py-2.5 text-sm text-warn">
+          {sinceExport === null
+            ? "Chưa sao lưu lần nào. Vào Cài đặt để xuất file JSON."
+            : `Đã ${sinceExport} ngày chưa sao lưu. Vào Cài đặt để xuất file JSON.`}
         </div>
       )}
 

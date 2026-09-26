@@ -146,11 +146,14 @@ export function RatingRow({
   onChange,
   lowLabel,
   highLabel,
+  labels,
 }: {
   value: number | null;
   onChange: (v: 1 | 2 | 3 | 4 | 5) => void;
   lowLabel?: string;
   highLabel?: string;
+  /** Nhãn riêng dưới TỪNG nút (5 phần tử). Có cái này thì bỏ low/high. */
+  labels?: readonly string[];
 }) {
   return (
     <div>
@@ -161,17 +164,27 @@ export function RatingRow({
             type="button"
             onClick={() => onChange(n)}
             className={
-              "tap-target flex-1 rounded-lg border font-num text-lg font-semibold " +
+              "tap-target min-w-0 flex-1 rounded-lg border py-1.5 font-num text-lg font-semibold " +
               (value === n
                 ? "border-accent bg-accent text-on-accent"
                 : "border-line bg-surface-2 text-ink-2 active:border-accent")
             }
           >
-            {n}
+            <span className="block">{n}</span>
+            {labels && (
+              <span
+                className={
+                  "block truncate px-0.5 font-sans text-xs font-normal " +
+                  (value === n ? "text-on-accent" : "text-ink-3")
+                }
+              >
+                {labels[n - 1]}
+              </span>
+            )}
           </button>
         ))}
       </div>
-      {(lowLabel || highLabel) && (
+      {!labels && (lowLabel || highLabel) && (
         <div className="mt-1 flex justify-between text-xs text-ink-3">
           <span>{lowLabel}</span>
           <span>{highLabel}</span>

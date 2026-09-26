@@ -57,14 +57,19 @@ export default function CheckinForm({ date, previous, existing, onSave, onCancel
       </div>
 
       {/* Kết quả tính tự động — để bạn phát hiện ngay nếu bấm nhầm giờ. */}
-      <div className="mb-4 rounded-lg bg-accent/10 px-4 py-3 text-center">
-        <span className="text-sm text-ink-2">Ngủ được </span>
-        <span className="text-xl font-bold text-accent">{sleepHours}</span>
-        <span className="text-sm text-ink-2"> giờ</span>
+      <div className="mb-4 flex items-baseline justify-between rounded-lg border border-line bg-canvas px-4 py-3">
+        <span className="text-sm text-ink-2">Ngủ được</span>
+        <span>
+          <span className="font-num text-3xl font-semibold text-accent">{sleepHours}h</span>
+        </span>
       </div>
 
       <Field label="Năng lượng sáng nay" hint="bắt buộc">
-        <RatingRow value={energy} onChange={setEnergy} lowLabel="1 · kiệt sức" highLabel="5 · sung sức" />
+        <RatingRow
+          value={energy}
+          onChange={setEnergy}
+          labels={["Kiệt sức", "Mệt", "Bình thường", "Sung sức", "Đỉnh cao"]}
+        />
       </Field>
 
       <Field label="Ghi chú" hint="không bắt buộc">
