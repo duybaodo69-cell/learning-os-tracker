@@ -32,3 +32,6 @@ preview.log
 # Dexie Cloud CLI — môi trường + KHOÁ BÍ MẬT, không bao giờ commit
 dexie-cloud.json
 dexie-cloud.key
+
+# Thư mục tạm của `wrangler dev` (bản build worker, cache cục bộ) — không commit
+.wrangler/
