@@ -10,7 +10,7 @@
 import { useState } from "react";
 import type { Area, FocusBlock, Rating } from "../db/types";
 import { AREAS } from "../db/types";
-import { newId, nowHHmm } from "../lib/dates";
+import { newId, nowHHmm, subtractMinutesFromHHmm } from "../lib/dates";
 import { getLastArea, setLastArea } from "../lib/prefs";
 import { Button, ChipGroup, Counter, Field, RatingRow, TextInput, TimeInput, Toggle } from "./ui";
 
@@ -42,7 +42,20 @@ export default function FocusBlockForm({
 }: FocusBlockFormProps) {
   const [area, setArea] = useState<Area>(existing?.area ?? getLastArea());
   const [minutes, setMinutes] = useState<number>(existing?.minutes ?? initialMinutes ?? 45);
-  const [startTime, setStartTime] = useState(existing?.startTime ?? initialStartTime ?? nowHHmm());
+  /**
+   * Giờ bắt đầu mặc định = BÂY GIỜ TRỪ số phút đã chọn.
+   * Bạn bấm "+ Block" sau khi làm xong, nên 45 phút bấm lúc 15:00
+   * nghĩa là bắt đầu 14:15.
+   *
+   * Bộ đếm giờ thì truyền initialStartTime vào — đó là mốc thật, dùng luôn.
+   */
+  const [startTime, setStartTime] = useState(
+    existing?.startTime ??
+      initialStartTime ??
+      subtractMinutesFromHHmm(nowHHmm(), existing?.minutes ?? initialMinutes ?? 45)
+  );
+  // Người dùng tự sửa giờ thì thôi không tự tính lại nữa.
+  const [startTimeTouched, setStartTimeTouched] = useState(false);
   const [focusRating, setFocusRating] = useState<Rating | null>(existing?.focusRating ?? null);
   const [distractions, setDistractions] = useState(
     existing?.distractions ?? initialDistractions ?? 0
@@ -53,6 +66,14 @@ export default function FocusBlockForm({
   // Số phút có khớp một chip nhanh không? Nếu không thì hiện ô nhập tay.
   const isQuickMinutes = (QUICK_MINUTES as readonly number[]).includes(minutes);
   const [customOpen, setCustomOpen] = useState(!isQuickMinutes);
+
+  /** Đổi số phút: tính lại giờ bắt đầu, trừ khi bạn đã tự sửa giờ. */
+  function changeMinutes(m: number) {
+    setMinutes(m);
+    if (!startTimeTouched && !existing && !initialStartTime) {
+      setStartTime(subtractMinutesFromHHmm(nowHHmm(), m));
+    }
+  }
 
   function handleSave() {
     if (focusRating === null) return;
@@ -84,7 +105,7 @@ export default function FocusBlockForm({
           options={QUICK_MINUTES}
           value={isQuickMinutes && !customOpen ? minutes : null}
           onChange={(m) => {
-            setMinutes(m);
+            changeMinutes(m);
             setCustomOpen(false);
           }}
           format={(m) => `${m}p`}
@@ -97,7 +118,7 @@ export default function FocusBlockForm({
               min={1}
               max={600}
               value={minutes}
-              onChange={(e) => setMinutes(Math.max(1, Number(e.target.value) || 0))}
+              onChange={(e) => changeMinutes(Math.max(1, Number(e.target.value) || 0))}
               className="tap-target w-full rounded-xl border border-slate-200 px-3 text-base font-semibold"
               placeholder="Số phút"
             />
@@ -109,8 +130,14 @@ export default function FocusBlockForm({
         </div>
       </Field>
 
-      <Field label="Bắt đầu lúc">
-        <TimeInput value={startTime} onChange={setStartTime} />
+      <Field label="Bắt đầu lúc" hint="tự tính lùi theo số phút">
+        <TimeInput
+          value={startTime}
+          onChange={(v) => {
+            setStartTime(v);
+            setStartTimeTouched(true);
+          }}
+        />
       </Field>
 
       <Field label="Độ tập trung" hint="bắt buộc">

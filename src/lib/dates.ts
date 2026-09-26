@@ -31,6 +31,26 @@ export function nowHHmm(): string {
   return format(nowInVN(), "HH:mm");
 }
 
+/**
+ * Lùi lại một số phút từ một mốc "HH:mm". Ví dụ ("15:00", 45) → "14:15".
+ *
+ * Dùng cho giờ bắt đầu mặc định của khối deep work: bạn bấm "+ Block"
+ * SAU KHI làm xong, nên giờ bắt đầu là bây giờ TRỪ ĐI số phút đã làm,
+ * chứ không phải chính lúc bấm.
+ *
+ * Lùi qua nửa đêm thì vòng lại trong ngày ("00:10" lùi 30 phút → "23:40").
+ * Chỉ dùng cho phần GIỜ hiển thị — ngày vẫn lấy riêng.
+ */
+export function subtractMinutesFromHHmm(hhmm: string, minutes: number): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const total = h * 60 + m - minutes;
+  // ((x % 1440) + 1440) % 1440 để số âm cũng vòng về đúng khoảng 0..1439.
+  const wrapped = ((total % 1440) + 1440) % 1440;
+  const hh = Math.floor(wrapped / 60);
+  const mm = wrapped % 60;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
 /** Đổi "HH:mm" thành tổng số phút kể từ 00:00. Ví dụ "06:30" → 390. */
 function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
