@@ -26,8 +26,12 @@ export const EASY_BONUS = 1.3;
  */
 export const FIRST_INTERVALS = [1, 3];
 
-/** Tối đa 30 thẻ mỗi ngày, để buổi ôn không bao giờ dài vô tận. */
-export const DAILY_LIMIT = 30;
+/**
+ * Tối đa 30 thẻ MỖI PHIÊN, để một buổi ôn không bao giờ dài vô tận.
+ * Đây không phải giới hạn ngày: ôn xong phiên vẫn mở được phiên mới nếu còn
+ * thẻ đến hạn (audit 27/09/2026 — nhãn cũ ghi "30 thẻ/ngày" là sai).
+ */
+export const SESSION_LIMIT = 30;
 
 /* ==================== Kiểu dữ liệu ==================== */
 
@@ -162,9 +166,21 @@ export function addDays(iso: string, days: number): string {
 
 /* ==================== Hàng đợi ôn tập ==================== */
 
-/** Thẻ đã đến hạn chưa? Đến hạn khi dueDate <= hôm nay (kể cả quá hạn). */
+/**
+ * Thẻ nháp = chưa có mặt sau (thường tạo từ chỗ hổng brain dump).
+ * Chưa có đáp án thì không tự chấm được, nên thẻ nháp KHÔNG vào hàng ôn,
+ * không tính vào số đến hạn và lịch "Sắp tới". Điền mặt sau là vào hàng.
+ */
+export function isDraft(card: Card): boolean {
+  return card.back.trim() === "";
+}
+
+/**
+ * Thẻ đã đến hạn chưa? Đến hạn khi dueDate <= hôm nay (kể cả quá hạn)
+ * và thẻ không phải thẻ nháp.
+ */
 export function isDue(card: Card, today: string): boolean {
-  return card.dueDate <= today;
+  return !isDraft(card) && card.dueDate <= today;
 }
 
 /**
@@ -172,18 +188,21 @@ export function isDue(card: Card, today: string): boolean {
  *
  * Thứ tự: thẻ quá hạn lâu nhất lên trước (dueDate nhỏ nhất),
  * để không có thẻ nào bị bỏ quên mãi.
- * Cắt ở DAILY_LIMIT thẻ.
+ * Cắt ở SESSION_LIMIT thẻ cho một phiên.
  */
-export function buildQueue(cards: Card[], today: string, limit: number = DAILY_LIMIT): Card[] {
+export function buildQueue(cards: Card[], today: string, limit: number = SESSION_LIMIT): Card[] {
   return cards
     .filter((c) => isDue(c, today))
     .sort((a, b) => (a.dueDate === b.dueDate ? a.createdAt.localeCompare(b.createdAt) : a.dueDate.localeCompare(b.dueDate)))
     .slice(0, limit);
 }
 
-/** Số thẻ sẽ ôn hôm nay — dùng cho con số nhỏ trên tab "Ôn tập". */
-export function dueCount(cards: Card[], today: string, limit: number = DAILY_LIMIT): number {
-  return Math.min(cards.filter((c) => isDue(c, today)).length, limit);
+/**
+ * TỔNG số thẻ đến hạn (không cắt ở giới hạn phiên) — dùng cho con số nhỏ
+ * trên tab "Ôn tập", để thấy đúng lượng tồn đọng thật.
+ */
+export function dueCount(cards: Card[], today: string): number {
+  return cards.filter((c) => isDue(c, today)).length;
 }
 
 /**
@@ -194,7 +213,7 @@ export function upcomingDue(cards: Card[], today: string, days = 7): { date: str
   const last = addDays(today, days);
   const counts = new Map<string, number>();
   for (const c of cards) {
-    if (c.dueDate > today && c.dueDate <= last) counts.set(c.dueDate, (counts.get(c.dueDate) ?? 0) + 1);
+    if (!isDraft(c) && c.dueDate > today && c.dueDate <= last) counts.set(c.dueDate, (counts.get(c.dueDate) ?? 0) + 1);
   }
   return [...counts.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))

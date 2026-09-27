@@ -10,14 +10,34 @@
 import { describe, expect, it } from "vitest";
 import { BACKUP_FORMAT_VERSION, TABLE_NAMES, backupFileName, normaliseBackupData, parseBackup } from "./backup";
 
+/* Một bản ghi hợp lệ cho mỗi bảng — giống hệt thứ app tự xuất ra. */
+const CHECKIN = { id: "#2026-09-25", date: "2026-09-25", bedTime: "23:30", wakeTime: "06:30", sleepHours: 7, energy: 3 };
+const BLOCK = {
+  id: "1", date: "2026-09-25", startTime: "08:00", minutes: 50, area: "IELTS",
+  focusRating: 4, distractions: 1, phoneAway: true,
+};
+const CARD = {
+  id: "c1", front: "Q", back: "A", area: "EFM", createdAt: "2026-09-20", dueDate: "2026-09-25",
+  intervalDays: 1, ease: 2.5, reps: 1, lapses: 0,
+};
+const PREDICTION = {
+  id: "p1", statement: "S", probability: 70, category: "Study", createdAt: "2026-09-20",
+  resolveBy: "2026-10-01", outcome: null,
+};
+const REVIEW = { id: "#2026-09-21", weekStart: "2026-09-21", learnedWithoutNotes: "a", dataInsight: "b", oneChange: "c" };
+
+function fileWith(data: Record<string, unknown>) {
+  return JSON.stringify({ app: "learning-os-tracker", formatVersion: 1, exportedAt: "2026-09-25T10:00:00.000Z", data });
+}
+
 function validFile(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
     app: "learning-os-tracker",
     formatVersion: BACKUP_FORMAT_VERSION,
     exportedAt: "2026-09-25T10:00:00.000Z",
     data: {
-      checkins: [{ date: "2026-09-25" }],
-      focusBlocks: [{ id: "1" }, { id: "2" }],
+      checkins: [CHECKIN],
+      focusBlocks: [BLOCK, { ...BLOCK, id: "2" }],
       brainDumps: [],
       cards: [],
       reviewLogs: [],
@@ -50,7 +70,7 @@ describe("parseBackup — file hợp lệ", () => {
       app: "learning-os-tracker",
       formatVersion: 1,
       exportedAt: "2026-09-25T10:00:00.000Z",
-      data: { checkins: [{ date: "2026-09-25" }] }, // chỉ có 1 bảng
+      data: { checkins: [{ ...CHECKIN, id: undefined }] }, // chỉ có 1 bảng, check-in chưa có id
     });
     const { counts } = parseBackup(old);
     expect(counts.checkins).toBe(1);
@@ -96,6 +116,67 @@ describe("parseBackup — từ chối file không dùng được", () => {
 
   it("file rỗng", () => {
     expect(() => parseBackup("")).toThrow();
+  });
+
+  it("thiếu exportedAt (file bị cắt dở)", () => {
+    expect(() => parseBackup(validFile({ exportedAt: undefined }))).toThrow("exportedAt");
+  });
+});
+
+describe("parseBackup — kiểm tra TỪNG bản ghi (audit F01)", () => {
+  it("thẻ thiếu trường bị từ chối, lỗi nêu tên bảng, dòng và trường", () => {
+    expect(() => parseBackup(fileWith({ cards: [CARD, { id: "broken" }] }))).toThrow(
+      /Thẻ ôn tập, dòng 2: trường "front"/
+    );
+  });
+
+  it("từng loại lỗi thường gặp đều bị bắt", () => {
+    const bad: [string, unknown][] = [
+      ["checkins", { ...CHECKIN, date: "2026-02-30" }], // ngày không có thật
+      ["checkins", { ...CHECKIN, energy: 7 }],
+      ["focusBlocks", { ...BLOCK, area: "Không có" }],
+      ["focusBlocks", { ...BLOCK, minutes: "50" }], // sai kiểu
+      ["cards", { ...CARD, back: undefined }],
+      ["predictions", { ...PREDICTION, outcome: "yes" }],
+      ["predictions", { ...PREDICTION, category: "Khác" }],
+      ["reviewLogs", { id: "l", cardId: "c1", date: "2026-09-25", grade: "perfect", intervalBefore: 0 }],
+      ["weeklyReviews", { ...REVIEW, oneChange: 5 }],
+      ["experimentTags", { key: "k", date: "2026-09-25", experimentId: "e", condition: "C" }],
+      ["cards", null],
+      ["cards", [1, 2]],
+    ];
+    for (const [table, row] of bad) {
+      expect(() => parseBackup(fileWith({ [table]: [row] })), `${table} ${JSON.stringify(row)}`).toThrow("hỏng");
+    }
+  });
+
+  it("hai dòng trùng khoá bị từ chối", () => {
+    expect(() => parseBackup(fileWith({ cards: [CARD, CARD] }))).toThrow("trùng khoá");
+    expect(() => parseBackup(fileWith({ checkins: [CHECKIN, { ...CHECKIN, id: "#x" }] }))).toThrow("trùng khoá");
+  });
+
+  it("nhiều lỗi: chỉ liệt kê 3, còn lại đếm", () => {
+    const rows = Array.from({ length: 5 }, (_, i) => ({ id: `b${i}` }));
+    expect(() => parseBackup(fileWith({ cards: rows }))).toThrow("và 2 lỗi khác");
+  });
+
+  it("trường tuỳ chọn được phép vắng hoặc có mặt", () => {
+    const ok = fileWith({
+      focusBlocks: [{ ...BLOCK, resumeNote: "tiếp", capturedNotes: ["a", "b"] }],
+      cards: [{ ...CARD, brainDumpId: "d1" }],
+      predictions: [{ ...PREDICTION, outcome: true, resolvedAt: "2026-09-26", note: "n", preMortem: "p" }],
+      weeklyReviews: [{ ...REVIEW, lastChangeResult: "partly" }],
+    });
+    expect(parseBackup(ok).counts.focusBlocks).toBe(1);
+  });
+
+  it("vẫn nhận giá trị mà form bản cũ có thể đã lưu (để file cũ luôn khôi phục được)", () => {
+    const old = fileWith({
+      checkins: [{ ...CHECKIN, bedTime: "", sleepHours: null }], // NaN thành null trong JSON
+      focusBlocks: [{ ...BLOCK, minutes: 10000 }],
+      predictions: [{ ...PREDICTION, resolveBy: "" }],
+    });
+    expect(parseBackup(old).counts.checkins).toBe(1);
   });
 });
 

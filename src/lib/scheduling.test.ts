@@ -9,11 +9,12 @@
 import { describe, expect, it } from "vitest";
 import type { Card } from "../db/types";
 import {
-  DAILY_LIMIT,
+  SESSION_LIMIT,
   START_EASE,
   addDays,
   buildQueue,
   dueCount,
+  isDraft,
   isDue,
   newCardState,
   scheduleNext,
@@ -218,6 +219,15 @@ describe("isDue", () => {
     expect(isDue(makeCard("b", "2026-09-25"), "2026-09-25")).toBe(true); // đúng hôm nay
     expect(isDue(makeCard("c", "2026-09-26"), "2026-09-25")).toBe(false); // mai
   });
+
+  it("thẻ nháp (chưa có mặt sau) không bao giờ đến hạn — audit F04", () => {
+    const draft = { ...makeCard("d", "2026-09-20"), back: "" };
+    expect(isDraft(draft)).toBe(true);
+    expect(isDraft({ ...draft, back: "   \n " })).toBe(true); // chỉ có khoảng trắng
+    expect(isDue(draft, "2026-09-25")).toBe(false);
+    // Điền mặt sau là vào hàng ngay (dueDate đã qua).
+    expect(isDue({ ...draft, back: "Đáp án" }, "2026-09-25")).toBe(true);
+  });
 });
 
 describe("buildQueue", () => {
@@ -237,10 +247,21 @@ describe("buildQueue", () => {
     expect(buildQueue(cards, today).map((c) => c.id)).toEqual(["cu-nhat", "giua", "moi"]);
   });
 
-  it("cắt ở 30 thẻ mỗi ngày", () => {
-    const cards = Array.from({ length: 50 }, (_, i) => makeCard(`c${i}`, "2026-09-20"));
-    expect(buildQueue(cards, today)).toHaveLength(DAILY_LIMIT);
-    expect(DAILY_LIMIT).toBe(30);
+  it("cắt ở 30 thẻ mỗi PHIÊN; phiên sau lấy tiếp phần còn lại", () => {
+    const cards = Array.from({ length: 31 }, (_, i) => makeCard(`c${i}`, "2026-09-20"));
+    const first = buildQueue(cards, today);
+    expect(first).toHaveLength(SESSION_LIMIT);
+    expect(SESSION_LIMIT).toBe(30);
+    // Ôn xong 30 thẻ đó (dời sang mai) -> phiên mới còn đúng 1 thẻ. Đây là
+    // hành vi cố ý, và nhãn trên màn hình nói "mỗi phiên", không nói "mỗi ngày".
+    const done = new Set(first.map((c) => c.id));
+    const after = cards.map((c) => (done.has(c.id) ? { ...c, dueDate: "2026-09-26" } : c));
+    expect(buildQueue(after, today)).toHaveLength(1);
+  });
+
+  it("bỏ qua thẻ nháp", () => {
+    const cards = [makeCard("ok", "2026-09-20"), { ...makeCard("nhap", "2026-09-20"), back: "" }];
+    expect(buildQueue(cards, today).map((c) => c.id)).toEqual(["ok"]);
   });
 
   it("không có thẻ nào đến hạn thì trả về danh sách rỗng", () => {
@@ -249,12 +270,13 @@ describe("buildQueue", () => {
 });
 
 describe("dueCount", () => {
-  it("đếm số thẻ đến hạn nhưng không vượt quá mức trần", () => {
+  it("đếm TỔNG số thẻ đến hạn, không cắt ở giới hạn phiên, không tính thẻ nháp", () => {
     const today = "2026-09-25";
     expect(dueCount([makeCard("a", "2026-09-25"), makeCard("b", "2026-10-01")], today)).toBe(1);
 
     const many = Array.from({ length: 99 }, (_, i) => makeCard(`c${i}`, "2026-09-01"));
-    expect(dueCount(many, today)).toBe(DAILY_LIMIT);
+    expect(dueCount(many, today)).toBe(99);
+    expect(dueCount([{ ...makeCard("n", "2026-09-01"), back: "" }], today)).toBe(0);
   });
 });
 
@@ -339,6 +361,10 @@ describe("upcomingDue — lịch 'Sắp tới'", () => {
       { date: "2026-09-28", count: 1 },
       { date: "2026-10-02", count: 1 },
     ]);
+  });
+
+  it("không tính thẻ nháp", () => {
+    expect(upcomingDue([{ ...makeCard("n", "2026-09-26"), back: "" }], "2026-09-25")).toEqual([]);
   });
 
   it("không có thẻ nào sắp tới thì trả về mảng rỗng", () => {

@@ -44,7 +44,7 @@ export default function ReviewScreen({
       />
 
       {view === "queue" && <ReviewQueue onOpenCards={() => onViewChange("cards")} />}
-      {view === "braindump" && <BrainDumpView />}
+      {view === "braindump" && <BrainDumpView onOpenCards={() => onViewChange("cards")} />}
       {view === "cards" && <CardsView />}
     </ScreenShell>
   );

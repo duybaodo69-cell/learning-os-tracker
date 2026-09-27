@@ -12,7 +12,9 @@ import type { Area, FocusBlock, Rating } from "../db/types";
 import { AREAS } from "../db/types";
 import { newId, nowHHmm, subtractMinutesFromHHmm } from "../lib/dates";
 import { getLastArea, setLastArea } from "../lib/prefs";
-import { Button, ChipGroup, Counter, Field, RatingRow, TextInput, TimeInput, Toggle } from "./ui";
+import { useSubmit } from "../lib/useSubmit";
+import { MAX_BLOCK_MINUTES, checkBlockMinutes, checkTime } from "../lib/validation";
+import { Button, ChipGroup, Counter, Field, FieldError, RatingRow, TextInput, TimeInput, Toggle } from "./ui";
 
 /** Các mốc phút hay dùng (Pomodoro 25, tiết 45, 1 tiếng, 1 tiếng rưỡi). */
 const QUICK_MINUTES = [25, 45, 60, 90] as const;
@@ -29,7 +31,8 @@ type FocusBlockFormProps = {
   initialDistractions?: number;
   /** Việc chen ngang ghi trong lúc chạy bộ đếm. */
   initialCapturedNotes?: string[];
-  onSave: (block: FocusBlock) => void;
+  /** Có thể trả Promise: form chờ lưu xong, lỗi thì giữ form và báo. */
+  onSave: (block: FocusBlock) => void | Promise<void>;
   onCancel: () => void;
 };
 
@@ -78,13 +81,19 @@ export default function FocusBlockForm({
     }
   }
 
+  // Kiểm tra thật lúc lưu — `min`/`max` của ô nhập không chặn được nút Lưu.
+  const minutesError = checkBlockMinutes(minutes);
+  const timeError = checkTime(startTime, "Giờ bắt đầu");
+  const canSave = focusRating !== null && minutesError === null && timeError === null;
+  const submit = useSubmit();
+
   function handleSave() {
-    if (focusRating === null) return;
+    if (!canSave || focusRating === null) return;
 
     // Nhớ area cho lần sau — một mẹo nhỏ tiết kiệm vài giây mỗi lần log.
     setLastArea(area);
 
-    onSave({
+    void submit.run(() => onSave({
       id: existing?.id ?? newId(),
       date,
       startTime,
@@ -100,7 +109,7 @@ export default function FocusBlockForm({
         const notes = existing?.capturedNotes ?? initialCapturedNotes ?? [];
         return notes.length > 0 ? notes : undefined;
       })(),
-    });
+    }));
   }
 
   return (
@@ -125,10 +134,11 @@ export default function FocusBlockForm({
               type="number"
               inputMode="numeric"
               min={1}
-              max={600}
-              value={minutes}
-              onChange={(e) => changeMinutes(Math.max(1, Number(e.target.value) || 0))}
-              className="tap-target w-full rounded-lg border border-line px-3 text-base font-semibold"
+              max={MAX_BLOCK_MINUTES}
+              value={Number.isFinite(minutes) && minutes > 0 ? minutes : ""}
+              onChange={(e) => changeMinutes(Number(e.target.value))}
+              aria-invalid={minutesError !== null}
+              className="tap-target w-full rounded-xl border border-line bg-surface-2 px-3 text-base font-semibold text-ink"
               placeholder="Số phút"
             />
           ) : (
@@ -137,6 +147,7 @@ export default function FocusBlockForm({
             </Button>
           )}
         </div>
+        <FieldError message={minutesError} />
       </Field>
 
       <Field
@@ -150,6 +161,7 @@ export default function FocusBlockForm({
             setStartTimeTouched(true);
           }}
         />
+        <FieldError message={timeError} />
       </Field>
 
       <Field label="Độ tập trung" hint="bắt buộc">
@@ -202,10 +214,12 @@ export default function FocusBlockForm({
         <Button variant="secondary" onClick={onCancel} className="flex-1">
           Huỷ
         </Button>
-        <Button onClick={handleSave} disabled={focusRating === null} className="flex-1">
-          {existing ? "Cập nhật" : "Lưu block"}
+        <Button onClick={handleSave} disabled={!canSave || submit.busy} className="flex-1">
+          {submit.busy ? "Đang lưu..." : existing ? "Cập nhật" : "Lưu block"}
         </Button>
       </div>
+
+      <FieldError message={submit.error} />
 
       {focusRating === null && (
         <p className="mt-2 text-center text-xs text-ink-3">Chọn độ tập trung để lưu</p>

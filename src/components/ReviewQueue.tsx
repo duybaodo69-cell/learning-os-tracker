@@ -7,14 +7,23 @@
  * Việc CỐ NHỚ TRƯỚC KHI XEM mới là phần có tác dụng. Vì thế mặt sau
  * bị che hoàn toàn cho tới khi bạn bấm nút.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { db } from "../db/db";
 import type { Card, Grade } from "../db/types";
 import { newId } from "../lib/dates";
 import { useToday } from "../lib/useToday";
-import { DAILY_LIMIT, addDays, buildQueue, scheduleNext, upcomingDue } from "../lib/scheduling";
+import {
+  SESSION_LIMIT,
+  addDays,
+  buildQueue,
+  dueCount,
+  isDraft,
+  isDue,
+  scheduleNext,
+  upcomingDue,
+} from "../lib/scheduling";
 import { formatDayLabel } from "../lib/dates";
 
 import { Button, Card as CardBox, EmptyState, ListGroup, ListRow, SectionLabel, SwitchKnob, Tag } from "./ui";
@@ -46,6 +55,14 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
   const [position, setPosition] = useState(0);
   const [answerShown, setAnswerShown] = useState(false);
 
+  /* ----- Chống chấm hai lần -----
+     Chạm đúp trên điện thoại từng ghi hai lượt ôn cho cùng một thẻ và bỏ qua
+     thẻ kế tiếp (audit F03). `grading` là ref nên khoá có hiệu lực NGAY trong
+     cùng lượt bấm; `saving` chỉ để làm mờ nút. */
+  const grading = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [gradeError, setGradeError] = useState<string | null>(null);
+
   /* ----- Chế độ 10 phút ----- */
   const [tenMinuteMode, setTenMinuteMode] = useState(false);
   const [sessionStart, setSessionStart] = useState<number | null>(null);
@@ -64,11 +81,13 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
   }, [sessionStart]);
 
   // Danh sách thẻ đến hạn, tính lại khi dữ liệu đổi (dùng cho màn hình chờ).
+  // `dueCards` = phiên kế tiếp (tối đa SESSION_LIMIT), `totalDue` = tồn đọng thật.
   const dueCards = useMemo(() => buildQueue(allCards, today), [allCards, today]);
+  const totalDue = dueCount(allCards, today);
   // Thẻ mới (chưa ôn lần nào) và lịch mấy ngày tới — chỉ để hiển thị.
-  const newDue = dueCards.filter((c) => c.reps === 0).length;
+  const newDue = allCards.filter((c) => isDue(c, today) && c.reps === 0).length;
   const upcoming = useMemo(() => upcomingDue(allCards, today).slice(0, 3), [allCards, today]);
-  const missingBack = allCards.filter((c) => c.back.trim() === "").length;
+  const missingBack = allCards.filter(isDraft).length;
 
   // Đồng hồ đếm ngược của chế độ 10 phút.
   // Giống bộ đếm ở màn hình Hôm nay: mốc bắt đầu là nguồn sự thật duy nhất,
@@ -107,38 +126,56 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
   }
 
   /** Chấm điểm thẻ đang hiện, lưu lịch mới và ghi nhật ký. */
-  async function grade(card: Card, g: Grade) {
-    const next = scheduleNext(
-      {
-        intervalDays: card.intervalDays,
-        ease: card.ease,
-        reps: card.reps,
-        lapses: card.lapses,
-      },
-      g
-    );
+  async function grade(cardId: string, g: Grade) {
+    if (grading.current) return; // lượt chấm trước chưa lưu xong
+    grading.current = true;
+    setSaving(true);
+    setGradeError(null);
 
-    // Hai việc này luôn đi cùng nhau, nên gói trong một transaction:
-    // hoặc cả hai thành công, hoặc không có gì thay đổi.
-    await db.transaction("rw", db.cards, db.reviewLogs, async () => {
-      await db.cards.update(card.id, {
-        intervalDays: next.intervalDays,
-        ease: next.ease,
-        reps: next.reps,
-        lapses: next.lapses,
-        dueDate: addDays(today, next.intervalDays),
-      });
-      await db.reviewLogs.add({
-        id: newId(),
-        cardId: card.id,
-        date: today,
-        grade: g,
-        intervalBefore: card.intervalDays, // khoảng cách TRƯỚC lần ôn này
-      });
-    });
+    try {
+      // Hai việc này luôn đi cùng nhau, nên gói trong một transaction:
+      // hoặc cả hai thành công, hoặc không có gì thay đổi.
+      await db.transaction("rw", db.cards, db.reviewLogs, async () => {
+        // Đọc lại thẻ NGAY TRONG transaction, không tin bản đang vẽ trên màn hình.
+        const card = await db.cards.get(cardId);
+        // Thẻ đã bị xoá, thành thẻ nháp, hoặc đã được chấm (ở tab/máy khác)
+        // -> không ghi gì, chỉ chuyển sang thẻ tiếp theo.
+        if (!card || !isDue(card, today)) return;
 
-    setAnswerShown(false);
-    setPosition((p) => p + 1);
+        const next = scheduleNext(
+          {
+            intervalDays: card.intervalDays,
+            ease: card.ease,
+            reps: card.reps,
+            lapses: card.lapses,
+          },
+          g
+        );
+        await db.cards.update(card.id, {
+          intervalDays: next.intervalDays,
+          ease: next.ease,
+          reps: next.reps,
+          lapses: next.lapses,
+          dueDate: addDays(today, next.intervalDays),
+        });
+        await db.reviewLogs.add({
+          id: newId(),
+          cardId: card.id,
+          date: today,
+          grade: g,
+          intervalBefore: card.intervalDays, // khoảng cách TRƯỚC lần ôn này
+        });
+      });
+
+      // Chỉ sang thẻ kế tiếp khi đã lưu THÀNH CÔNG.
+      setAnswerShown(false);
+      setPosition((p) => p + 1);
+    } catch {
+      setGradeError("Chưa lưu được lượt chấm. Bấm lại để thử.");
+    } finally {
+      grading.current = false;
+      setSaving(false);
+    }
   }
 
   /* ==================== Màn hình chờ ==================== */
@@ -149,22 +186,23 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
         <CardBox className="mb-3">
           <p className="text-sm text-ink-2">Hôm nay</p>
           <p className="mt-1 flex items-baseline gap-2">
-            <span className="font-num text-5xl font-semibold text-accent">{dueCards.length}</span>
+            <span className="font-num text-5xl font-semibold text-accent">{totalDue}</span>
             <span className="text-base font-medium text-ink">thẻ đến hạn</span>
           </p>
-          {dueCards.length > 0 && (
+          {totalDue > 0 && (
             <p className="mt-1 text-sm text-ink-2">
               <span className="font-num">{newDue}</span> thẻ mới ·{" "}
-              <span className="font-num">{dueCards.length - newDue}</span> ôn lại
-              {allCards.length > dueCards.length && (
+              <span className="font-num">{totalDue - newDue}</span> ôn lại
+              {allCards.length > totalDue && (
                 <span className="text-ink-3"> · tổng {allCards.length} thẻ</span>
               )}
             </p>
           )}
 
-          {dueCards.length >= DAILY_LIMIT && (
+          {totalDue > SESSION_LIMIT && (
             <p className="mt-2 text-xs text-ink-3">
-              Giới hạn {DAILY_LIMIT} thẻ/ngày. Thẻ quá hạn lâu nhất được ưu tiên.
+              Mỗi phiên tối đa {SESSION_LIMIT} thẻ, quá hạn lâu nhất trước. Xong phiên này vẫn ôn tiếp được{" "}
+              <span className="font-num">{totalDue - SESSION_LIMIT}</span> thẻ còn lại.
             </p>
           )}
 
@@ -188,7 +226,7 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
             disabled={dueCards.length === 0}
             className="mt-3 w-full py-3 text-base"
           >
-            Bắt đầu ôn
+            {totalDue > SESSION_LIMIT ? `Bắt đầu ôn ${SESSION_LIMIT} thẻ` : "Bắt đầu ôn"}
           </Button>
         </CardBox>
 
@@ -201,7 +239,7 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
                   <span className="font-num">{missingBack}</span> thẻ chưa có mặt sau
                 </>
               }
-              description="Viết nốt đáp án để ôn được"
+              description="Thẻ nháp chưa vào hàng ôn — viết đáp án để bắt đầu"
               onClick={onOpenCards}
             />
           </ListGroup>
@@ -308,16 +346,24 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
         <>
           <CardBox className="mb-3 bg-surface-2">
             <SectionLabel>Mặt sau</SectionLabel>
-            {card.back.trim() === "" ? (
+            {isDraft(card) ? (
               <p className="text-sm text-warn">
-                Thẻ này chưa có mặt sau. Sang mục "Kho thẻ" để điền đáp án.
+                Thẻ này vừa bị xoá mặt sau nên không chấm được. Bỏ qua, rồi điền đáp án ở "Kho thẻ".
               </p>
             ) : (
               <div className="leading-relaxed whitespace-pre-wrap text-ink">{card.back}</div>
             )}
           </CardBox>
 
+          {isDraft(card) && (
+            <Button variant="secondary" onClick={() => setPosition((p) => p + 1)} className="w-full">
+              Bỏ qua thẻ này
+            </Button>
+          )}
+
           {/* 4 nút chấm điểm, kèm ngày ôn lại tiếp theo để bạn thấy hậu quả lựa chọn */}
+          {!isDraft(card) && (
+          <>
           <p className="mb-2 text-center text-xs text-ink-3">Nhớ tới đâu? Ôn lại sau:</p>
           <div className="grid grid-cols-4 gap-2">
             {GRADE_BUTTONS.map(({ grade: g, label, className }) => {
@@ -334,8 +380,9 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
                 <button
                   key={g}
                   type="button"
-                  onClick={() => grade(card, g)}
-                  className={`tap-target flex flex-col items-center justify-center rounded-xl py-2 font-semibold ${className}`}
+                  onClick={() => grade(card.id, g)}
+                  disabled={saving}
+                  className={`tap-target flex flex-col items-center justify-center rounded-xl py-2 font-semibold disabled:opacity-40 ${className}`}
                 >
                   <span className="text-sm">{label}</span>
                   <span className="text-xs font-normal">
@@ -345,6 +392,13 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
               );
             })}
           </div>
+          {gradeError && (
+            <p role="alert" className="mt-2 rounded-xl bg-bad/10 px-3 py-2 text-center text-sm text-bad-ink">
+              {gradeError}
+            </p>
+          )}
+          </>
+          )}
         </>
       )}
 

@@ -10,7 +10,9 @@ import { useState } from "react";
 import type { DailyCheckin, Rating } from "../db/types";
 import { checkinId } from "../db/keys";
 import { computeSleepHours } from "../lib/dates";
-import { Button, Field, RatingRow, TextInput, TimeInput } from "./ui";
+import { useSubmit } from "../lib/useSubmit";
+import { checkTime } from "../lib/validation";
+import { Button, Field, FieldError, RatingRow, TextInput, TimeInput } from "./ui";
 
 type CheckinFormProps = {
   date: string;
@@ -18,7 +20,8 @@ type CheckinFormProps = {
   previous?: DailyCheckin;
   /** Nếu đang sửa check-in đã có thì truyền vào đây. */
   existing?: DailyCheckin;
-  onSave: (checkin: DailyCheckin) => void;
+  /** Có thể trả Promise: form chờ lưu xong, lỗi thì giữ form và báo. */
+  onSave: (checkin: DailyCheckin) => void | Promise<void>;
   onCancel?: () => void;
 };
 
@@ -29,12 +32,20 @@ export default function CheckinForm({ date, previous, existing, onSave, onCancel
   const [energy, setEnergy] = useState<Rating | null>(existing?.energy ?? null);
   const [note, setNote] = useState(existing?.note ?? "");
 
+  // Giờ bị xoá trắng thì không tính được số giờ ngủ (từng lưu ra NaN).
+  const bedError = checkTime(bedTime, "Giờ đi ngủ");
+  const wakeError = checkTime(wakeTime, "Giờ thức dậy");
+  const timesOk = bedError === null && wakeError === null;
+
   // Tính lại mỗi khi đổi giờ, để bạn thấy ngay kết quả.
-  const sleepHours = computeSleepHours(bedTime, wakeTime);
+  const sleepHours = timesOk ? computeSleepHours(bedTime, wakeTime) : null;
+  const canSave = energy !== null && sleepHours !== null;
+  const submit = useSubmit();
 
   function handleSave() {
-    if (energy === null) return; // nút Lưu đã bị khoá, đây chỉ là lớp bảo vệ thứ hai
-    onSave({
+    // Nút Lưu đã bị khoá, đây là lớp bảo vệ thứ hai.
+    if (energy === null || sleepHours === null) return;
+    void submit.run(() => onSave({
       id: checkinId(date),
       date,
       bedTime,
@@ -43,7 +54,7 @@ export default function CheckinForm({ date, previous, existing, onSave, onCancel
       energy,
       // Ghi chú rỗng thì không lưu, để dữ liệu sạch.
       note: note.trim() === "" ? undefined : note.trim(),
-    });
+    }));
   }
 
   return (
@@ -57,12 +68,15 @@ export default function CheckinForm({ date, previous, existing, onSave, onCancel
           <TimeInput value={wakeTime} onChange={setWakeTime} />
         </Field>
       </div>
+      <FieldError message={bedError ?? wakeError} />
 
       {/* Kết quả tính tự động — để bạn phát hiện ngay nếu bấm nhầm giờ. */}
       <div className="mb-4 flex items-baseline justify-between rounded-xl bg-surface-2 px-4 py-3">
         <span className="text-sm text-ink-2">Ngủ được</span>
         <span>
-          <span className="font-num text-3xl font-semibold text-accent">{sleepHours}h</span>
+          <span className="font-num text-3xl font-semibold text-accent">
+            {sleepHours === null ? "—" : `${sleepHours}h`}
+          </span>
         </span>
       </div>
 
@@ -84,10 +98,12 @@ export default function CheckinForm({ date, previous, existing, onSave, onCancel
             Huỷ
           </Button>
         )}
-        <Button onClick={handleSave} disabled={energy === null} className="flex-1">
-          {existing ? "Cập nhật" : "Lưu check-in"}
+        <Button onClick={handleSave} disabled={!canSave || submit.busy} className="flex-1">
+          {submit.busy ? "Đang lưu..." : existing ? "Cập nhật" : "Lưu check-in"}
         </Button>
       </div>
+
+      <FieldError message={submit.error} />
 
       {energy === null && (
         <p className="mt-2 text-center text-xs text-ink-3">Chọn mức năng lượng để lưu</p>

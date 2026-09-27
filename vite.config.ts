@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
@@ -90,5 +91,12 @@ export default defineConfig({
     // không chỉ từ máy tính này.
     host: true,
     port: 5173,
+  },
+
+  test: {
+    // audit/ chứa các phép thử của đợt audit 27/09/2026: chúng khẳng định LỖI
+    // cũ còn tồn tại, nên sau khi sửa sẽ báo đỏ. Test đúng nằm cạnh mã nguồn
+    // (src/**/*.test.ts[x]); audit/ chỉ để đối chiếu, không chạy trong npm test.
+    exclude: [...configDefaults.exclude, "audit/**"],
   },
 });

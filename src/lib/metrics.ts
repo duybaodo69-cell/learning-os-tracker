@@ -45,6 +45,15 @@ export function weekRange(iso: string): { from: string; to: string } {
 }
 
 /**
+ * Thứ Hai của `count` tuần gần nhất, tuần này trước, lùi dần.
+ * Dùng cho lịch sử tổng kết tuần (xem lại / viết bù).
+ */
+export function recentWeekStarts(today: string, count: number): string[] {
+  const thisMonday = mondayOf(today);
+  return Array.from({ length: count }, (_, i) => addDays(thisMonday, -7 * i));
+}
+
+/**
  * Khoảng tương ứng của TUẦN TRƯỚC, cùng số ngày với khoảng tuần này.
  *
  * Vì sao cần: hôm nay là Thứ Tư thì "tuần này" mới có 3 ngày, còn tuần

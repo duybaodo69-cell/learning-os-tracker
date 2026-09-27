@@ -10,6 +10,9 @@
  */
 import { db, isDemoMode, type LearningDB } from "../db/db";
 import { checkinId, weekReviewId } from "../db/keys";
+import { AREAS, PREDICTION_CATEGORIES } from "../db/types";
+import { computeSleepHours } from "./dates";
+import { isIntIn, isNumberIn, isValidDate, isValidTime } from "./validation";
 import type {
   BrainDump,
   Card,
@@ -78,6 +81,167 @@ export const TABLE_LABELS: Record<string, string> = {
   experimentTags: "Nhãn thí nghiệm",
 };
 
+/* ==================== Kiểm tra từng bản ghi ==================== */
+
+/*
+ * IndexedDB chỉ cần khoá chính — nó vui vẻ lưu `{ id: "x" }` làm một thẻ.
+ * Nếu file sao lưu bị cắt dở hay sửa tay, nhập vào sẽ XOÁ dữ liệu tốt rồi
+ * thay bằng bản ghi thiếu trường, và màn hình dùng tới nó sẽ lỗi.
+ * Vì vậy mỗi bản ghi được kiểm tra đủ trường TRƯỚC khi xem trước và trước
+ * khi ghi. Trường tuỳ chọn (note, capturedNotes...) được phép vắng mặt.
+ */
+
+type Check = (v: unknown) => boolean;
+
+const str: Check = (v) => typeof v === "string";
+const nonEmpty: Check = (v) => typeof v === "string" && v.length > 0;
+const bool: Check = (v) => typeof v === "boolean";
+const date: Check = isValidDate;
+// Bản cũ của form (trước bản sửa 27/09/2026) có thể đã lưu giờ trống, số phút
+// quá lớn, hạn chấm trống hay giờ ngủ NaN (JSON ghi thành null). Những giá trị
+// đó không làm màn hình nào lỗi, nên vẫn NHẬN để file sao lưu cũ của chính
+// bạn luôn khôi phục được. Chỉ từ chối thứ làm hỏng app: sai kiểu, thiếu trường.
+const timeOrEmpty: Check = (v) => v === "" || isValidTime(v);
+const dateOrEmpty: Check = (v) => v === "" || isValidDate(v);
+const rating: Check = (v) => isIntIn(v, 1, 5);
+const count: Check = (v) => isIntIn(v, 0, Number.MAX_SAFE_INTEGER);
+const nonNeg: Check = (v) => isNumberIn(v, 0, Number.MAX_SAFE_INTEGER);
+const area: Check = (v) => (AREAS as readonly unknown[]).includes(v);
+const optional = (c: Check): Check => (v) => v === undefined || c(v);
+const oneOf = (list: readonly unknown[]): Check => (v) => list.includes(v);
+const strList: Check = (v) => Array.isArray(v) && v.every((x) => typeof x === "string");
+
+/** Trường bắt buộc (và tuỳ chọn) của từng bảng trong file. */
+const ROW_RULES: Record<(typeof TABLE_NAMES)[number], Record<string, Check>> = {
+  checkins: {
+    id: optional(str), // file trước Dexie v6 không có id, normaliseBackupData tự điền
+    date,
+    bedTime: timeOrEmpty,
+    wakeTime: timeOrEmpty,
+    sleepHours: (v) => v === null || isNumberIn(v, 0, 24),
+    energy: rating,
+    note: optional(str),
+  },
+  focusBlocks: {
+    id: nonEmpty,
+    date,
+    startTime: timeOrEmpty,
+    minutes: nonNeg,
+    area,
+    focusRating: rating,
+    distractions: count,
+    phoneAway: bool,
+    resumeNote: optional(str),
+    capturedNotes: optional(strList),
+  },
+  brainDumps: {
+    id: nonEmpty,
+    date,
+    area,
+    recalled: str,
+    gaps: str,
+    minutes: nonNeg,
+  },
+  cards: {
+    id: nonEmpty,
+    front: str,
+    back: str,
+    area,
+    createdAt: date,
+    dueDate: date,
+    intervalDays: nonNeg,
+    ease: (v) => isNumberIn(v, 0.1, 100),
+    reps: count,
+    lapses: count,
+    brainDumpId: optional(str),
+  },
+  reviewLogs: {
+    id: nonEmpty,
+    cardId: nonEmpty,
+    date,
+    grade: oneOf(["again", "hard", "good", "easy"]),
+    intervalBefore: nonNeg,
+  },
+  predictions: {
+    id: nonEmpty,
+    statement: str,
+    probability: (v) => isNumberIn(v, 0, 100),
+    category: oneOf(PREDICTION_CATEGORIES),
+    createdAt: date,
+    resolveBy: dateOrEmpty,
+    outcome: oneOf([true, false, null]),
+    resolvedAt: optional(date),
+    note: optional(str),
+    preMortem: optional(str),
+  },
+  weeklyReviews: {
+    id: optional(str),
+    weekStart: date,
+    learnedWithoutNotes: str,
+    dataInsight: str,
+    oneChange: str,
+    lastChangeResult: optional(oneOf(["yes", "partly", "no"])),
+  },
+  experiments: {
+    id: nonEmpty,
+    name: str,
+    labelA: str,
+    labelB: str,
+    createdAt: date,
+    active: bool,
+  },
+  experimentTags: {
+    key: nonEmpty,
+    date,
+    experimentId: nonEmpty,
+    condition: oneOf(["A", "B"]),
+  },
+};
+
+/** Trường nào làm khoá duy nhất của từng bảng — hai dòng trùng khoá là file hỏng. */
+const UNIQUE_FIELD: Record<(typeof TABLE_NAMES)[number], string> = {
+  checkins: "date",
+  focusBlocks: "id",
+  brainDumps: "id",
+  cards: "id",
+  reviewLogs: "id",
+  predictions: "id",
+  weeklyReviews: "weekStart",
+  experiments: "id",
+  experimentTags: "key",
+};
+
+/**
+ * Tìm mọi bản ghi sai trong một bảng. Trả về danh sách câu lỗi tiếng Việt,
+ * mỗi câu nêu tên bảng, số dòng (đếm từ 1) và tên trường.
+ */
+export function findRowErrors(table: (typeof TABLE_NAMES)[number], rows: unknown[]): string[] {
+  const rules = ROW_RULES[table];
+  const label = TABLE_LABELS[table];
+  const errors: string[] = [];
+  const seen = new Set<unknown>();
+
+  rows.forEach((row, i) => {
+    const where = `${label}, dòng ${i + 1}`;
+    if (typeof row !== "object" || row === null || Array.isArray(row)) {
+      errors.push(`${where}: không phải một bản ghi.`);
+      return;
+    }
+    const r = row as Record<string, unknown>;
+    for (const [field, ok] of Object.entries(rules)) {
+      if (!ok(r[field])) {
+        errors.push(`${where}: trường "${field}" thiếu hoặc sai.`);
+        return; // một lỗi mỗi dòng là đủ để biết dòng đó hỏng
+      }
+    }
+    const key = r[UNIQUE_FIELD[table]];
+    if (seen.has(key)) errors.push(`${where}: trùng khoá "${String(key)}" với một dòng trước.`);
+    seen.add(key);
+  });
+
+  return errors;
+}
+
 /* ==================== Làm sạch dữ liệu ==================== */
 
 /**
@@ -103,7 +267,14 @@ function stripCloudFields<T extends object>(row: T): T {
 export function normaliseBackupData(d: Partial<BackupData>): BackupData {
   const clean = <T extends object>(rows: T[] | undefined): T[] => (rows ?? []).map(stripCloudFields);
   return {
-    checkins: clean(d.checkins).map((c) => ({ ...c, id: checkinId(c.date) })),
+    checkins: clean(d.checkins).map((c) => ({
+      ...c,
+      id: checkinId(c.date),
+      // NaN trong file JSON thành null — tính lại từ giờ ngủ/giờ dậy.
+      ...((c.sleepHours as number | null) === null
+        ? { sleepHours: computeSleepHours(c.bedTime ?? "", c.wakeTime ?? "") }
+        : {}),
+    })),
     focusBlocks: clean(d.focusBlocks),
     brainDumps: clean(d.brainDumps),
     cards: clean(d.cards),
@@ -314,8 +485,13 @@ export function parseBackup(text: string): ParsedBackup {
     throw new Error("File thiếu phần dữ liệu.");
   }
 
+  if (typeof obj.exportedAt !== "string" || !isValidDate(obj.exportedAt.slice(0, 10))) {
+    throw new Error("File thiếu thời điểm xuất (exportedAt) — có thể đã bị cắt dở hoặc sửa tay.");
+  }
+
   const data = obj.data as Record<string, unknown>;
   const counts: Record<string, number> = {};
+  const errors: string[] = [];
 
   for (const name of TABLE_NAMES) {
     const value = data[name];
@@ -328,6 +504,14 @@ export function parseBackup(text: string): ParsedBackup {
       throw new Error(`Bảng "${name}" trong file bị hỏng (phải là một danh sách).`);
     }
     counts[name] = value.length;
+    errors.push(...findRowErrors(name, value));
+  }
+
+  // Có lỗi thì từ chối cả file — nhập một nửa còn tệ hơn không nhập.
+  if (errors.length > 0) {
+    const shown = errors.slice(0, 3).join(" ");
+    const more = errors.length > 3 ? ` (và ${errors.length - 3} lỗi khác)` : "";
+    throw new Error(`File sao lưu có dữ liệu hỏng, chưa nhập gì: ${shown}${more}`);
   }
 
   return { file: obj as BackupFile, counts };
@@ -368,6 +552,11 @@ export async function currentCounts(): Promise<Record<string, number>> {
  * toàn bộ — không bao giờ để lại tình trạng nửa cũ nửa mới.
  */
 export async function importBackup(file: BackupFile): Promise<void> {
+  // Kiểm tra lần nữa ngay trước khi xoá — phòng khi có đường gọi nào bỏ qua parseBackup.
+  const data = file.data as unknown as Record<string, unknown[] | undefined>;
+  const errors = TABLE_NAMES.flatMap((name) => findRowErrors(name, data[name] ?? []));
+  if (errors.length > 0) throw new Error(`File sao lưu có dữ liệu hỏng, chưa nhập gì: ${errors[0]}`);
+
   const d = normaliseBackupData(file.data);
   await db.transaction(
     "rw",

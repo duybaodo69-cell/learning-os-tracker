@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run check && tsc -b && vite build",
+    "build:only": "tsc -b && vite build",
+    "check": "oxlint && vitest run",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",

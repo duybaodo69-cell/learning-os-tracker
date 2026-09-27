@@ -84,6 +84,8 @@ export type Card = {
   ease: number;
   reps: number;        // số lần ôn đúng liên tiếp
   lapses: number;      // số lần bấm "Quên"
+  /** Thẻ tạo từ ô "chỗ hổng" của brain dump nào (không có = tạo tay). */
+  brainDumpId?: string;
 };
 
 /** Nhật ký mỗi lần ôn — không bao giờ sửa, chỉ ghi thêm. */
@@ -129,6 +131,11 @@ export type WeeklyReview = {
   learnedWithoutNotes: string;  // học được gì mà làm lại được không cần tài liệu
   dataInsight: string;          // dữ liệu cho thấy gì
   oneChange: string;            // một điều chỉnh duy nhất cho tuần tới
+  /**
+   * Điều chỉnh đã chọn ở tuần TRƯỚC có làm được không — trả lời khi viết
+   * tổng kết tuần này. Không có = tuần trước chưa chọn gì, hoặc bỏ qua.
+   */
+  lastChangeResult?: "yes" | "partly" | "no";
 };
 
 /** Một thí nghiệm cá nhân: so sánh hai cách làm A và B. */

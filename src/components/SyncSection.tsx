@@ -16,12 +16,16 @@ import { describeSync, evalWarning } from "../lib/sync";
 import type { SyncTone } from "../lib/sync";
 import { TABLE_LABELS } from "../lib/backup";
 import {
-  isUploadDone,
+  dismissUpload,
+  getLastUpload,
+  isDismissed,
   localStoreTotal,
-  markUploadDone,
   previewUpload,
+  recordUpload,
   runUpload,
+  uploadFingerprint,
 } from "../lib/cloudUpload";
+import { formatShortDate } from "../lib/dates";
 import type { UploadPlan } from "../lib/upload";
 
 import ConfirmDialog from "./ConfirmDialog";
@@ -169,7 +173,7 @@ function CloudAccount() {
         )}
       </Card>
 
-      <UploadCard ready={syncState?.phase === "in-sync"} />
+      <UploadCard ready={syncState?.phase === "in-sync"} userId={user?.userId ?? ""} />
 
       <ConfirmDialog
         open={confirmLogout}
@@ -196,22 +200,40 @@ function CloudAccount() {
 
 /**
  * "Đưa dữ liệu trên máy này lên tài khoản".
- * Chỉ hiện khi kho trên máy có dữ liệu và chưa đưa lên lần nào.
+ *
+ * Mỗi lần mở, thẻ tự so sánh kho trên máy với tài khoản ĐANG đăng nhập và
+ * chỉ hiện khi còn bản ghi chưa có trên tài khoản — không còn dựa vào một cờ
+ * "đã chuyển" cũ (audit F07). "Để sau" chỉ ẩn đúng bộ dữ liệu đang thấy.
  * `ready` = đồng bộ lần đầu đã xong; trước đó chưa biết tài khoản có gì,
  * nên chưa cho so sánh (tránh tưởng nhầm mọi thứ đều "mới").
  */
-function UploadCard({ ready }: { ready: boolean }) {
-  const [done, setDone] = useState(isUploadDone);
+function UploadCard({ ready, userId }: { ready: boolean; userId: string }) {
   const [localTotal, setLocalTotal] = useState<number | null>(null);
   const [plan, setPlan] = useState<UploadPlan | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState(false);
+  const lastUpload = getLastUpload();
 
   useEffect(() => {
-    if (!done) void localStoreTotal().then(setLocalTotal);
-  }, [done]);
+    let alive = true;
+    void localStoreTotal()
+      .then(async (total) => {
+        if (!alive) return;
+        setLocalTotal(total);
+        // Đồng bộ lần đầu xong mới so sánh được với tài khoản.
+        if (total > 0 && ready) {
+          const p = await previewUpload();
+          if (alive) setPlan(p);
+        }
+      })
+      .catch((e: Error) => alive && setError(`Không đọc được dữ liệu trên máy: ${e.message}`));
+    return () => {
+      alive = false;
+    };
+  }, [ready, userId]);
 
   if (result) {
     return (
@@ -220,26 +242,18 @@ function UploadCard({ ready }: { ready: boolean }) {
       </Card>
     );
   }
-  if (done || localTotal === null || localTotal === 0) return null;
-
-  async function showPreview() {
-    setError(null);
-    setBusy(true);
-    try {
-      setPlan(await previewUpload());
-    } catch (e) {
-      setError(`Không đọc được dữ liệu trên máy: ${(e as Error).message}`);
-    }
-    setBusy(false);
-  }
+  if (localTotal === null || localTotal === 0) return null;
+  // Đã so sánh xong và tài khoản có đủ -> không cần thẻ nào.
+  if (plan && plan.totalToAdd === 0) return null;
+  const fingerprint = plan ? uploadFingerprint(userId, plan) : null;
+  if (dismissed || (fingerprint !== null && isDismissed(fingerprint))) return null;
 
   async function doUpload() {
     setConfirm(false);
     setBusy(true);
     try {
       const added = await runUpload();
-      markUploadDone();
-      setDone(true);
+      recordUpload();
       setResult(
         `Đã đưa ${added} bản ghi lên tài khoản. Kho trên máy vẫn giữ nguyên bản cũ để phòng hờ.`
       );
@@ -254,9 +268,21 @@ function UploadCard({ ready }: { ready: boolean }) {
     <Card className="mb-6">
       <div className="text-sm font-bold text-ink">Đưa dữ liệu trên máy này lên tài khoản</div>
       <p className="mt-1 text-sm text-ink-2">
-        Máy này có <span className="font-num font-semibold text-ink">{localTotal}</span> bản ghi từ trước khi
-        đăng nhập. Chúng chưa được gửi đi. Đưa lên thì chỉ THÊM bản ghi chưa có; không xoá hay ghi đè gì
-        trên tài khoản.
+        {plan ? (
+          <>
+            Kho trên máy có <span className="font-num font-semibold text-ink">{plan.totalToAdd}</span> bản ghi
+            chưa có trên tài khoản này.
+          </>
+        ) : (
+          <>
+            Kho trên máy có <span className="font-num font-semibold text-ink">{localTotal}</span> bản ghi ghi lúc
+            chưa đăng nhập.
+          </>
+        )}{" "}
+        Đưa lên thì chỉ THÊM bản ghi chưa có; không xoá hay ghi đè gì trên tài khoản.
+        {lastUpload && (
+          <span className="text-ink-3"> Lần đưa lên gần nhất: {formatShortDate(lastUpload.slice(0, 10))}.</span>
+        )}
       </p>
 
       {!ready && (
@@ -289,29 +315,21 @@ function UploadCard({ ready }: { ready: boolean }) {
       {error && <p className="mt-3 text-sm text-bad-ink">{error}</p>}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {!plan ? (
-          <Button onClick={() => void showPreview()} disabled={!ready || busy} className="flex-1">
-            {busy ? "Đang đọc..." : "Xem trước"}
-          </Button>
-        ) : (
+        <Button onClick={() => setConfirm(true)} disabled={!ready || !plan || busy} className="flex-1">
+          {busy ? "Đang đưa lên..." : plan ? `Đưa ${plan.totalToAdd} bản ghi lên` : "Đang so sánh..."}
+        </Button>
+        {fingerprint && (
           <Button
-            onClick={() => setConfirm(true)}
-            disabled={!ready || busy || plan.totalToAdd === 0}
-            className="flex-1"
+            variant="ghost"
+            onClick={() => {
+              dismissUpload(fingerprint);
+              setDismissed(true);
+            }}
+            disabled={busy}
           >
-            {busy ? "Đang đưa lên..." : plan.totalToAdd === 0 ? "Không có gì mới" : `Đưa ${plan.totalToAdd} bản ghi lên`}
+            Để sau
           </Button>
         )}
-        <Button
-          variant="ghost"
-          onClick={() => {
-            markUploadDone();
-            setDone(true);
-          }}
-          disabled={busy}
-        >
-          Không cần
-        </Button>
       </div>
 
       <ConfirmDialog

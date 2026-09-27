@@ -22,6 +22,7 @@ import { useToday } from "../lib/useToday";
 import { computeMetrics, isSunday, mondayOf } from "../lib/metrics";
 import { EXPORT_REMINDER_DAYS, daysSinceLastExport } from "../lib/backup";
 import { getLastArea, setLastArea } from "../lib/prefs";
+import { addDays } from "../lib/scheduling";
 import { areaColor } from "../lib/areaColors";
 import { AREAS } from "../db/types";
 import type { Area } from "../db/types";
@@ -32,7 +33,7 @@ import CheckinForm from "../components/CheckinForm";
 import FocusBlockForm from "../components/FocusBlockForm";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { Button, Card, ChipGroup, Notice, SectionLabel, Tag } from "../components/ui";
-import WeeklyReviewCard from "../components/WeeklyReviewCard";
+import WeeklyReviewCard, { ThisWeekChange } from "../components/WeeklyReviewCard";
 import ExperimentChip from "../components/ExperimentChip";
 import type { TabId } from "../components/BottomNav";
 import type { ReviewView } from "./ReviewScreen";
@@ -83,12 +84,30 @@ export default function TodayScreen({
     [thisMonday]
   );
 
+  // Tổng kết tuần TRƯỚC: lấy "một điều chỉnh" để nhắc suốt tuần này và để
+  // hỏi lại "làm được không" khi viết tổng kết Chủ Nhật (audit F08).
+  const lastMonday = addDays(thisMonday, -7);
+  const lastWeekReview = useLiveQuery(
+    async () => (await db.weekReviews.get(weekReviewId(lastMonday))) ?? null,
+    [lastMonday]
+  );
+  const lastWeekChange = lastWeekReview?.oneChange.trim() || undefined;
+
   // Chủ Nhật mới hiện thẻ tổng kết.
   const showWeeklyReview = isSunday(today);
 
+  // Đếm thêm các bảng khác, để người chỉ dùng ôn tập / dự đoán cũng được nhắc.
+  const otherDataCount = useLiveQuery(
+    async () =>
+      (await db.cards.count()) + (await db.brainDumps.count()) + (await db.predictions.count()),
+    [],
+    0
+  );
+
   // Nhắc sao lưu nếu đã quá 7 ngày (hoặc chưa xuất bao giờ mà đã có dữ liệu).
   const sinceExport = daysSinceLastExport(today);
-  const hasData = allCheckins.length > 0 || allBlocks.length > 0;
+  const hasData =
+    allCheckins.length > 0 || allBlocks.length > 0 || allLogs.length > 0 || otherDataCount > 0;
   const remindBackup =
     hasData && (sinceExport === null || sinceExport > EXPORT_REMINDER_DAYS);
 
@@ -177,11 +196,16 @@ export default function TodayScreen({
             today
           )}
           existing={weeklyReview ?? undefined}
-          onSave={(r: WeeklyReview) => {
-            void db.weekReviews.put(r);
+          previousChange={lastWeekChange}
+          onSave={async (r: WeeklyReview) => {
+            // Chờ ghi xong: lỗi thì form báo và giữ nguyên chữ đã viết.
+            await db.weekReviews.put(r);
           }}
         />
       )}
+
+      {/* Các ngày khác trong tuần: nhắc điều chỉnh đã chọn tuần trước. */}
+      {!showWeeklyReview && lastWeekChange && <ThisWeekChange change={lastWeekChange} />}
 
       {/* ---------- 1a. Check-in sáng: form (chưa có / đang sửa) ---------- */}
       {checkinFormOpen && (

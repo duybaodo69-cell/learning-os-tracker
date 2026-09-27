@@ -23,7 +23,7 @@ import CloudLoginDialog from "./components/CloudLoginDialog";
 
 import { activeStore, db } from "./db/db";
 import type { Card } from "./db/types";
-import { todayISO } from "./lib/dates";
+import { useToday } from "./lib/useToday";
 import { dueCount as countDue } from "./lib/scheduling";
 import { getTimerStart, startTimer } from "./lib/timer";
 
@@ -46,7 +46,9 @@ export default function App() {
   // Tính ở đây (không phải trong màn hình) để badge luôn đúng kể cả khi
   // bạn đang đứng ở tab khác.
   const cards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
-  const dueCount = countDue(cards, todayISO());
+  // useToday (không phải todayISO) để badge tự sang ngày mới qua nửa đêm.
+  const today = useToday();
+  const dueCount = countDue(cards, today);
 
   /** Chuyển tab, có thể kèm mục con — dùng cho nút tắt ở màn hình Hôm nay. */
   function navigate(tab: TabId, view?: ReviewView) {

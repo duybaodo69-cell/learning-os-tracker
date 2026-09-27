@@ -32,6 +32,7 @@ import {
   isSunday,
   mean,
   mondayOf,
+  recentWeekStarts,
   normalisePerWeek,
   sameSpanLastWeek,
   standardDeviation,
@@ -58,6 +59,17 @@ function block(date: string, minutes: number, extra: Partial<FocusBlock> = {}): 
 function log(date: string, grade: ReviewLog["grade"], intervalBefore: number): ReviewLog {
   return { id: `${date}-${Math.random()}`, cardId: "c1", date, grade, intervalBefore };
 }
+
+describe("recentWeekStarts — lịch sử tổng kết tuần", () => {
+  it("Thứ Hai tuần này trước, lùi từng tuần; Chủ Nhật vẫn thuộc tuần đang chạy", () => {
+    expect(recentWeekStarts("2026-09-27", 3)).toEqual(["2026-09-21", "2026-09-14", "2026-09-07"]);
+    expect(recentWeekStarts("2026-09-28", 2)).toEqual(["2026-09-28", "2026-09-21"]);
+  });
+
+  it("qua năm mới không lệch", () => {
+    expect(recentWeekStarts("2027-01-02", 2)).toEqual(["2026-12-28", "2026-12-21"]);
+  });
+});
 
 describe("mondayOf — tuần bắt đầu Thứ Hai", () => {
   it("Thứ Hai trả về chính nó", () => {

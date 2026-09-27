@@ -6,6 +6,7 @@
  *      hiện chênh lệch kèm mũi tên và màu
  *   2. So với baseline (chỉ sau khi giai đoạn đo baseline kết thúc)
  *   3. Mức độ đều đặn trong 14 ngày
+ *   3b. Tổng kết tuần: 8 tuần gần nhất, xem lại hoặc viết bù
  *   4. Năng lượng check-in -> deep work
  *   5. Ba biểu đồ
  *
@@ -42,6 +43,7 @@ import {
 import type { Delta, MetricKey, MetricsInput, Period } from "../lib/metrics";
 
 import ScreenShell from "../components/ScreenShell";
+import WeeklyReviewHistory from "../components/WeeklyReviewHistory";
 import { Card, Disclosure, EmptyState, Notice, SectionLabel, Segmented, Tag } from "../components/ui";
 
 // Recharts nặng — chỉ tải khi mở tab này. Xem ghi chú ở PredictionsScreen.
@@ -142,8 +144,12 @@ export default function DashboardScreen() {
   const weekly = buildWeeklyByArea(focusBlocks, today, 8);
 
 
+  // Có dự đoán đã chấm thôi cũng đủ để có Brier — không được coi là "trống".
   const nothingYet =
-    checkins.length === 0 && focusBlocks.length === 0 && reviewLogs.length === 0;
+    checkins.length === 0 &&
+    focusBlocks.length === 0 &&
+    reviewLogs.length === 0 &&
+    !predictions.some((p) => p.outcome !== null);
 
   if (nothingYet) {
     return (
@@ -217,6 +223,9 @@ export default function DashboardScreen() {
           Số ngày có check-in trong 14 ngày gần nhất. Nghỉ một hôm chỉ mất một hôm.
         </p>
       </Card>
+
+      {/* ---------- Tổng kết tuần: xem lại, viết bù (audit F08) ---------- */}
+      <WeeklyReviewHistory input={input} today={today} />
 
       {/* ---------- 4. Năng lượng -> deep work (gập lại, ít xem) ---------- */}
       <Disclosure title="Năng lượng → deep work" right="TB / ngày">

@@ -99,6 +99,7 @@ type Card = {
   ease: number;
   reps: number;
   lapses: number;
+  brainDumpId?: string; // set when the card was made from a brain dump's gaps
 };
 
 type ReviewLog = {
@@ -128,6 +129,7 @@ type WeeklyReview = {
   learnedWithoutNotes: string;
   dataInsight: string;
   oneChange: string;
+  lastChangeResult?: "yes" | "partly" | "no"; // did LAST week's oneChange happen?
 };
 
 // Marks a day as belonging to condition A or B of a personal experiment.
@@ -195,6 +197,7 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] **Phase 5 COMPLETE** — PWA: installable, offline, icons, version line.
 - [x] **Redesign COMPLETE** (design/BRIEF.md Part A + B) — dark "Quantitative Protocol" theme.
 - [x] **Calm redesign (Stitch, 2026-09-27)** — all 5 tabs, dark + light.
+- [x] **Audit fixes (2026-09-27)** — batch 1 + 2 of audit/2026-09-27/REPORT.md (F01–F10).
 - [x] **Part C: cloud sync (Dexie Cloud)** — PROD https://zzmteuzif.dexie.cloud (whitelist: production
       URL only), DEV https://zq98wk7oy.dexie.cloud (whitelist: http://localhost:5173 only).
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
@@ -240,6 +243,10 @@ src/
     persistence.ts     # navigator.storage.persist() + status
     areaColors.ts      # one fixed colour per area (Today + charts)
     scheduling.ts / calibration.ts / metrics.ts / backup.ts  # tested pure logic
+    validation.ts      # shared form + backup checks (tested)
+    brainDump.ts / weeklyReview.ts  # pure helpers for those screens (tested)
+    drafts.ts          # localStorage drafts for long forms (brain dump)
+    useSubmit.ts       # save wrapper: double-tap lock + error, form stays open
     sync.ts            # Vietnamese sync status + login messages (tested)
     upload.ts          # planUpload: which local rows are new to the account (tested)
     cloudUpload.ts     # reads the local store, adds only new rows to the account
@@ -450,6 +457,54 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   A text scan of 11 views (5 tabs + check-in/block forms, review session, brain dump, cards,
   score) gave min 5.26:1 dark and 4.62:1 light. Off switches use `bg-ink-3/45` so they show on white.
 
+### Audit fixes (2026-09-27) — rules to keep
+
+- **Source:** `audit/2026-09-27/REPORT.md` (external audit, untracked folder). Its
+  `defects.test.tsx` asserts the OLD bugs, so `vite.config.ts` excludes `audit/**` from
+  vitest. The regression tests asserting correct behaviour are `src/auditFixes.test.tsx`.
+- **Deploys are gated by tests.** `npm run build` = `oxlint && vitest run && tsc -b &&
+  vite build`, and Cloudflare runs `npm run build`, so a failing test blocks the deploy.
+  Tests pass under TZ=UTC and TZ=America/Los_Angeles (the build host is UTC).
+- **Validation lives in `src/lib/validation.ts`** (tested). HTML `min`/`max`/`type` do NOT
+  stop the Save button; every form checks in its handler and shows `FieldError` under the
+  field: block minutes 1–600 integer, valid HH:mm, valid resolve date not before createdAt.
+- **Every save goes through `useSubmit`** (`src/lib/useSubmit.ts`): a ref lock blocks
+  double taps in the same event loop, the form stays open with its text on failure, and
+  parents close the form only after the write resolves. Review grading has its own ref lock,
+  re-reads the card inside the transaction, and only advances after success.
+- **Backup import validates every row** (`findRowErrors` in `backup.ts`) in `parseBackup`
+  AND again in `importBackup`: types, real dates, areas, enums, duplicate keys; errors name
+  table + row + field. It still ACCEPTS values the pre-fix forms could have saved (empty
+  times, empty resolve date, large minutes, `sleepHours` null from NaN — recomputed), so an
+  old export of the owner's own data always restores. Never tighten that without a migration.
+- **Brain dump:** one "Lưu" writes the dump and its draft cards in one transaction
+  (`buildBrainDump`, cards carry `brainDumpId`). The unsaved text is a localStorage draft
+  (`learning-os:braindump-draft`, `src/lib/drafts.ts`) so switching views or reloading
+  never loses it. History (`BrainDumpHistory.tsx`) shows all dumps: area filter,
+  accent-insensitive search (`filterBrainDumps`), 10 per page, detail with linked cards,
+  edit, delete via ConfirmDialog (linked cards are kept).
+- **Draft cards (empty back) are not reviewable:** `isDue` excludes them, so they are out of
+  the queue, the badge and "Sắp tới". Filling the back makes them due immediately.
+- **The 30-card cap is per SESSION** (`SESSION_LIMIT`), not per day — a new session can take
+  the rest. The badge and the big number show the real backlog (`dueCount` is uncapped).
+- **Resolved predictions are locked** (`PredictionForm` → `ResolvedForm`): only the note is
+  editable; a mis-tapped outcome is flipped through a confirm dialog that shows the Brier
+  change. Statement/probability/date never change after resolution.
+- **Weekly review:** `WeeklyReviewForm` is shared by the Sunday card and the history in
+  Thống kê (`WeeklyReviewHistory.tsx`, last 8 weeks, view / write late). It asks whether last
+  week's `oneChange` happened (`lastChangeResult`), and Hôm nay shows last week's change as
+  "Điều chỉnh tuần này" on Mon–Sat.
+- **Cloud upload card** (`SyncSection` → `UploadCard`) always re-diffs the local store
+  against the CURRENT account; `learning-os:upload-done` is now only "last upload" info.
+  "Để sau" stores a fingerprint (user id + keys to add), so new local data or another account
+  shows the card again. Still add-only.
+- **Small fixes:** review badge uses `useToday` (updates past midnight); the backup nag
+  counts cards, brain dumps, predictions and review logs too; Thống kê is not "empty" when
+  only resolved predictions exist.
+- **Not done (needs the owner's decision):** a "lesson" entity, per-day A/B comparison,
+  showing the retention definition/denominator, prediction revision history before
+  resolution.
+
 ### Part C (Dexie Cloud sync) — rules to keep
 
 - **Three separate stores** (`src/db/store.ts`): `learning-os` (local, default),
@@ -552,8 +607,9 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 
 ```bash
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
-npm run build           # type-check + production build
-npm test                # unit tests (349: lib/ logic, db upgrade, hooks, background picker, worker)
+npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
+npm run build:only      # type-check + production build, skipping lint/tests (local only)
+npm test                # unit tests (392: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

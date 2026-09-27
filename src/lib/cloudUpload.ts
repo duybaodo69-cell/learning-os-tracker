@@ -78,21 +78,57 @@ export async function runUpload(): Promise<number> {
   });
 }
 
-/* ---------- Đã chuyển xong chưa (lưu trên máy này) ---------- */
+/* ---------- Lần đưa lên gần nhất + "Để sau" (lưu trên máy này) ---------- */
 
-const UPLOAD_DONE_KEY = "learning-os:upload-done";
+/*
+ * Trước đây một cờ "đã chuyển xong" dùng chung cả máy làm thẻ biến mất VĨNH
+ * VIỄN — kể cả khi sau đó đăng xuất, ghi thêm dữ liệu, rồi đăng nhập lại hay
+ * đổi tài khoản (audit F07). Giờ thẻ luôn so sánh lại dữ liệu hiện tại với
+ * tài khoản hiện tại; hai khoá dưới đây chỉ để hiển thị và để "Để sau".
+ */
+const LAST_UPLOAD_KEY = "learning-os:upload-done"; // giữ tên cũ: giá trị vẫn là thời điểm ISO
+const DISMISS_KEY = "learning-os:upload-dismissed";
 
-export function isUploadDone(): boolean {
+/** Thời điểm (ISO) đưa lên gần nhất trên máy này, hoặc null. */
+export function getLastUpload(): string | null {
   try {
-    return localStorage.getItem(UPLOAD_DONE_KEY) !== null;
+    return localStorage.getItem(LAST_UPLOAD_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function recordUpload(): void {
+  try {
+    localStorage.setItem(LAST_UPLOAD_KEY, new Date().toISOString());
+  } catch {
+    /* bỏ qua */
+  }
+}
+
+/**
+ * "Dấu vân tay" của một lần xem trước: tài khoản + những khoá sẽ được thêm.
+ * Bấm "Để sau" chỉ ẩn đúng tình huống đó; có dữ liệu mới hoặc đổi tài
+ * khoản là dấu khác đi và thẻ hiện lại. Hàm thuần, có test.
+ */
+export function uploadFingerprint(userId: string, plan: UploadPlan): string {
+  const keys = TABLE_NAMES.flatMap((n) =>
+    (plan.toAdd[n] as Record<string, unknown>[]).map((r) => `${n}:${String(r.id ?? r.key)}`)
+  ).sort();
+  return `${userId}|${keys.join(",")}`;
+}
+
+export function isDismissed(fingerprint: string): boolean {
+  try {
+    return localStorage.getItem(DISMISS_KEY) === fingerprint;
   } catch {
     return false;
   }
 }
 
-export function markUploadDone(): void {
+export function dismissUpload(fingerprint: string): void {
   try {
-    localStorage.setItem(UPLOAD_DONE_KEY, new Date().toISOString());
+    localStorage.setItem(DISMISS_KEY, fingerprint);
   } catch {
     /* bỏ qua */
   }

@@ -137,6 +137,19 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
   );
 }
 
+/**
+ * Dòng báo lỗi đỏ ngay dưới ô nhập (hoặc dưới nút Lưu). `null` = không hiện gì.
+ * role="alert" để trình đọc màn hình đọc lên ngay khi lỗi xuất hiện.
+ */
+export function FieldError({ message }: { message: string | null | undefined }) {
+  if (!message) return null;
+  return (
+    <p role="alert" className="mt-1.5 text-sm text-bad-ink">
+      {message}
+    </p>
+  );
+}
+
 /* ---------------------------------------------------------- RatingRow */
 
 /**
