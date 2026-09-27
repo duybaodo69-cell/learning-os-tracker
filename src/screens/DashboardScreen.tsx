@@ -42,7 +42,7 @@ import {
 import type { Delta, MetricKey, MetricsInput, Period } from "../lib/metrics";
 
 import ScreenShell from "../components/ScreenShell";
-import { Card, EmptyState, SectionLabel, Tag } from "../components/ui";
+import { Card, Disclosure, EmptyState, Notice, SectionLabel, Segmented, Tag } from "../components/ui";
 
 // Recharts nặng — chỉ tải khi mở tab này. Xem ghi chú ở PredictionsScreen.
 const Charts = lazy(() =>
@@ -50,16 +50,17 @@ const Charts = lazy(() =>
     default: function All(props: ChartProps) {
       return (
         <>
+          <ChartCard title="Deep work mỗi tuần theo area" hint="8 tuần gần nhất">
+            <m.WeeklyAreaChart points={props.weeklyPoints} areas={props.areas} />
+          </ChartCard>
           <ChartCard title="Giấc ngủ và deep work cùng ngày" hint="28 ngày gần nhất">
             <m.SleepVsFocusChart points={props.sleepPoints} />
             <CorrelationNote r={props.corr.r} n={props.corr.n} />
           </ChartCard>
-          <ChartCard title="Deep work mỗi tuần theo area" hint="8 tuần gần nhất">
-            <m.WeeklyAreaChart points={props.weeklyPoints} areas={props.areas} />
-          </ChartCard>
-          <ChartCard title="Tỷ lệ nhớ theo tuần" hint="thẻ đã qua ≥3 ngày">
+          {/* Biểu đồ ít xem: gập lại, bấm mới mở. */}
+          <Disclosure title="Tỷ lệ nhớ theo tuần" right="thẻ đã qua ≥3 ngày">
             <m.RetentionChart points={props.retentionPoints} />
-          </ChartCard>
+          </Disclosure>
         </>
       );
     },
@@ -140,23 +141,6 @@ export default function DashboardScreen() {
   const sleepPoints = buildSleepVsSameDayFocus(checkins, focusBlocks, today, 28);
   const weekly = buildWeeklyByArea(focusBlocks, today, 8);
 
-  const periodTabs = (
-    <div className="flex shrink-0 gap-1 rounded-lg border border-line bg-surface p-0.5">
-      {PERIODS.map((p) => (
-        <button
-          key={p.id}
-          type="button"
-          onClick={() => setPeriod(p.id)}
-          className={
-            "tap-target rounded-md px-2.5 text-sm font-medium whitespace-nowrap " +
-            (period === p.id ? "bg-accent font-bold text-on-accent" : "text-ink-2")
-          }
-        >
-          {p.label}
-        </button>
-      ))}
-    </div>
-  );
 
   const nothingYet =
     checkins.length === 0 && focusBlocks.length === 0 && reviewLogs.length === 0;
@@ -173,20 +157,23 @@ export default function DashboardScreen() {
   }
 
   return (
-    <ScreenShell title="Thống kê" right={periodTabs}>
-      {/* ---------- 1. Chỉ số ---------- */}
-      <Card className="mb-4">
-        {/* "so cùng số ngày" nói MỘT lần ở đầu mục, không lặp trên từng dòng. */}
-        <SectionLabel right={previous ? `so cùng số ngày (${days})` : `${days} ngày`}>
-          Chỉ số chính
-        </SectionLabel>
-        <div className="divide-y divide-line">
-          {METRIC_SPECS.map((spec) => (
-            <MetricRow
+    <ScreenShell title="Thống kê" subtitle={previous ? `So cùng số ngày (${days}) với kỳ trước` : `${days} ngày`}>
+      {/* Chọn khoảng thời gian: nằm DƯỚI tiêu đề, không chen cạnh nó. */}
+      <Segmented value={period} onChange={setPeriod} options={PERIODS} />
+
+      {/* ---------- 1. Chỉ số: lưới 2 cột ---------- */}
+      <Card className="mb-3">
+        {/* "so cùng số ngày" nói MỘT lần ở đầu mục, không lặp trên từng ô. */}
+        <SectionLabel right={previous ? "so cùng số ngày" : undefined}>Chỉ số chính</SectionLabel>
+        <div className="grid grid-cols-2 gap-2">
+          {METRIC_SPECS.map((spec, i) => (
+            <MetricTile
               key={spec.key}
               spec={spec}
               value={current[spec.key]}
               delta={previous ? compareMetric(spec.key, current[spec.key], previous[spec.key]) : null}
+              // Số ô lẻ: ô cuối trải hết hàng cho cân.
+              wide={i === METRIC_SPECS.length - 1 && METRIC_SPECS.length % 2 === 1}
             />
           ))}
         </div>
@@ -194,12 +181,9 @@ export default function DashboardScreen() {
 
       {/* ---------- 2. So với baseline ---------- */}
       {showBaseline && baseline ? (
-        <Card className="mb-4">
-          <SectionLabel right={`${BASELINE_FROM.slice(5)} → ${BASELINE_TO.slice(5)}`}>
-            So với baseline
-          </SectionLabel>
+        <Disclosure title="So với baseline" right={`${BASELINE_FROM.slice(5)} → ${BASELINE_TO.slice(5)}`}>
           <p className="mb-2 text-xs text-ink-2">Chỉ số cộng dồn đã quy về mức mỗi tuần.</p>
-          <div className="divide-y divide-line">
+          <div className="divide-y divide-line/70">
             {METRIC_SPECS.map((spec) => (
               <MetricRow
                 key={spec.key}
@@ -209,20 +193,22 @@ export default function DashboardScreen() {
               />
             ))}
           </div>
-        </Card>
+        </Disclosure>
       ) : (
-        <p className="mb-4 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-2">
+        <Notice tone="info">
           Đang đo baseline ({BASELINE_FROM.slice(5)} → {BASELINE_TO.slice(5)}). Sau{" "}
           {BASELINE_TO.slice(5)} sẽ có thêm phần so với baseline.
-        </p>
+        </Notice>
       )}
 
       {/* ---------- 3. Đều đặn ---------- */}
-      <Card className="mb-4">
-        <SectionLabel>Đều đặn</SectionLabel>
-        <div className="flex items-baseline gap-2">
-          <span className="font-num text-3xl font-semibold text-ink">{con.logged}</span>
-          <span className="text-sm text-ink-2">/ {con.total} ngày đã log</span>
+      <Card className="mb-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-sm font-medium text-ink-2">Đều đặn</h2>
+          <p>
+            <span className="font-num text-2xl font-semibold text-accent">{con.logged}</span>
+            <span className="text-sm text-ink-2"> / {con.total} ngày đã log</span>
+          </p>
         </div>
         <div className="mt-2 h-2 overflow-hidden rounded-full bg-line">
           <div className="h-full rounded-full bg-accent" style={{ width: `${con.percent}%` }} />
@@ -232,10 +218,9 @@ export default function DashboardScreen() {
         </p>
       </Card>
 
-      {/* ---------- 4. Năng lượng -> deep work ---------- */}
-      <Card className="mb-4">
-        <SectionLabel right="deep work TB / ngày">Năng lượng check-in → deep work</SectionLabel>
-        <div className="divide-y divide-line">
+      {/* ---------- 4. Năng lượng -> deep work (gập lại, ít xem) ---------- */}
+      <Disclosure title="Năng lượng → deep work" right="TB / ngày">
+        <div className="divide-y divide-line/70">
           {energyRows.map((row) => (
             <div key={row.level} className="flex items-center justify-between gap-2 py-2">
               <span className="text-sm text-ink">
@@ -254,7 +239,7 @@ export default function DashboardScreen() {
         <p className="mt-2 text-xs text-ink-2">
           Cần ít nhất {ENERGY_MIN_DAYS} ngày ở một mức mới đáng để đọc.
         </p>
-      </Card>
+      </Disclosure>
 
       {/* ---------- 5. Biểu đồ ---------- */}
       <Suspense
@@ -273,6 +258,32 @@ export default function DashboardScreen() {
         />
       </Suspense>
     </ScreenShell>
+  );
+}
+
+/* ==================== Một ô chỉ số (lưới 2 cột) ==================== */
+
+function MetricTile({
+  spec,
+  value,
+  delta,
+  wide,
+}: {
+  spec: MetricSpec;
+  value: number | null;
+  delta: Delta | null;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`rounded-xl bg-surface-2 px-3 py-2.5 ${wide ? "col-span-2" : ""}`}>
+      <div className="text-xs text-ink-2">{spec.label}</div>
+      <div className="mt-1 flex items-baseline justify-between gap-2">
+        <span className="font-num text-xl font-semibold text-ink">
+          {value === null ? "—" : spec.format(value)}
+        </span>
+        {delta && <DeltaTag delta={delta} spec={spec} />}
+      </div>
+    </div>
   );
 }
 
@@ -304,14 +315,14 @@ function MetricRow({
 /** Chỉ chênh lệch: mũi tên + số, tô màu theo tốt lên hay xấu đi. */
 function DeltaTag({ delta, spec }: { delta: Delta; spec: MetricSpec }) {
   if (delta.diff === null) {
-    return <span className="w-16 text-right text-xs text-ink-3">—</span>;
+    return <span className="text-right text-xs text-ink-3">—</span>;
   }
   const fmt = spec.formatDelta ?? spec.format;
   const arrow = delta.diff > 0 ? "↑" : delta.diff < 0 ? "↓" : "→";
   const color =
     delta.better === true ? "text-good" : delta.better === false ? "text-bad-ink" : "text-ink-2";
   return (
-    <span className={`w-16 text-right font-num text-sm font-semibold ${color}`}>
+    <span className={`text-right font-num text-sm font-semibold whitespace-nowrap ${color}`}>
       {arrow} {fmt(Math.abs(delta.diff))}
     </span>
   );
@@ -327,7 +338,7 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="mb-4">
+    <Card className="mb-3">
       <SectionLabel right={hint}>{title}</SectionLabel>
       {children}
     </Card>
@@ -337,7 +348,7 @@ function ChartCard({
 /** Hệ số tương quan: luôn ghi "sơ bộ" và n, không bao giờ kèm p-value. */
 function CorrelationNote({ r, n }: { r: number | null; n: number }) {
   return (
-    <p className="mt-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink-2">
+    <p className="mt-2 text-xs text-ink-2">
       {r === null ? (
         <>Chưa đủ điểm để tính hệ số tương quan (n = {n}).</>
       ) : (
