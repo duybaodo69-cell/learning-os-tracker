@@ -47,7 +47,7 @@ export default function WeeklyReviewCard({
 
   if (!open) {
     return (
-      <Card className={"mb-4 " + (done ? "" : "border-accent/40 bg-accent/10")}>
+      <Card className="mb-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-sm font-bold text-ink">
@@ -57,7 +57,8 @@ export default function WeeklyReviewCard({
               {done ? "Bấm để xem lại hoặc sửa" : "3 câu hỏi, khoảng 5 phút"}
             </div>
           </div>
-          <Button variant={done ? "secondary" : "primary"} onClick={() => setOpen(true)}>
+          {/* Nút phụ (không tô cyan đặc): "Bắt đầu đếm" mới là hành động chính của màn hình. */}
+          <Button variant="secondary" onClick={() => setOpen(true)} className={done ? "" : "text-accent"}>
             {done ? "Xem" : "Bắt đầu"}
           </Button>
         </div>

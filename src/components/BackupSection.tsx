@@ -111,7 +111,7 @@ export default function BackupSection() {
 
   return (
     <Card className="mb-4">
-      <div className="mb-2 text-xs font-semibold tracking-wide text-ink-3 uppercase">
+      <div className="mb-2 text-sm font-medium text-ink-2">
         Sao lưu
       </div>
 

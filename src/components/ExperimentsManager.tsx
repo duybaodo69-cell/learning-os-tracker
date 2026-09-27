@@ -37,7 +37,7 @@ export default function ExperimentsManager() {
   return (
     <Card className="mb-4">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold tracking-wider text-ink-2 uppercase">
+        <span className="text-sm font-medium text-ink-2">
           Đang có {experiments.length}
         </span>
         {!formOpen && (

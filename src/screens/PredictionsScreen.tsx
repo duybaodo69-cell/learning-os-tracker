@@ -328,7 +328,7 @@ function Section({
           className={"h-1.5 w-1.5 rounded-full " + (tone === "urgent" ? "bg-warn" : "bg-accent")}
           aria-hidden="true"
         />
-        <span className="text-sm font-semibold tracking-wide text-ink uppercase">{title}</span>
+        <span className="text-sm font-medium text-ink-2">{title}</span>
         <span className="rounded border border-line bg-surface-2 px-1.5 font-num text-xs text-ink-2">
           {count}
         </span>

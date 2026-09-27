@@ -59,7 +59,7 @@ export default function CheckinForm({ date, previous, existing, onSave, onCancel
       </div>
 
       {/* Kết quả tính tự động — để bạn phát hiện ngay nếu bấm nhầm giờ. */}
-      <div className="mb-4 flex items-baseline justify-between rounded-lg border border-line bg-canvas px-4 py-3">
+      <div className="mb-4 flex items-baseline justify-between rounded-xl bg-surface-2 px-4 py-3">
         <span className="text-sm text-ink-2">Ngủ được</span>
         <span>
           <span className="font-num text-3xl font-semibold text-accent">{sleepHours}h</span>

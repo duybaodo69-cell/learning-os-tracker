@@ -3,10 +3,13 @@
  *
  * Thứ tự từ trên xuống, theo mức độ cần nhìn:
  *   1. Banner giai đoạn protocol
- *   2. Check-in sáng (nếu chưa có thì hiện form ngay tại đây)
- *   3. Bộ đếm giờ + nút "+ Block"
- *   4. Tổng số phút deep work hôm nay, tách theo area
- *   5. Danh sách các khối đã log (bấm để sửa, có nút xoá kèm xác nhận)
+ *   2. Form check-in sáng — chỉ khi CHƯA check-in (hoặc đang sửa)
+ *   3. "Bắt đầu phiên deep work": area (một hàng vuốt ngang) + nút đếm
+ *   4. Check-in đã có: một dòng tóm tắt
+ *   5. Tổng deep work hôm nay + thanh chia theo area
+ *   6. Danh sách block đã log (bấm để sửa; nút xoá nằm trong form sửa)
+ *   7. Thí nghiệm hôm nay, dòng nhắc sao lưu
+ * Bố cục "Calm" theo bản vẽ Stitch 2026-09.
  */
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -28,7 +31,7 @@ import ProtocolBanner from "../components/ProtocolBanner";
 import CheckinForm from "../components/CheckinForm";
 import FocusBlockForm from "../components/FocusBlockForm";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { Button, Card, ChipGroup, SectionLabel, Tag } from "../components/ui";
+import { Button, Card, ChipGroup, Notice, SectionLabel, Tag } from "../components/ui";
 import WeeklyReviewCard from "../components/WeeklyReviewCard";
 import ExperimentChip from "../components/ExperimentChip";
 import type { TabId } from "../components/BottomNav";
@@ -122,6 +125,9 @@ export default function TodayScreen({
     if (!blockToDelete) return;
     await db.focusBlocks.delete(blockToDelete.id);
     setBlockToDelete(null);
+    // Xoá từ trong form sửa -> đóng luôn form.
+    setBlockFormOpen(false);
+    setEditingBlock(null);
   }
 
   /* ----- Tính tổng ----- */
@@ -141,12 +147,17 @@ export default function TodayScreen({
   // checkin === undefined nghĩa là đang đọc database, chưa biết có hay không.
   const loadingCheckin = checkin === undefined;
 
+  // Form check-in (chưa có, hoặc đang sửa) — đặt LÊN ĐẦU vì buổi sáng đây là
+  // việc đầu tiên. Đã check-in thì chỉ còn MỘT dòng tóm tắt, nằm dưới thẻ
+  // "Bắt đầu phiên".
+  const checkinFormOpen = !loadingCheckin && (!checkin || editingCheckin);
+
   return (
     <ScreenShell title="Hôm nay" subtitle={formatDayLabel(today) /* "Thứ Bảy, 26/09" dễ đọc hơn "2026-09-26" */}>
       {isDemoMode() && (
-        <div className="mb-4 rounded-lg border border-warn/30 bg-warn/12 px-4 py-2 text-center text-sm font-semibold text-warn">
-          Đang xem DỮ LIỆU MẪU — không phải dữ liệu thật
-        </div>
+        <Notice tone="info">
+          Đang xem <strong className="text-ink">dữ liệu mẫu</strong> — không phải dữ liệu thật
+        </Notice>
       )}
 
       <ProtocolBanner date={today} />
@@ -172,10 +183,8 @@ export default function TodayScreen({
         />
       )}
 
-      {/* ---------- 1. Check-in sáng: HAI trạng thái tách biệt ----------
-          Chưa có (hoặc đang sửa) -> form đầy đủ.
-          Đã có -> đúng MỘT dòng tóm tắt, không lặp lại form. */}
-      {loadingCheckin ? null : !checkin || editingCheckin ? (
+      {/* ---------- 1a. Check-in sáng: form (chưa có / đang sửa) ---------- */}
+      {checkinFormOpen && (
         <Card className="mb-4">
           <SectionLabel>{editingCheckin ? "Sửa check-in" : "Check-in sáng nay"}</SectionLabel>
           <CheckinForm
@@ -186,28 +195,18 @@ export default function TodayScreen({
             onCancel={editingCheckin ? () => setEditingCheckin(false) : undefined}
           />
         </Card>
-      ) : (
-        <Card className="mb-4 flex items-center justify-between gap-3 py-2.5">
-          <p className="min-w-0 truncate text-sm text-ink">
-            <span className="text-good">✓</span>{" "}
-            <span className="font-num font-semibold">{checkin.sleepHours}h</span> ngủ · năng lượng{" "}
-            <span className="font-num font-semibold">{checkin.energy}/5</span>
-            <span className="text-ink-2">
-              {" "}
-              · <span className="font-num">{checkin.bedTime}→{checkin.wakeTime}</span>
-            </span>
-          </p>
-          <Button variant="ghost" onClick={() => setEditingCheckin(true)} className="shrink-0 text-sm">
-            Sửa
-          </Button>
-        </Card>
       )}
 
-      {/* ---------- 2. Bắt đầu làm việc ---------- */}
+      {/* ---------- 2. Bắt đầu phiên deep work — hành động chính ---------- */}
       {!blockFormOpen && (
-        <Card className="mb-4">
-          <SectionLabel right="chọn 1">Lĩnh vực</SectionLabel>
+        <Card className="mb-3">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+            <h2 className="text-base font-semibold text-ink">Bắt đầu phiên deep work</h2>
+          </div>
+          {/* 10 area xếp MỘT hàng vuốt ngang — trước đây chiếm 4 hàng. */}
           <ChipGroup
+            scroll
             options={AREAS}
             value={timerArea}
             onChange={(a) => {
@@ -215,8 +214,8 @@ export default function TodayScreen({
               setLastArea(a);
             }}
           />
-          <Button onClick={onStartTimer} className="mt-4 w-full py-3 text-base">
-            Bắt đầu đếm
+          <Button onClick={onStartTimer} className="mt-3 flex w-full items-center justify-center gap-2 py-3 text-base">
+            <span aria-hidden="true">▶</span> Bắt đầu đếm
           </Button>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <Button
@@ -257,57 +256,97 @@ export default function TodayScreen({
               setEditingBlock(null);
             }}
           />
+          {/* Nút xoá chỉ nằm TRONG form sửa, không rải trên từng dòng danh
+              sách — vẫn qua hộp xác nhận (luật số 4). */}
+          {editingBlock && (
+            <Button variant="danger" onClick={() => setBlockToDelete(editingBlock)} className="mt-3 w-full text-sm">
+              Xoá block này
+            </Button>
+          )}
         </Card>
       )}
 
-      {!blockFormOpen && (
-        <ExperimentChip experiments={experiments} tags={experimentTags} today={today} />
+      {/* ---------- 1b. Check-in đã có: đúng MỘT dòng ---------- */}
+      {!loadingCheckin && checkin && !editingCheckin && (
+        <div className="mb-3 flex min-h-[52px] items-center gap-3 rounded-2xl border border-line/70 bg-surface py-1 pr-1 pl-4">
+          <span
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-good/15 text-sm text-good"
+            aria-hidden="true"
+          >
+            ✓
+          </span>
+          <p className="min-w-0 flex-1 truncate text-sm text-ink">
+            Check-in · <span className="font-num font-semibold">{checkin.sleepHours}h</span> ngủ · năng lượng{" "}
+            <span className="font-num font-semibold">{checkin.energy}/5</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => setEditingCheckin(true)}
+            className="tap-target shrink-0 rounded-xl px-3 text-sm font-semibold text-accent active:bg-surface-2"
+          >
+            Sửa
+          </button>
+        </div>
       )}
 
       {/* ---------- 4. Tổng deep work hôm nay — hiện MỘT lần, dạng "3h05" ---------- */}
-      <Card className="mb-4">
-        <SectionLabel right={blocks.length > 0 ? `${blocks.length} block` : undefined}>
-          Deep work hôm nay
-        </SectionLabel>
-        <div className="font-num text-4xl font-semibold text-ink">{formatMinutes(totalMinutes)}</div>
+      <Card className="mb-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-medium text-ink-2">Deep work hôm nay</h2>
+          <p className="text-right">
+            <span className="font-num text-3xl font-semibold text-ink">{formatMinutes(totalMinutes)}</span>
+            {blocks.length > 0 && (
+              <span className="text-sm text-ink-2">
+                {" "}
+                · <span className="font-num">{blocks.length}</span> block
+              </span>
+            )}
+          </p>
+        </div>
 
         {byArea.length === 0 ? (
           <p className="mt-2 text-sm text-ink-3">Chưa có block nào.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-line">
-            {byArea.map(([area, minutes]) => (
-              <li key={area} className="flex items-center justify-between py-2 text-sm">
-                <span className="flex items-center gap-2 text-ink">
+          <>
+            {/* Một thanh ngang chia theo area thay cho danh sách nhiều dòng. */}
+            <div className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
+              {byArea.map(([area, minutes]) => (
+                <span key={area} style={{ flexGrow: minutes, backgroundColor: areaColor(area) }} />
+              ))}
+            </div>
+            <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+              {byArea.map(([area, minutes]) => (
+                <li key={area} className="flex items-center gap-1.5 text-xs text-ink-2">
                   <span
-                    className="h-2 w-2 shrink-0 rounded-sm"
+                    className="h-2 w-2 shrink-0 rounded-full"
                     style={{ backgroundColor: areaColor(area) }}
                     aria-hidden="true"
                   />
-                  {area}
-                </span>
-                <span className="font-num text-ink-2">{formatMinutes(minutes)}</span>
-              </li>
-            ))}
-          </ul>
+                  {area} <span className="font-num text-ink">{formatMinutes(minutes)}</span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </Card>
 
-      {/* ---------- 5. Danh sách block ---------- */}
+      {/* ---------- 5. Danh sách block — bấm một dòng để sửa ---------- */}
       {sortedBlocks.length > 0 && (
-        <Card className="mb-4 px-0 pb-1">
-          <SectionLabel className="px-4" right="bấm để sửa">
+        <section className="mb-3">
+          <SectionLabel className="px-1" right="bấm để sửa">
             Block đã log
           </SectionLabel>
-          <ul className="divide-y divide-line">
+          <ul className="divide-y divide-line/70 overflow-hidden rounded-2xl border border-line/70 bg-surface">
             {sortedBlocks.map((block) => (
-              <li key={block.id} className="flex items-start gap-2 px-4 py-2.5">
+              <li key={block.id}>
                 <button
                   type="button"
                   onClick={() => {
                     setEditingBlock(block);
                     setBlockFormOpen(true);
                   }}
-                  className="min-w-0 flex-1 text-left"
+                  aria-label={`Sửa block ${block.startTime} ${block.area}`}
+                  className="min-h-[52px] w-full px-4 py-3 text-left active:bg-surface-2"
                 >
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="font-num text-sm text-ink-2">{block.startTime}</span>
@@ -316,7 +355,7 @@ export default function TodayScreen({
                     </span>
                     <Tag tone="indigo">{block.area}</Tag>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-2">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-2">
                     <span>
                       Tập trung <span className="font-num">{block.focusRating}/5</span>
                     </span>
@@ -324,7 +363,7 @@ export default function TodayScreen({
                     <Tag tone="neutral">
                       <span className="font-num">{block.distractions}</span>&nbsp;phân tâm
                     </Tag>
-                    {block.phoneAway && <span>điện thoại phòng khác</span>}
+                    {block.phoneAway && <span className="text-ink-3">điện thoại phòng khác</span>}
                   </div>
                   {block.resumeNote && (
                     <div className="mt-1 text-xs text-ink-2">↪ {block.resumeNote}</div>
@@ -339,28 +378,22 @@ export default function TodayScreen({
                     </ul>
                   )}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setBlockToDelete(block)}
-                  className="tap-target shrink-0 rounded-lg px-2 text-sm font-medium text-bad-ink active:bg-bad/15"
-                  aria-label="Xoá block"
-                >
-                  Xoá
-                </button>
               </li>
             ))}
           </ul>
-        </Card>
+        </section>
       )}
 
-      {/* Nhắc sao lưu — luật số 7. Chỉ hiện khi đã QUÁ 7 ngày chưa xuất
-          (hoặc chưa xuất bao giờ mà đã có dữ liệu). */}
+      {!blockFormOpen && (
+        <ExperimentChip experiments={experiments} tags={experimentTags} today={today} />
+      )}
+
+      {/* Nhắc sao lưu — luật số 7. Một dòng mảnh, chỉ khi đã QUÁ 7 ngày
+          chưa xuất (hoặc chưa xuất bao giờ mà đã có dữ liệu). */}
       {remindBackup && (
-        <div className="mb-4 rounded-lg border border-warn/30 bg-warn/12 px-4 py-2.5 text-sm text-warn">
-          {sinceExport === null
-            ? "Chưa sao lưu lần nào. Vào Cài đặt để xuất file JSON."
-            : `Đã ${sinceExport} ngày chưa sao lưu. Vào Cài đặt để xuất file JSON.`}
-        </div>
+        <Notice action="Xuất ngay" onAction={() => onNavigate("settings")}>
+          {sinceExport === null ? "Chưa sao lưu lần nào" : `${sinceExport} ngày chưa sao lưu`}
+        </Notice>
       )}
 
       {/* ---------- Hộp xác nhận xoá (luật số 4) ---------- */}

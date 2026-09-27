@@ -110,7 +110,7 @@ export default function SettingsScreen() {
 
       {/* Đang có bao nhiêu dữ liệu trong kho đang mở — một dòng gọn. */}
       <Card className="mb-6 py-3">
-        <div className="mb-1 text-xs font-semibold tracking-wider text-ink-2 uppercase">
+        <div className="mb-1 text-sm font-medium text-ink-2">
           {demo ? "Kho dữ liệu mẫu" : activeStore === "cloud" ? "Kho dữ liệu thật · tài khoản" : "Kho dữ liệu thật · trên máy"}
         </div>
         <p className="text-sm leading-relaxed text-ink-2">
@@ -195,7 +195,7 @@ export default function SettingsScreen() {
 /** Tiêu đề một nhóm cài đặt. */
 function GroupHeading({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mb-2 px-1 text-sm font-semibold tracking-wide text-ink uppercase">{children}</h2>
+    <h2 className="mb-2 px-1 text-sm font-medium text-ink-2">{children}</h2>
   );
 }
 
@@ -216,7 +216,7 @@ function PersistenceCard({ status }: { status: PersistenceStatus }) {
 
   return (
     <Card className={`mb-4 ${style}`}>
-      <div className="text-xs font-semibold tracking-wider text-ink-2 uppercase">
+      <div className="text-sm font-medium text-ink-2">
         Bảo vệ dữ liệu
       </div>
       <div className={`mt-1 text-sm font-bold ${d.tone === "good" ? "text-good" : d.tone === "warn" ? "text-warn" : "text-ink"}`}>

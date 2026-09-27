@@ -20,22 +20,20 @@ export default function ScreenShell({ title, subtitle, right, children }: Screen
   return (
     <div className="flex h-full flex-col">
       {/* Thanh tiêu đề: `sticky top-0` = luôn dính ở trên khi cuộn. */}
-      <header className="sticky top-0 z-10 border-b border-line bg-canvas/95 px-4 pt-4 pb-3 backdrop-blur">
+      {/* Bản "Calm": tiêu đề viết thường kiểu câu, chữ to, không kẻ viền —
+          nền tiêu đề cùng màu nền trang nên trông như một khối liền. */}
+      <header className="sticky top-0 z-10 bg-canvas/95 px-4 pt-5 pb-3 backdrop-blur">
         {/* flex-wrap: nếu phần bên phải quá rộng thì xuống dòng, KHÔNG đè lên
             tiêu đề ở màn hình 390px. */}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="flex items-center gap-2 text-lg font-semibold tracking-wide text-ink uppercase">
-            {/* Chấm cyan nhỏ — dấu hiệu "đang ở màn hình này". */}
-            <span className="h-2 w-2 shrink-0 rounded-full bg-accent" aria-hidden="true" />
-            {title}
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
           {right}
         </div>
-        {subtitle && <p className="mt-1 text-sm text-ink-2">{subtitle}</p>}
+        {subtitle && <p className="mt-0.5 text-sm text-ink-2">{subtitle}</p>}
       </header>
 
       {/* Vùng nội dung. `overflow-y-auto` = cuộn dọc khi nội dung dài. */}
-      <main className="flex-1 overflow-y-auto px-4 py-4">{children}</main>
+      <main className="flex-1 overflow-y-auto px-4 pt-2 pb-6">{children}</main>
     </div>
   );
 }

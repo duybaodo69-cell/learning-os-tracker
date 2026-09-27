@@ -145,12 +145,12 @@ function CloudAccount() {
   return (
     <>
       <Card className="mb-4">
-        <div className="text-xs font-semibold tracking-wider text-ink-2 uppercase">Tài khoản</div>
+        <div className="text-sm font-medium text-ink-2">Tài khoản</div>
         <div className="mt-1 text-sm font-semibold break-all text-ink">
           {user?.isLoggedIn ? user.email : "Chưa đăng nhập"}
         </div>
 
-        <div className="mt-3 text-xs font-semibold tracking-wider text-ink-2 uppercase">Trạng thái</div>
+        <div className="mt-3 text-sm font-medium text-ink-2">Trạng thái</div>
         <div className={`mt-1 text-sm font-bold ${TONE_CLASS[status.tone]}`} aria-live="polite">
           {status.label}
         </div>

@@ -53,6 +53,11 @@
   --bad: #f43f5e;         /* xấu đi / xoá — dùng cho nền, viền */
   --bad-ink: #fb7185;     /* chữ đỏ (bản sáng hơn cho đủ tương phản) */
 
+  /* Thanh chọn mục con (Segmented): rãnh + ô đang chọn. Ô chọn sáng hơn
+     rãnh một bậc, chữ cyan trên nó vẫn >= 6:1. */
+  --track: #12151c;
+  --thumb: #252c3b;
+
   -webkit-text-size-adjust: 100%;
   color-scheme: dark;
 
@@ -90,6 +95,9 @@
   --bad: #dc2626;         /* red-600 */
   --bad-ink: #b91c1c;     /* red-700 */
 
+  --track: #e9eef4;       /* rãnh xám nhạt */
+  --thumb: #ffffff;       /* ô chọn trắng, chữ xanh 5.2:1 */
+
   color-scheme: light;
   --glass: 94%;
 }
@@ -110,6 +118,8 @@
   --color-warn: var(--warn);
   --color-bad: var(--bad);
   --color-bad-ink: var(--bad-ink);
+  --color-track: var(--track);
+  --color-thumb: var(--thumb);
 
   --font-sans: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-num: "Geist", "Be Vietnam Pro", system-ui, sans-serif;

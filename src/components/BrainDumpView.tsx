@@ -166,7 +166,7 @@ export default function BrainDumpView() {
       </CardBox>
 
       {/* ---------- Các lần gần đây ---------- */}
-      <div className="px-1 pb-2 text-xs font-semibold tracking-wide text-ink-3 uppercase">
+      <div className="px-1 pb-2 text-sm font-medium text-ink-2">
         Gần đây
       </div>
 
