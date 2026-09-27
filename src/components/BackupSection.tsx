@@ -14,6 +14,7 @@ import {
   TABLE_LABELS,
   TABLE_NAMES,
   currentCounts,
+  EXPORT_REMINDER_DAYS,
   daysSinceLastExport,
   exportBackup,
   getLastExportDate,
@@ -42,6 +43,8 @@ export default function BackupSection() {
   // Đọc localStorage mỗi lần vẽ là đủ — giá trị chỉ đổi khi chính màn hình này xuất file.
   const lastExport = getLastExportDate();
   const daysSince = daysSinceLastExport(today);
+  // Quá hạn = chưa xuất bao giờ, hoặc đã quá 7 ngày (luật số 7).
+  const overdue = lastExport === null || (daysSince !== null && daysSince > EXPORT_REMINDER_DAYS);
 
   async function handleExport() {
     setBusy(true);
@@ -110,47 +113,54 @@ export default function BackupSection() {
   const totalExisting = existing ? TABLE_NAMES.reduce((s, n) => s + (existing[n] ?? 0), 0) : 0;
 
   return (
-    <Card className="mb-4">
-      <div className="mb-2 text-sm font-medium text-ink-2">
-        Sao lưu
+    <Card className="mb-5">
+      {/* Dòng trạng thái lên đầu: câu trả lời cho "đã sao lưu chưa?". */}
+      <div className="flex items-start gap-3">
+        {overdue && (
+          <span aria-hidden="true" className="mt-0.5 text-base text-warn">
+            ⚠
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="text-base font-semibold text-ink">
+            {lastExport === null
+              ? "Chưa sao lưu lần nào"
+              : daysSince === null || daysSince === 0
+                ? "Đã sao lưu hôm nay"
+                : overdue
+                  ? `Đã ${daysSince} ngày chưa sao lưu`
+                  : `Sao lưu ${daysSince} ngày trước`}
+          </p>
+          <p className="mt-0.5 text-sm text-ink-2">
+            Dữ liệu chỉ nằm trong trình duyệt của <strong className="text-ink">máy này</strong>. Xuất một bản
+            mỗi tuần và cất ra ngoài máy.
+            {lastExport !== null && (
+              <span className="text-ink-3">
+                {" "}
+                Lần gần nhất: <span className="font-num">{lastExport}</span>.
+              </span>
+            )}
+          </p>
+        </div>
       </div>
 
-      <p className="mb-3 text-sm text-ink-2">
-        Dữ liệu chỉ nằm trong trình duyệt của <strong>máy này</strong>. Xuất một bản{" "}
-        <strong>mỗi tuần</strong> và cất ra ngoài máy.
-      </p>
-
       {demo && (
-        <p className="mb-3 rounded-lg bg-warn/15 px-3 py-2 text-sm font-semibold text-warn">
-          Đang ở chế độ dữ liệu mẫu. Xuất bây giờ chỉ ra file mẫu, và KHÔNG được
-          tính là đã sao lưu dữ liệu thật.
+        <p className="mt-3 text-sm font-semibold text-warn">
+          Đang ở chế độ dữ liệu mẫu: xuất bây giờ chỉ ra file mẫu, KHÔNG tính là đã sao lưu dữ liệu thật.
         </p>
       )}
 
-      <div className="mb-3 rounded-lg bg-surface-2 px-3 py-2 text-sm">
-        {lastExport === null ? (
-          <span className="font-semibold text-warn">Chưa xuất bản sao lưu nào.</span>
-        ) : (
-          <span className="text-ink-2">
-            Lần xuất gần nhất: <strong>{lastExport}</strong>
-            {daysSince !== null && daysSince > 0 && ` (${daysSince} ngày trước)`}
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={handleExport} disabled={busy} className="flex-1 text-sm">
-          Xuất dữ liệu (JSON)
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => fileInput.current?.click()}
-          disabled={busy}
-          className="flex-1 text-sm"
-        >
-          Nhập dữ liệu
-        </Button>
-      </div>
+      <Button onClick={handleExport} disabled={busy} className="mt-4 w-full py-3 text-base">
+        Xuất dữ liệu (JSON)
+      </Button>
+      <Button
+        variant="ghost"
+        onClick={() => fileInput.current?.click()}
+        disabled={busy}
+        className="mt-1 w-full text-sm"
+      >
+        Nhập dữ liệu từ file…
+      </Button>
 
       {/* Ô chọn file ẩn đi, nút ở trên bấm hộ — nút mặc định của trình duyệt xấu và nhỏ. */}
       <input
@@ -162,15 +172,15 @@ export default function BackupSection() {
       />
 
       {message && (
-        <p className="mt-3 rounded-lg bg-good/10 px-3 py-2 text-sm text-good">{message}</p>
+        <p className="mt-3 rounded-xl bg-good/10 px-3 py-2 text-sm text-good">{message}</p>
       )}
       {error && (
-        <p className="mt-3 rounded-lg bg-bad/10 px-3 py-2 text-sm text-bad-ink">{error}</p>
+        <p className="mt-3 rounded-xl bg-bad/10 px-3 py-2 text-sm text-bad-ink">{error}</p>
       )}
 
       {/* ---------- Xem trước trước khi ghi đè ---------- */}
       {preview && existing && (
-        <div className="mt-4 rounded-lg border border-warn/40 bg-warn/10 p-3">
+        <div className="mt-4 rounded-xl border border-warn/40 bg-warn/10 p-3">
           <div className="text-sm font-bold text-warn">Xem trước trước khi ghi đè</div>
           <p className="mt-1 text-xs text-warn">
             File tạo lúc {preview.file.exportedAt.slice(0, 10)}. Bảng dưới so sánh dữ liệu{" "}

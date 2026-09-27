@@ -1,11 +1,11 @@
 /**
  * Màn hình "Cài đặt".
  *
- * Các nhóm, theo thứ tự:
- *   0. Giao diện, Đồng bộ (Dexie Cloud, src/components/SyncSection.tsx)
- *   1. Sao lưu & dữ liệu — mức bảo vệ của trình duyệt, xuất/nhập JSON
- *   2. Dữ liệu mẫu — kho riêng để xem thử
- *   3. Thử nghiệm cá nhân
+ * Bố cục "Calm" (Stitch 2026-09), theo thứ tự:
+ *   1. Sao lưu — trạng thái + nút Xuất (việc quan trọng nhất, lên đầu)
+ *   2. Dữ liệu — mức bảo vệ của trình duyệt, số bản ghi (bấm để mở)
+ *   3. Đồng bộ (Dexie Cloud, src/components/SyncSection.tsx)
+ *   4. Giao diện, Thử nghiệm cá nhân, Dữ liệu mẫu
  * Cuối cùng là một dòng phiên bản.
  */
 import { useEffect, useState } from "react";
@@ -21,7 +21,7 @@ import type { PersistenceStatus } from "../lib/persistence";
 
 import ScreenShell from "../components/ScreenShell";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { Button, Card, Toggle } from "../components/ui";
+import { Button, ListGroup, ListRow } from "../components/ui";
 import type { ReactNode } from "react";
 import BackupSection from "../components/BackupSection";
 import ExperimentsManager from "../components/ExperimentsManager";
@@ -84,88 +84,98 @@ export default function SettingsScreen() {
     setBusy(false);
   }
 
+  // Hai dòng mở/gập trong nhóm "Dữ liệu".
+  const [showPersist, setShowPersist] = useState(false);
+  const [showCounts, setShowCounts] = useState(false);
+  const persist = describePersistence(persistence);
+  const storeLabel = demo ? "Kho dữ liệu mẫu" : activeStore === "cloud" ? "Kho · tài khoản" : "Kho · trên máy";
+
   return (
     <ScreenShell title="Cài đặt">
-      {/* ================= Giao diện ================= */}
-      <GroupHeading>Giao diện</GroupHeading>
-      <Card className="mb-6">
-        <Toggle
-          label="Chế độ tối"
-          description={theme === "dark" ? "Đang dùng giao diện tối" : "Đang dùng giao diện sáng (bản trước)"}
-          checked={theme === "dark"}
-          onChange={toggleTheme}
+      {/* ================= Sao lưu — việc quan trọng nhất, lên đầu ================= */}
+      <BackupSection />
+
+      {/* ================= Dữ liệu ================= */}
+      <ListGroup label="Dữ liệu">
+        <ListRow
+          label="Bảo vệ dữ liệu"
+          value={persist.title}
+          valueTone={persist.tone === "good" ? "good" : persist.tone === "warn" ? "warn" : "muted"}
+          onClick={() => setShowPersist(!showPersist)}
+          open={showPersist}
         />
-      </Card>
+        {showPersist && persist.detail && (
+          <p className="px-4 py-3 text-sm text-ink-2">{persist.detail}</p>
+        )}
+        <ListRow
+          label={storeLabel}
+          value={
+            <>
+              <span className="font-num">{totalCount}</span> bản ghi
+            </>
+          }
+          onClick={() => setShowCounts(!showCounts)}
+          open={showCounts}
+        />
+        {showCounts && (
+          <p className="px-4 py-3 text-sm leading-relaxed text-ink-2">
+            <Count n={checkinCount} /> check-in · <Count n={blockCount} /> block ·{" "}
+            <Count n={dumpCount} /> brain dump · <Count n={cardCount} /> thẻ ·{" "}
+            <Count n={logCount} /> lượt ôn · <Count n={predictionCount} /> dự đoán ·{" "}
+            <Count n={reviewCount} /> tổng kết tuần · <Count n={tagCount} /> nhãn thí nghiệm
+          </p>
+        )}
+      </ListGroup>
 
       {/* ================= Đồng bộ ================= */}
       <GroupHeading>Đồng bộ</GroupHeading>
       <SyncSection />
 
-      {/* ================= 1. Sao lưu & dữ liệu ================= */}
-      <GroupHeading>Sao lưu & dữ liệu</GroupHeading>
-
-      <PersistenceCard status={persistence} />
-
-      <BackupSection />
-
-      {/* Đang có bao nhiêu dữ liệu trong kho đang mở — một dòng gọn. */}
-      <Card className="mb-6 py-3">
-        <div className="mb-1 text-sm font-medium text-ink-2">
-          {demo ? "Kho dữ liệu mẫu" : activeStore === "cloud" ? "Kho dữ liệu thật · tài khoản" : "Kho dữ liệu thật · trên máy"}
-        </div>
-        <p className="text-sm leading-relaxed text-ink-2">
-          <Count n={checkinCount} /> check-in · <Count n={blockCount} /> block ·{" "}
-          <Count n={dumpCount} /> brain dump · <Count n={cardCount} /> thẻ ·{" "}
-          <Count n={logCount} /> lượt ôn · <Count n={predictionCount} /> dự đoán ·{" "}
-          <Count n={reviewCount} /> tổng kết tuần · <Count n={tagCount} /> nhãn thí nghiệm
-        </p>
-      </Card>
-
-      {/* ================= 2. Dữ liệu mẫu ================= */}
-      <GroupHeading>Dữ liệu mẫu</GroupHeading>
-      <Card className="mb-6">
-        <Toggle
-          label="Chế độ dữ liệu mẫu"
-          description="Xem thử app với dữ liệu giả"
-          checked={demo}
-          onChange={toggleDemo}
+      {/* ================= Giao diện ================= */}
+      <ListGroup label="Giao diện">
+        <ListRow
+          label="Chế độ tối"
+          description={theme === "dark" ? "Đang dùng giao diện tối" : "Đang dùng giao diện sáng"}
+          checked={theme === "dark"}
+          onClick={() => toggleTheme(theme !== "dark")}
         />
-        <p className="mt-3 text-sm text-ink-2">
-          Dữ liệu mẫu nằm trong kho riêng; bật/tắt sẽ tải lại app, dữ liệu thật không bị động tới.
-        </p>
+      </ListGroup>
 
-        {demo && (
-          <div className="mt-4 rounded-lg border border-warn/30 bg-warn/12 p-3">
-            <p className="mb-3 text-sm font-semibold text-warn">Đang ở chế độ dữ liệu mẫu</p>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={handleLoadDemo} disabled={busy} className="text-sm">
-                {busy ? "Đang nạp..." : "Nạp 14 ngày dữ liệu mẫu"}
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => setConfirmClear(true)}
-                disabled={busy || totalCount === 0}
-                className="text-sm"
-              >
-                Xoá dữ liệu mẫu
-              </Button>
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* ================= 3. Thử nghiệm cá nhân ================= */}
+      {/* ================= Thử nghiệm cá nhân ================= */}
       <GroupHeading>Thử nghiệm cá nhân</GroupHeading>
       <ExperimentsManager />
 
+      {/* ================= Dữ liệu mẫu ================= */}
+      <ListGroup label="Dữ liệu mẫu">
+        <ListRow
+          label="Chế độ dữ liệu mẫu"
+          description="Kho riêng; bật/tắt sẽ tải lại app, dữ liệu thật không bị động tới."
+          checked={demo}
+          onClick={() => toggleDemo(!demo)}
+        />
+        {demo && (
+          <div className="flex flex-wrap gap-2 px-4 py-3">
+            <Button variant="secondary" onClick={handleLoadDemo} disabled={busy} className="text-sm">
+              {busy ? "Đang nạp..." : "Nạp 14 ngày dữ liệu mẫu"}
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => setConfirmClear(true)}
+              disabled={busy || totalCount === 0}
+              className="text-sm"
+            >
+              Xoá dữ liệu mẫu
+            </Button>
+          </div>
+        )}
+      </ListGroup>
+
       {/* ================= Phiên bản ================= */}
-      <Card className="mb-4 flex items-center justify-between py-3">
-        <span className="text-sm text-ink-2">Phiên bản · ngày build</span>
-        <span className="font-num text-sm font-semibold text-ink">{__BUILD_DATE__}</span>
-      </Card>
-      <p className="mb-4 px-1 text-xs text-ink-2">
-        App tự cập nhật khi có bản mới. Nếu ngày này cũ hơn lần deploy gần nhất, đóng hẳn app rồi mở
-        lại.
+      <p className="mt-2 text-center text-sm text-ink-2">
+        Phiên bản · ngày build <span className="font-num font-semibold text-ink">{__BUILD_DATE__}</span>
+      </p>
+      <p className="mx-auto mt-1 mb-4 max-w-xs text-center text-xs text-ink-3">
+        App tự cập nhật khi có bản mới. Nếu ngày này cũ hơn lần deploy gần nhất, đóng hẳn app rồi mở lại.
       </p>
 
       {/* ---------- Xác nhận xoá (luật số 4) ---------- */}
@@ -202,27 +212,4 @@ function GroupHeading({ children }: { children: ReactNode }) {
 /** Con số trong dòng thống kê kho. */
 function Count({ n }: { n: number }) {
   return <span className="font-num font-semibold text-ink">{n}</span>;
-}
-
-/** Ô hiện trình duyệt có cam kết giữ dữ liệu hay không. */
-function PersistenceCard({ status }: { status: PersistenceStatus }) {
-  const d = describePersistence(status);
-  const style =
-    d.tone === "good"
-      ? "border-good/30 bg-good/10"
-      : d.tone === "warn"
-        ? "border-warn/30 bg-warn/10"
-        : "";
-
-  return (
-    <Card className={`mb-4 ${style}`}>
-      <div className="text-sm font-medium text-ink-2">
-        Bảo vệ dữ liệu
-      </div>
-      <div className={`mt-1 text-sm font-bold ${d.tone === "good" ? "text-good" : d.tone === "warn" ? "text-warn" : "text-ink"}`}>
-        {d.title}
-      </div>
-      {d.detail && <p className="mt-1 text-sm text-ink-2">{d.detail}</p>}
-    </Card>
-  );
 }

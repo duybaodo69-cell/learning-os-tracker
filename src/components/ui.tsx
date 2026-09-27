@@ -491,7 +491,7 @@ export function SwitchKnob({ checked }: { checked: boolean }) {
       aria-hidden="true"
       className={
         "relative h-7 w-12 shrink-0 rounded-full transition-colors " +
-        (checked ? "bg-accent" : "bg-line")
+        (checked ? "bg-accent" : "bg-ink-3/45")
       }
     >
       <span
