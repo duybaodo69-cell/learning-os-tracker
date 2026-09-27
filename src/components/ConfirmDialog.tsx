@@ -11,6 +11,7 @@
  */
 import type { ReactNode } from "react";
 import { Button } from "./ui";
+import { overlayPadding } from "../lib/viewport";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -41,13 +42,17 @@ export default function ConfirmDialog({
 
   return (
     // Lớp nền mờ phủ toàn màn hình. Bấm ra ngoài = huỷ.
+    // Đệm tránh tai thỏ / thanh home; màn rộng thì hộp nằm giữa.
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center"
+      style={overlayPadding(0)}
       onClick={onCancel}
     >
-      {/* stopPropagation: bấm vào trong hộp thì KHÔNG bị tính là bấm ra ngoài. */}
+      {/* stopPropagation: bấm vào trong hộp thì KHÔNG bị tính là bấm ra ngoài.
+          max-h-full + cuộn: cỡ chữ 150% hay điện thoại xoay ngang thì hộp cao
+          hơn màn hình — vẫn cuộn tới được nút xác nhận. */}
       <div
-        className="w-full max-w-md rounded-2xl border border-accent/60 bg-surface p-5 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
+        className="max-h-full w-full max-w-md overflow-y-auto rounded-2xl border border-accent/60 bg-surface p-5 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
         onClick={(e) => e.stopPropagation()}
         role="alertdialog"
         aria-modal="true"

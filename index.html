@@ -43,6 +43,12 @@
           document.querySelector('meta[name="theme-color"]').setAttribute("content", "#f8fafc");
         }
       } catch (e) {}
+      // Cỡ hiển thị 125% / 150% (Cài đặt -> Giao diện). Phải khớp với
+      // src/lib/uiScale.ts: khoá "learning-os:ui-scale", 100% = không đặt gì.
+      try {
+        var scale = localStorage.getItem("learning-os:ui-scale");
+        if (scale === "125" || scale === "150") document.documentElement.dataset.scale = scale;
+      } catch (e) {}
     </script>
   </head>
   <body>

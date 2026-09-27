@@ -8,9 +8,12 @@ import "./index.css";
 import App from "./App.tsx";
 import { ensurePersistence } from "./lib/persistence";
 import { applyTheme, getTheme } from "./lib/theme";
+import { applyUiScale, getUiScale } from "./lib/uiScale";
 
-// Áp theme đã lưu (index.html đã làm việc này sớm hơn; ở đây là lớp dự phòng).
+// Áp theme và cỡ hiển thị đã lưu (index.html đã làm việc này sớm hơn; ở đây
+// là lớp dự phòng).
 applyTheme(getTheme());
+applyUiScale(getUiScale());
 
 // Xin trình duyệt đừng tự xoá dữ liệu khi máy hết chỗ.
 // Chạy nền, không chặn việc hiện app. Không bao giờ ném lỗi.

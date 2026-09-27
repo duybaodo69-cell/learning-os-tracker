@@ -9,8 +9,8 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 
-import BottomNav from "./components/BottomNav";
-import type { TabId } from "./components/BottomNav";
+import AppNav from "./components/AppNav";
+import type { TabId } from "./components/AppNav";
 
 import TodayScreen from "./screens/TodayScreen";
 import ReviewScreen from "./screens/ReviewScreen";
@@ -86,11 +86,31 @@ export default function App() {
   return (
     // h-dvh = cao đúng bằng màn hình thật của điện thoại
     // (tính cả khi thanh địa chỉ của trình duyệt ẩn/hiện).
-    <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
-      {/* min-h-0 để phần màn hình cuộn được thay vì đẩy thanh tab xuống dưới. */}
-      <div className="min-h-0 flex-1">{renderScreen()}</div>
+    //
+    // `@container/app`: bố cục (thanh tab dưới hay trái, một hay hai cột) dựa
+    // trên BỀ RỘNG APP tính bằng rem, không phải media query — nên cỡ hiển
+    // thị 150% tự chuyển sang bố cục hẹp hơn (src/lib/uiScale.ts).
+    //
+    // Đệm theo "vùng an toàn": app đã cài trên iPhone vẽ tràn dưới thanh
+    // trạng thái và tai thỏ (viewport-fit=cover), xoay ngang thì tai thỏ nằm
+    // bên trái/phải. Máy không có tai thỏ thì các giá trị này là 0.
+    <div
+      className="@container/app h-dvh overflow-hidden bg-canvas"
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
+      }}
+    >
+      {/* Điện thoại: cột (nội dung trên, thanh tab dưới). Từ 42rem: hàng
+          (thanh tab trái). Chỉ đổi CSS, cây React giữ nguyên — xoay máy hay
+          đổi cỡ cửa sổ không làm mất form đang nhập. */}
+      <div className="flex h-full flex-col @2xl/app:flex-row">
+        {/* min-h-0 / min-w-0 để phần màn hình cuộn được thay vì đẩy thanh tab ra ngoài. */}
+        <div className="min-h-0 min-w-0 flex-1">{renderScreen()}</div>
 
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} reviewBadge={dueCount} />
+        <AppNav activeTab={activeTab} onTabChange={setActiveTab} reviewBadge={dueCount} />
+      </div>
 
       {/* Hộp đăng nhập / xác nhận đăng xuất của Dexie Cloud — chỉ ở kho cloud. */}
       {activeStore === "cloud" && <CloudLoginDialog />}

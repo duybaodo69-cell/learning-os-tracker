@@ -52,20 +52,23 @@ export default function CardsView() {
 
   if (formOpen) {
     return (
-      <CardForm
-        today={today}
-        existing={editing}
-        onDone={() => {
-          setFormOpen(false);
-          setEditing(null);
-        }}
-      />
+      // Form một cột, không kéo quá rộng trên máy tính.
+      <div className="max-w-2xl">
+        <CardForm
+          today={today}
+          existing={editing}
+          onDone={() => {
+            setFormOpen(false);
+            setEditing(null);
+          }}
+        />
+      </div>
     );
   }
 
   return (
     <div className="pb-4">
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex items-center gap-2 @3xl/content:max-w-md">
         <Button
           onClick={() => {
             setEditing(null);
@@ -94,7 +97,8 @@ export default function CardsView() {
           hint={allCards.length === 0 ? 'Tạo ở đây, hoặc từ chỗ hổng trong brain dump' : undefined}
         />
       ) : (
-        <div className="space-y-2">
+        // Máy tính: danh sách thẻ xếp lưới hai cột.
+        <div className="grid gap-2 @3xl/content:grid-cols-2">
           {visible.map((card) => (
             <CardBox key={card.id} className="flex items-start justify-between gap-2">
               <button

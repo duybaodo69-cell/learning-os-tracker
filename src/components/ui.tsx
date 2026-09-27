@@ -389,13 +389,18 @@ export function Segmented<T extends string>({
   options,
   value,
   onChange,
+  label,
+  className = "mb-4",
 }: {
   options: { id: T; label: string; badge?: number }[];
   value: T;
   onChange: (v: T) => void;
+  /** Tên cả nhóm cho trình đọc màn hình (vd "Cỡ hiển thị"). */
+  label?: string;
+  className?: string;
 }) {
   return (
-    <div className="mb-4 flex gap-1 rounded-xl bg-track p-1">
+    <div className={`flex gap-1 rounded-xl bg-track p-1 ${className}`} role={label ? "group" : undefined} aria-label={label}>
       {options.map((opt) => (
         <button
           key={opt.id}
@@ -578,7 +583,7 @@ export function ListRow({
   const body = (
     <>
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] text-ink">{label}</span>
+        <span className="block text-[0.9375rem] text-ink">{label}</span>
         {description && <span className="mt-0.5 block text-xs text-ink-3">{description}</span>}
       </span>
       {value !== undefined && (

@@ -95,8 +95,9 @@ export default function BrainDumpView({ onOpenCards }: { onOpenCards?: () => voi
   }
 
   return (
-    <div className="pb-4">
-      <CardBox className="mb-4">
+    // Máy tính: form bên trái, lịch sử bên phải. Điện thoại: lịch sử dưới form.
+    <div className="grid items-start gap-x-4 pb-4 @3xl/content:grid-cols-2">
+      <CardBox className="mb-4 min-w-0">
         <Field label="Area">
           <ChipGroup options={AREAS} value={area} onChange={setArea} scroll />
         </Field>
@@ -171,7 +172,9 @@ export default function BrainDumpView({ onOpenCards }: { onOpenCards?: () => voi
         )}
       </CardBox>
 
-      <BrainDumpHistory />
+      <div className="min-w-0">
+        <BrainDumpHistory />
+      </div>
     </div>
   );
 }

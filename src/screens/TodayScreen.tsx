@@ -35,7 +35,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { Button, Card, ChipGroup, Notice, SectionLabel, Tag } from "../components/ui";
 import WeeklyReviewCard, { ThisWeekChange } from "../components/WeeklyReviewCard";
 import ExperimentChip from "../components/ExperimentChip";
-import type { TabId } from "../components/BottomNav";
+import type { TabId } from "../components/AppNav";
 import type { ReviewView } from "./ReviewScreen";
 
 export default function TodayScreen({

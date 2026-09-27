@@ -21,6 +21,7 @@ import {
 
 import type { SleepVsFocusPoint, WeeklyAreaPoint, WeeklyRetentionPoint } from "../lib/metrics";
 import { areaColor } from "../lib/areaColors";
+import { uiScaleFactor } from "../lib/uiScale";
 
 /** Bảng màu cho các area. Lặp lại nếu có nhiều area hơn số màu. */
 /* Màu area lấy từ lib/areaColors.ts — mỗi area một màu cố định trên mọi màn hình. */
@@ -31,7 +32,13 @@ function shortDate(iso: string): string {
   return `${d}/${m}`;
 }
 
-const AXIS = { fontSize: 12, fill: "var(--ink-2)" };
+/**
+ * Cỡ chữ / bề rộng trục tính bằng px (Recharts vẽ SVG, không hiểu rem), nên
+ * nhân theo cỡ hiển thị 100/125/150% (src/lib/uiScale.ts). Tính LÚC VẼ, không
+ * phải lúc nạp file, để đổi cỡ trong Cài đặt là biểu đồ theo ngay.
+ */
+const px = (n: number) => Math.round(n * uiScaleFactor());
+const axis = () => ({ fontSize: px(12), fill: "var(--ink-2)" });
 
 /**
  * LƯU Ý VỀ LỀ BIỂU ĐỒ:
@@ -52,19 +59,19 @@ export function SleepVsFocusChart({ points }: { points: SleepVsFocusPoint[] }) {
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={points} margin={{ top: 8, right: 14, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="date" tickFormatter={shortDate} tick={AXIS} interval={6} />
+          <XAxis dataKey="date" tickFormatter={shortDate} tick={axis()} interval={6} />
           {/* Hai trục dọc vì hai đơn vị khác nhau: giờ và phút. */}
-          <YAxis yAxisId="sleep" tick={AXIS} width={30} domain={[0, 12]} />
-          <YAxis yAxisId="focus" orientation="right" tick={AXIS} width={44} />
+          <YAxis yAxisId="sleep" tick={axis()} width={px(30)} domain={[0, 12]} />
+          <YAxis yAxisId="focus" orientation="right" tick={axis()} width={px(44)} />
           <Tooltip
             labelFormatter={(v) => shortDate(String(v))}
             formatter={(value, name) =>
               name === "Ngủ (giờ)" ? [`${value}h`, name] : [`${value}p`, name]
             }
-            contentStyle={{ fontSize: 12, borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink)" }}
+            contentStyle={{ fontSize: px(12), borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink)" }}
           />
           <Legend
-            wrapperStyle={{ fontSize: 12 }}
+            wrapperStyle={{ fontSize: px(12) }}
             // Recharts mặc định tô chữ chú thích bằng màu của chuỗi dữ liệu;
             // ép về màu chữ phụ để chữ luôn đủ tương phản.
             formatter={(value) => <span style={{ color: "var(--ink-2)" }}>{value}</span>}
@@ -101,16 +108,16 @@ export function WeeklyAreaChart({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={points} margin={{ top: 8, right: 14, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="weekStart" tickFormatter={shortDate} tick={AXIS} />
+          <XAxis dataKey="weekStart" tickFormatter={shortDate} tick={axis()} />
           {/* width 46: tổng phút cả tuần có thể tới 4 chữ số (vd 1080). */}
-          <YAxis tick={AXIS} width={46} />
+          <YAxis tick={axis()} width={px(46)} />
           <Tooltip
             labelFormatter={(v) => `Tuần từ ${shortDate(String(v))}`}
             formatter={(value, name) => [`${value}p`, name]}
-            contentStyle={{ fontSize: 12, borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink)" }}
+            contentStyle={{ fontSize: px(12), borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink)" }}
           />
           <Legend
-            wrapperStyle={{ fontSize: 12 }}
+            wrapperStyle={{ fontSize: px(12) }}
             // Recharts mặc định tô chữ chú thích bằng màu của chuỗi dữ liệu;
             // ép về màu chữ phụ để chữ luôn đủ tương phản.
             formatter={(value) => <span style={{ color: "var(--ink-2)" }}>{value}</span>}
@@ -140,12 +147,12 @@ export function RetentionChart({ points }: { points: WeeklyRetentionPoint[] }) {
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={points} margin={{ top: 8, right: 14, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="weekStart" tickFormatter={shortDate} tick={AXIS} />
-          <YAxis tick={AXIS} width={36} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} />
+          <XAxis dataKey="weekStart" tickFormatter={shortDate} tick={axis()} />
+          <YAxis tick={axis()} width={px(36)} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} />
           <Tooltip
             labelFormatter={(v) => `Tuần từ ${shortDate(String(v))}`}
             formatter={(value) => [`${Math.round(Number(value))}%`, "Tỷ lệ nhớ"]}
-            contentStyle={{ fontSize: 12, borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink)" }}
+            contentStyle={{ fontSize: px(12), borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink)" }}
           />
           {/* connectNulls: tuần không ôn thẻ nào thì nối liền qua,
               tốt hơn là để đường gãy làm tưởng tỷ lệ tụt về 0. */}

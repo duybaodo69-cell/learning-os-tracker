@@ -182,8 +182,9 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
 
   if (queueIds === null) {
     return (
-      <div className="pb-4">
-        <CardBox className="mb-3">
+      // Máy tính: thẻ "Hôm nay" bên trái, thẻ nháp + sắp tới bên phải.
+      <div className="grid items-start gap-x-4 pb-4 @3xl/content:grid-cols-2">
+        <CardBox className="mb-3 min-w-0">
           <p className="text-sm text-ink-2">Hôm nay</p>
           <p className="mt-1 flex items-baseline gap-2">
             <span className="font-num text-5xl font-semibold text-accent">{totalDue}</span>
@@ -230,47 +231,49 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
           </Button>
         </CardBox>
 
-        {/* Thẻ nháp từ brain dump chưa có mặt sau — một chạm sang Kho thẻ. */}
-        {missingBack > 0 && onOpenCards && (
-          <ListGroup className="mb-3">
-            <ListRow
-              label={
-                <>
-                  <span className="font-num">{missingBack}</span> thẻ chưa có mặt sau
-                </>
-              }
-              description="Thẻ nháp chưa vào hàng ôn — viết đáp án để bắt đầu"
-              onClick={onOpenCards}
-            />
-          </ListGroup>
-        )}
-
-        {upcoming.length > 0 && (
-          <ListGroup label="Sắp tới" className="mb-3">
-            {upcoming.map(({ date, count }) => (
+        <div className="min-w-0">
+          {/* Thẻ nháp từ brain dump chưa có mặt sau — một chạm sang Kho thẻ. */}
+          {missingBack > 0 && onOpenCards && (
+            <ListGroup className="mb-3">
               <ListRow
-                key={date}
-                label={date === addDays(today, 1) ? "Mai" : formatDayLabel(date)}
-                value={
-                  <span className="rounded-md bg-surface-2 px-2 py-0.5">
-                    <span className="font-num">{count}</span> thẻ
-                  </span>
+                label={
+                  <>
+                    <span className="font-num">{missingBack}</span> thẻ chưa có mặt sau
+                  </>
                 }
+                description="Thẻ nháp chưa vào hàng ôn — viết đáp án để bắt đầu"
+                onClick={onOpenCards}
               />
-            ))}
-          </ListGroup>
-        )}
+            </ListGroup>
+          )}
 
-        {dueCards.length === 0 && (
-          <EmptyState
-            title={allCards.length === 0 ? "Chưa có thẻ nào" : "Hôm nay ôn xong rồi"}
-            hint={
-              allCards.length === 0
-                ? 'Tạo thẻ ở mục "Kho thẻ" hoặc từ chỗ hổng trong brain dump'
-                : "Quay lại ngày mai"
-            }
-          />
-        )}
+          {upcoming.length > 0 && (
+            <ListGroup label="Sắp tới" className="mb-3">
+              {upcoming.map(({ date, count }) => (
+                <ListRow
+                  key={date}
+                  label={date === addDays(today, 1) ? "Mai" : formatDayLabel(date)}
+                  value={
+                    <span className="rounded-md bg-surface-2 px-2 py-0.5">
+                      <span className="font-num">{count}</span> thẻ
+                    </span>
+                  }
+                />
+              ))}
+            </ListGroup>
+          )}
+
+          {dueCards.length === 0 && (
+            <EmptyState
+              title={allCards.length === 0 ? "Chưa có thẻ nào" : "Hôm nay ôn xong rồi"}
+              hint={
+                allCards.length === 0
+                  ? 'Tạo thẻ ở mục "Kho thẻ" hoặc từ chỗ hổng trong brain dump'
+                  : "Quay lại ngày mai"
+              }
+            />
+          )}
+        </div>
       </div>
     );
   }
@@ -282,7 +285,7 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
 
   if (finished || stoppedByTimer) {
     return (
-      <CardBox className="text-center">
+      <CardBox className="max-w-2xl text-center">
         <div className="text-2xl font-bold text-ink">
           {stoppedByTimer ? "Hết 10 phút" : "Xong buổi ôn"}
         </div>
@@ -303,7 +306,7 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
   // Thẻ bị xoá ở nơi khác giữa buổi ôn — bỏ qua, không làm app crash.
   if (!card) {
     return (
-      <CardBox className="text-center">
+      <CardBox className="max-w-2xl text-center">
         <p className="text-sm text-ink-2">Thẻ này đã bị xoá.</p>
         <Button onClick={() => setPosition((p) => p + 1)} className="mt-3 w-full">
           Thẻ tiếp theo
@@ -313,7 +316,8 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
   }
 
   return (
-    <div className="pb-4">
+    // Đang ôn: một thẻ, không kéo quá rộng trên máy tính cho dễ đọc.
+    <div className="max-w-2xl pb-4">
       {/* Thẻ hiện tại: area + vị trí trong hàng đợi */}
       <CardBox className="mb-3">
         <div className="mb-3 flex items-center justify-between gap-2">

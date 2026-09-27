@@ -19,6 +19,17 @@
  *
  * Màu ở màn này cố ý dùng trắng/đen trực tiếp thay vì biến theme: chữ luôn
  * nằm trên một cảnh video tối hoá, ở cả giao diện sáng lẫn tối.
+ *
+ * TOÀN MÀN HÌNH + XOAY NGANG (lib/fullscreen.ts): nút ở hàng trên. Bấm ->
+ * vào toàn màn hình NGAY trong cú bấm, xong mới thử khoá ngang. Kết quả thật
+ * (được / bị từ chối / không hỗ trợ / không khoá được hướng) hiện thành một
+ * dòng nhắc; không bao giờ báo "đã xoay" khi chưa xoay. Thoát bằng nút này,
+ * nút Back hay Esc đều nhả khoá hướng; lưu / huỷ phiên cũng thoát luôn.
+ *
+ * ĐIỆN THOẠI NẰM NGANG (`phone-landscape:`, màn thấp <= 500px): đồng hồ bên
+ * trái, cột nút bên phải — hai ngón cái chạm tới được. Mọi mép đều chừa
+ * "vùng an toàn" (tai thỏ, thanh home); bottom sheet được đẩy lên trên bàn
+ * phím (lib/viewport.ts).
  */
 import { useCallback, useEffect, useState } from "react";
 
@@ -50,7 +61,16 @@ import {
   stillReason,
 } from "../lib/background";
 import type { DimLevel, FocusBackground } from "../lib/background";
-import { canFullscreen, enterFullscreen, exitFullscreen, isFullscreen, onFullscreenChange } from "../lib/fullscreen";
+import {
+  enterFullscreen,
+  exitFullscreen,
+  fullscreenNotice,
+  isFullscreen,
+  onFullscreenChange,
+  unlockOrientation,
+} from "../lib/fullscreen";
+import type { FullscreenResult } from "../lib/fullscreen";
+import { overlayPadding, useKeyboardInset } from "../lib/viewport";
 
 import BackgroundPicker from "../components/BackgroundPicker";
 import FocusBackdrop from "../components/FocusBackdrop";
@@ -98,8 +118,15 @@ export default function FocusSession({
   // số phút thật khi lưu luôn tính lại từ mốc bắt đầu.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
+    const tick = () => setNow(Date.now());
+    const id = setInterval(tick, 1000);
+    // Mở khoá màn hình / quay lại app: cập nhật NGAY, không chờ nhịp kế tiếp
+    // (trình duyệt dừng setInterval khi app chạy nền).
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
+    };
   }, []);
   const clock = elapsedClock(startedAt, now);
 
@@ -165,10 +192,33 @@ export default function FocusSession({
   const [portrait, setPortrait] = useState(
     () => typeof window.matchMedia === "function" && window.matchMedia("(orientation: portrait)").matches
   );
-  // Nhắc xoay máy: bật khi đã bấm nút toàn màn hình mà máy vẫn đứng dọc.
-  const [wantLandscape, setWantLandscape] = useState(false);
+  // Kết quả lần bấm nút gần nhất (null = chưa bấm / đã đóng lời nhắc).
+  const [fsResult, setFsResult] = useState<FullscreenResult | null>(null);
 
-  useEffect(() => onFullscreenChange(() => setFullscreen(isFullscreen())), []);
+  useEffect(
+    () =>
+      onFullscreenChange(() => {
+        const on = isFullscreen();
+        setFullscreen(on);
+        // Đã thật sự vào toàn màn hình: bỏ lời nhắc "bị từ chối" nếu có.
+        if (on) setFsResult((r) => (r && !r.entered ? null : r));
+        if (!on) {
+          // Thoát bằng nút Back / Esc / vuốt: nhả khoá hướng, bỏ lời nhắc cũ.
+          unlockOrientation();
+          setFsResult((r) => (r?.entered ? null : r));
+        }
+      }),
+    []
+  );
+  // Rời màn phiên (lưu, huỷ, hay bất cứ lý do gì): không để app kẹt ở toàn
+  // màn hình hoặc kẹt hướng ngang.
+  useEffect(
+    () => () => {
+      if (isFullscreen()) void exitFullscreen();
+      else unlockOrientation();
+    },
+    []
+  );
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
     const mq = window.matchMedia("(orientation: portrait)");
@@ -179,15 +229,17 @@ export default function FocusSession({
 
   async function toggleFullscreen() {
     if (fullscreen) {
+      setFsResult(null);
       await exitFullscreen();
-      setWantLandscape(false);
       return;
     }
-    const r = canFullscreen() ? await enterFullscreen() : { entered: false, locked: false };
-    // Không khoá được hướng ngang (iPhone, máy tính...) -> nhắc tự xoay nếu đang dọc.
-    setWantLandscape(!r.locked);
+    // KHÔNG await gì trước dòng này: requestFullscreen phải chạy ngay trong
+    // cú bấm, nếu không trình duyệt từ chối.
+    setFsResult(await enterFullscreen());
   }
-  const showRotateHint = wantLandscape && portrait;
+  // Lời nhắc theo kết quả thật + hướng máy hiện tại (xoay xong là tự ẩn).
+  const fsNote = fullscreenNotice(fsResult, portrait);
+  const keyboard = useKeyboardInset();
 
   /* ----- Vòng tròn tiến độ tới mốc 45 phút ----- */
   const R = 88;
@@ -236,7 +288,9 @@ export default function FocusSession({
   const hasScene = savedBg.kind !== "none";
 
   return (
-    <div className="relative h-full overflow-hidden bg-[#0c0e12] text-white">
+    // `@container/focus`: chữ trên nút hiện/ẩn theo bề rộng thật (tính bằng
+    // rem, nên cỡ hiển thị 150% tự gọn lại thành chỉ icon).
+    <div className="@container/focus relative h-full overflow-hidden bg-[#0c0e12] text-white">
       {/* ---------- Cảnh nền (không nhận chạm) ---------- */}
       <FocusBackdrop
         background={shownBg}
@@ -287,21 +341,31 @@ export default function FocusSession({
                 title={videoOn ? "Tắt video nền" : "Bật video nền"}
               >
                 <VideoIcon off={!videoOn} />
-                <span className="hidden sm:inline landscape:inline">{videoOn ? "Tắt video" : "Bật video"}</span>
+                <span className="hidden @2xl/focus:inline">{videoOn ? "Tắt video" : "Bật video"}</span>
               </button>
             )}
             <button type="button" onClick={() => setSettingsOpen(true)} className={CHIP} aria-label="Cài đặt phiên" title="Cài đặt phiên">
               <GearIcon />
-              <span className="hidden sm:inline landscape:inline">Cài đặt</span>
+              <span className="hidden @2xl/focus:inline">Cài đặt</span>
             </button>
             <button
               type="button"
               onClick={() => void toggleFullscreen()}
               className={CHIP}
               aria-label={fullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
+              aria-pressed={fullscreen}
               title={fullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
             >
               <FullscreenIcon exit={fullscreen} />
+              {/* Đang toàn màn hình: LUÔN có chữ, để lối thoát thật rõ. */}
+              {fullscreen ? (
+                <>
+                  <span className="@2xl/focus:hidden">Thoát</span>
+                  <span className="hidden @2xl/focus:inline">Thoát toàn màn hình</span>
+                </>
+              ) : (
+                <span className="hidden @2xl/focus:inline">Toàn màn hình</span>
+              )}
             </button>
           </div>
         </header>
@@ -323,78 +387,82 @@ export default function FocusSession({
               Video nền không phát được{bgMessage ? `: ${bgMessage}` : ""} Đang dùng nền tĩnh.
             </Notice>
           )}
-          {showRotateHint && (
-            <Notice action={{ label: "Đóng", onClick: () => setWantLandscape(false) }}>
-              {canFullscreen()
-                ? "Xoay ngang điện thoại để xem toàn cảnh."
-                : "Trình duyệt này không có chế độ toàn màn hình. Xoay ngang máy để xem toàn cảnh; trên iPhone, thêm app vào Màn hình chính để ẩn thanh địa chỉ."}
-            </Notice>
+          {fsNote && (
+            <Notice action={{ label: "Đóng", onClick: () => setFsResult(null) }}>{fsNote}</Notice>
           )}
         </div>
 
-        {/* ---------- Đồng hồ chính giữa ---------- */}
-        <main className="flex min-h-0 flex-1 items-center justify-center">
-          <div className="relative flex items-center justify-center">
-            {/* Gradient tỏa tròn: đậm sau chữ, mờ dần ra ngoài — vẫn thấy rõ cảnh. */}
-            <div
-              className="pointer-events-none absolute left-1/2 top-1/2 h-[170%] w-[170%] -translate-x-1/2 -translate-y-1/2 rounded-full"
-              style={{
-                background: `radial-gradient(closest-side, rgba(0,0,0,${d.center}) 0%, rgba(0,0,0,${d.ring}) 60%, rgba(0,0,0,0) 100%)`,
-              }}
-              aria-hidden="true"
-            />
-            <div className="relative h-[min(19rem,58vh,72vw)] w-[min(19rem,58vh,72vw)]">
-              <svg viewBox="0 0 200 200" className="h-full w-full -rotate-90" aria-hidden="true">
-                <circle cx="100" cy="100" r={R} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="6" />
-                <circle
-                  cx="100"
-                  cy="100"
-                  r={R}
-                  fill="none"
-                  stroke="var(--accent)"
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                  strokeDasharray={CIRC}
-                  strokeDashoffset={CIRC * (1 - progress)}
-                />
-              </svg>
+        {/* Đồng hồ + nút. Dọc: đồng hồ trên, hàng nút dưới. Điện thoại nằm
+            ngang: đồng hồ trái, cột nút phải. Chỉ đổi CSS, không dựng lại. */}
+        <div className="flex min-h-0 flex-1 flex-col phone-landscape:flex-row phone-landscape:items-stretch phone-landscape:gap-4">
+          {/* ---------- Đồng hồ chính giữa ---------- */}
+          <main className="flex min-h-0 min-w-0 flex-1 items-center justify-center">
+            <div className="relative flex items-center justify-center">
+              {/* Gradient tỏa tròn: đậm sau chữ, mờ dần ra ngoài — vẫn thấy rõ cảnh. */}
               <div
-                className="absolute inset-0 flex flex-col items-center justify-center"
-                style={{ textShadow: "0 1px 3px rgba(0,0,0,0.7)" }}
-              >
-                <span className="text-xs tracking-wider text-white/85 uppercase">Đã trôi qua</span>
-                <span className="font-num text-[clamp(3rem,15vh,5.5rem)] leading-none font-semibold text-white">
-                  {clock}
-                </span>
-                <span className="mt-2 text-sm text-white/85">
-                  Bắt đầu <span className="font-num text-white">{startLabel}</span>
-                </span>
+                className="pointer-events-none absolute left-1/2 top-1/2 h-[170%] w-[170%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                style={{
+                  background: `radial-gradient(closest-side, rgba(0,0,0,${d.center}) 0%, rgba(0,0,0,${d.ring}) 60%, rgba(0,0,0,0) 100%)`,
+                }}
+                aria-hidden="true"
+              />
+              {/* `@container`: cỡ chữ đồng hồ tính theo bề rộng vòng tròn (cqw), nên
+                  không bao giờ tràn ra ngoài vòng, kể cả ở cỡ hiển thị 150%. */}
+              <div className="@container relative h-[min(19rem,58vh,72vw)] w-[min(19rem,58vh,72vw)] phone-landscape:h-[min(19rem,68vh,42vw)] phone-landscape:w-[min(19rem,68vh,42vw)]">
+                <svg viewBox="0 0 200 200" className="h-full w-full -rotate-90" aria-hidden="true">
+                  <circle cx="100" cy="100" r={R} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="6" />
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r={R}
+                    fill="none"
+                    stroke="var(--accent)"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={CIRC}
+                    strokeDashoffset={CIRC * (1 - progress)}
+                  />
+                </svg>
+                <div
+                  className="absolute inset-0 flex flex-col items-center justify-center"
+                  style={{ textShadow: "0 1px 3px rgba(0,0,0,0.7)" }}
+                >
+                  <span className="text-xs tracking-wider text-white/85 uppercase">Đã trôi qua</span>
+                  <span className="font-num text-[length:24cqw] leading-none font-semibold text-white">
+                    {clock}
+                  </span>
+                  <span className="mt-2 text-sm text-white/85">
+                    Bắt đầu <span className="font-num text-white">{startLabel}</span>
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        </main>
+          </main>
 
-        {/* ---------- Hàng dưới ---------- */}
-        <footer className="mx-auto grid w-full max-w-3xl grid-cols-2 gap-2 landscape:grid-cols-[1.2fr_1fr_0.8fr_1.4fr]">
-          <button
-            type="button"
-            onClick={() => setDistractions(addTimerDistraction())}
-            className="tap-target flex items-center justify-between gap-2 rounded-lg border border-warn/60 bg-black/70 px-4 font-bold text-warn active:bg-black/85"
-          >
-            <span>+1 phân tâm</span>
-            <span className="font-num text-xl">{distractions}</span>
-          </button>
-          <button type="button" onClick={() => setCaptureOpen(true)} className={CHIP}>
-            <PencilIcon />
-            Chen ngang{captures.length > 0 && <span className="font-num">({captures.length})</span>}
-          </button>
-          <button type="button" onClick={() => setConfirmCancel(true)} className={CHIP}>
-            Huỷ phiên
-          </button>
-          <Button onClick={handleFinish} className="text-base">
-            Hoàn thành phiên
-          </Button>
-        </footer>
+          {/* ---------- Hàng dưới (dọc) / cột phải (điện thoại nằm ngang) ----------
+            Dọc: 2 cột; màn hẹp hơn 20rem (điện thoại ở cỡ 125-150%) thì 1 cột
+            cho chữ trên nút không vỡ dòng; màn rộng: 4 nút một hàng. */}
+          <footer className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-2 @xs/focus:grid-cols-2 @3xl/focus:grid-cols-[1.2fr_1fr_0.8fr_1.4fr] phone-landscape:mx-0 phone-landscape:w-[min(15rem,40vw)] phone-landscape:shrink-0 phone-landscape:grid-cols-1 phone-landscape:content-center">
+            <button
+              type="button"
+              onClick={() => setDistractions(addTimerDistraction())}
+              className="tap-target flex items-center justify-between gap-2 rounded-lg border border-warn/60 bg-black/70 px-4 font-bold text-warn active:bg-black/85"
+            >
+              <span>+1 phân tâm</span>
+              <span className="font-num text-xl">{distractions}</span>
+            </button>
+            <button type="button" onClick={() => setCaptureOpen(true)} className={CHIP}>
+              <PencilIcon />
+              Chen ngang{captures.length > 0 && <span className="font-num">({captures.length})</span>}
+            </button>
+            <button type="button" onClick={() => setConfirmCancel(true)} className={CHIP}>
+              Huỷ phiên
+            </button>
+            <Button onClick={handleFinish} className="text-base">
+              Hoàn thành phiên
+            </Button>
+          </footer>
+        </div>
       </div>
 
       {/* ---------- Cài đặt phiên (⚙): hiển thị + chọn cảnh nền ---------- */}
@@ -412,10 +480,14 @@ export default function FocusSession({
 
       {/* ---------- Phân tâm & việc chen ngang ---------- */}
       {captureOpen && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={() => setCaptureOpen(false)}>
+        // Đệm: tránh tai thỏ hai bên khi nằm ngang, và nằm TRÊN bàn phím khi gõ.
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-black/60"
+          style={overlayPadding(keyboard, "0px")}
+          onClick={() => setCaptureOpen(false)}
+        >
           <div
-            className="max-h-[88dvh] w-full max-w-xl overflow-y-auto rounded-t-2xl border-t border-accent/60 bg-surface p-4 text-ink"
-            style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+            className="max-h-full w-full max-w-xl overflow-y-auto rounded-t-2xl border-t border-accent/60 bg-surface p-4 text-ink"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -471,10 +543,13 @@ export default function FocusSession({
 
       {/* ---------- Bottom sheet: chỉ hiện SAU khi bấm "Hoàn thành phiên" ---------- */}
       {finishing && (
-        <div className="fixed inset-0 z-40 flex items-end bg-black/70" onClick={() => setFinishing(null)}>
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-black/70"
+          style={overlayPadding(keyboard, "0px")}
+          onClick={() => setFinishing(null)}
+        >
           <div
-            className="max-h-[88dvh] w-full overflow-y-auto rounded-t-2xl border-t border-accent/60 bg-surface p-4 text-ink shadow-[0_-8px_32px_rgba(0,0,0,0.65)]"
-            style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+            className="max-h-full w-full max-w-xl overflow-y-auto rounded-t-2xl border-t border-accent/60 bg-surface p-4 text-ink shadow-[0_-8px_32px_rgba(0,0,0,0.65)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

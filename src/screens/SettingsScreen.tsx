@@ -17,11 +17,13 @@ import { todayISO } from "../lib/dates";
 import { checkPersistence, describePersistence } from "../lib/persistence";
 import { getTheme, setTheme } from "../lib/theme";
 import type { Theme } from "../lib/theme";
+import { UI_SCALES, getUiScale, setUiScale } from "../lib/uiScale";
+import type { UiScale } from "../lib/uiScale";
 import type { PersistenceStatus } from "../lib/persistence";
 
 import ScreenShell from "../components/ScreenShell";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { Button, ListGroup, ListRow } from "../components/ui";
+import { Button, ListGroup, ListRow, Segmented } from "../components/ui";
 import type { ReactNode } from "react";
 import BackupSection from "../components/BackupSection";
 import ExperimentsManager from "../components/ExperimentsManager";
@@ -84,6 +86,13 @@ export default function SettingsScreen() {
     setBusy(false);
   }
 
+  // Cỡ hiển thị 100/125/150% — đổi ngay, nhớ trên máy này (src/lib/uiScale.ts).
+  const [scale, setScaleState] = useState<UiScale>(getUiScale);
+  function changeScale(next: UiScale) {
+    setUiScale(next);
+    setScaleState(next);
+  }
+
   // Hai dòng mở/gập trong nhóm "Dữ liệu".
   const [showPersist, setShowPersist] = useState(false);
   const [showCounts, setShowCounts] = useState(false);
@@ -139,6 +148,19 @@ export default function SettingsScreen() {
           checked={theme === "dark"}
           onClick={() => toggleTheme(theme !== "dark")}
         />
+        <div className="px-4 py-3">
+          <p className="text-[0.9375rem] text-ink">Cỡ hiển thị</p>
+          <p className="mt-0.5 mb-2 text-xs text-ink-3">
+            Phóng to chữ và nút trên máy này. Vẫn chụm hai ngón tay để zoom được.
+          </p>
+          <Segmented
+            label="Cỡ hiển thị"
+            className=""
+            value={String(scale)}
+            onChange={(v) => changeScale(Number(v) as UiScale)}
+            options={UI_SCALES.map((s) => ({ id: String(s), label: `${s}%` }))}
+          />
+        </div>
       </ListGroup>
 
       {/* ================= Thử nghiệm cá nhân ================= */}

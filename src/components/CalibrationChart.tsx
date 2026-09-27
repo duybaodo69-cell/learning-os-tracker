@@ -23,6 +23,10 @@ import {
 } from "recharts";
 
 import type { CalibrationBucket } from "../lib/calibration";
+import { uiScaleFactor } from "../lib/uiScale";
+
+/** Chữ SVG tính bằng px: nhân theo cỡ hiển thị (xem DashboardCharts.tsx). */
+const px = (n: number) => Math.round(n * uiScaleFactor());
 
 export default function CalibrationChart({ buckets }: { buckets: CalibrationBucket[] }) {
   // Chỉ vẽ khoảng nào thật sự có dữ liệu.
@@ -48,7 +52,7 @@ export default function CalibrationChart({ buckets }: { buckets: CalibrationBuck
     // mới đúng 45 độ và mắt mới so sánh được.
     <div className="aspect-square w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 8, right: 12, bottom: 24, left: 0 }}>
+        <ScatterChart margin={{ top: 8, right: 12, bottom: px(24), left: 0 }}>
           <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" />
 
           <XAxis
@@ -57,8 +61,8 @@ export default function CalibrationChart({ buckets }: { buckets: CalibrationBuck
             name="Bạn nói"
             domain={[0, 100]}
             ticks={[0, 20, 40, 60, 80, 100]}
-            tick={{ fontSize: 12, fill: "var(--ink-2)" }}
-            label={{ value: "Bạn nói (%)", position: "insideBottom", offset: -14, fontSize: 12, fill: "var(--ink-2)" }}
+            tick={{ fontSize: px(12), fill: "var(--ink-2)" }}
+            label={{ value: "Bạn nói (%)", position: "insideBottom", offset: -px(14), fontSize: px(12), fill: "var(--ink-2)" }}
           />
           <YAxis
             type="number"
@@ -66,9 +70,9 @@ export default function CalibrationChart({ buckets }: { buckets: CalibrationBuck
             name="Thực tế"
             domain={[0, 100]}
             ticks={[0, 20, 40, 60, 80, 100]}
-            tick={{ fontSize: 12, fill: "var(--ink-2)" }}
-            width={34}
-            label={{ value: "Thực tế (%)", angle: -90, position: "insideLeft", fontSize: 12, fill: "var(--ink-2)" }}
+            tick={{ fontSize: px(12), fill: "var(--ink-2)" }}
+            width={px(34)}
+            label={{ value: "Thực tế (%)", angle: -90, position: "insideLeft", fontSize: px(12), fill: "var(--ink-2)" }}
           />
           {/* Kích thước chấm theo số lượng dự đoán trong khoảng. */}
           <ZAxis type="number" dataKey="count" range={[60, 400]} />

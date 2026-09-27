@@ -10,6 +10,10 @@
  *   4. Năng lượng check-in -> deep work
  *   5. Ba biểu đồ
  *
+ * Máy tính (nội dung rộng >= 48rem): HAI CỘT — trái là 1-3b (con số),
+ * phải là 4-5 (biểu đồ). Điện thoại: một cột, đúng thứ tự trên. Chỉ đổi
+ * CSS nên cây React như nhau ở mọi cỡ màn hình.
+ *
  * Nguyên tắc: KHÔNG BAO GIỜ hiện p-value hay "có ý nghĩa thống kê".
  * Dữ liệu một người trong vài tuần chỉ đủ để gợi ý, nên mọi con số dựa trên
  * ít dữ liệu đều ghi rõ "sơ bộ" kèm số ngày n.
@@ -163,109 +167,126 @@ export default function DashboardScreen() {
   }
 
   return (
-    <ScreenShell title="Thống kê" subtitle={previous ? `So cùng số ngày (${days}) với kỳ trước` : `${days} ngày`}>
-      {/* Chọn khoảng thời gian: nằm DƯỚI tiêu đề, không chen cạnh nó. */}
-      <Segmented value={period} onChange={setPeriod} options={PERIODS} />
+    <ScreenShell
+      title="Thống kê"
+      subtitle={previous ? `So cùng số ngày (${days}) với kỳ trước` : `${days} ngày`}
+      wide
+    >
+      {/* Chọn khoảng thời gian: nằm DƯỚI tiêu đề, không chen cạnh nó.
+          Màn rộng: không kéo dài hết bề ngang. */}
+      <div className="@3xl/content:max-w-md">
+        <Segmented value={period} onChange={setPeriod} options={PERIODS} />
+      </div>
 
-      {/* ---------- 1. Chỉ số: lưới 2 cột ---------- */}
-      <Card className="mb-3">
-        {/* "so cùng số ngày" nói MỘT lần ở đầu mục, không lặp trên từng ô. */}
-        <SectionLabel right={previous ? "so cùng số ngày" : undefined}>Chỉ số chính</SectionLabel>
-        <div className="grid grid-cols-2 gap-2">
-          {METRIC_SPECS.map((spec, i) => (
-            <MetricTile
-              key={spec.key}
-              spec={spec}
-              value={current[spec.key]}
-              delta={previous ? compareMetric(spec.key, current[spec.key], previous[spec.key]) : null}
-              // Số ô lẻ: ô cuối trải hết hàng cho cân.
-              wide={i === METRIC_SPECS.length - 1 && METRIC_SPECS.length % 2 === 1}
-            />
-          ))}
-        </div>
-      </Card>
-
-      {/* ---------- 2. So với baseline ---------- */}
-      {showBaseline && baseline ? (
-        <Disclosure title="So với baseline" right={`${BASELINE_FROM.slice(5)} → ${BASELINE_TO.slice(5)}`}>
-          <p className="mb-2 text-xs text-ink-2">Chỉ số cộng dồn đã quy về mức mỗi tuần.</p>
-          <div className="divide-y divide-line/70">
-            {METRIC_SPECS.map((spec) => (
-              <MetricRow
-                key={spec.key}
-                spec={spec}
-                value={currentPerWeek[spec.key]}
-                delta={compareMetric(spec.key, currentPerWeek[spec.key], baseline[spec.key])}
-              />
-            ))}
-          </div>
-        </Disclosure>
-      ) : (
-        <Notice tone="info">
-          Đang đo baseline ({BASELINE_FROM.slice(5)} → {BASELINE_TO.slice(5)}). Sau{" "}
-          {BASELINE_TO.slice(5)} sẽ có thêm phần so với baseline.
-        </Notice>
-      )}
-
-      {/* ---------- 3. Đều đặn ---------- */}
-      <Card className="mb-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-sm font-medium text-ink-2">Đều đặn</h2>
-          <p>
-            <span className="font-num text-2xl font-semibold text-accent">{con.logged}</span>
-            <span className="text-sm text-ink-2"> / {con.total} ngày đã log</span>
-          </p>
-        </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-line">
-          <div className="h-full rounded-full bg-accent" style={{ width: `${con.percent}%` }} />
-        </div>
-        <p className="mt-2 text-xs text-ink-2">
-          Số ngày có check-in trong 14 ngày gần nhất. Nghỉ một hôm chỉ mất một hôm.
-        </p>
-      </Card>
-
-      {/* ---------- Tổng kết tuần: xem lại, viết bù (audit F08) ---------- */}
-      <WeeklyReviewHistory input={input} today={today} />
-
-      {/* ---------- 4. Năng lượng -> deep work (gập lại, ít xem) ---------- */}
-      <Disclosure title="Năng lượng → deep work" right="TB / ngày">
-        <div className="divide-y divide-line/70">
-          {energyRows.map((row) => (
-            <div key={row.level} className="flex items-center justify-between gap-2 py-2">
-              <span className="text-sm text-ink">
-                <span className="font-num text-ink-2">{row.level}</span> · {ENERGY_LABELS[row.level - 1]}
-              </span>
-              <span className="flex items-center gap-2">
-                {/* Chưa đủ 5 ngày: vẫn cho xem nhưng làm MỜ và ghi "sơ bộ". */}
-                <span className={`font-num text-sm ${row.enough ? "font-semibold text-ink" : "text-ink-3"}`}>
-                  {row.avgMinutes === null ? "—" : formatMinutes(Math.round(row.avgMinutes))}
-                </span>
-                {!row.enough && <Tag tone="neutral">sơ bộ (n={row.n})</Tag>}
-              </span>
+      <div className="grid items-start gap-x-4 @3xl/content:grid-cols-2">
+        {/* ================= Cột trái: con số ================= */}
+        <div className="min-w-0">
+          {/* ---------- 1. Chỉ số: lưới 2 cột ---------- */}
+          <Card className="mb-3">
+            {/* "so cùng số ngày" nói MỘT lần ở đầu mục, không lặp trên từng ô. */}
+            <SectionLabel right={previous ? "so cùng số ngày" : undefined}>Chỉ số chính</SectionLabel>
+            {/* 2 cột; nội dung hẹp hơn 20rem (điện thoại ở cỡ 125-150%) thì 1 cột
+                cho con số và mũi tên không tràn khỏi ô. */}
+            <div className="grid grid-cols-1 gap-2 @xs/content:grid-cols-2">
+              {METRIC_SPECS.map((spec, i) => (
+                <MetricTile
+                  key={spec.key}
+                  spec={spec}
+                  value={current[spec.key]}
+                  delta={previous ? compareMetric(spec.key, current[spec.key], previous[spec.key]) : null}
+                  // Số ô lẻ: ô cuối trải hết hàng cho cân.
+                  wide={i === METRIC_SPECS.length - 1 && METRIC_SPECS.length % 2 === 1}
+                />
+              ))}
             </div>
-          ))}
-        </div>
-        <p className="mt-2 text-xs text-ink-2">
-          Cần ít nhất {ENERGY_MIN_DAYS} ngày ở một mức mới đáng để đọc.
-        </p>
-      </Disclosure>
-
-      {/* ---------- 5. Biểu đồ ---------- */}
-      <Suspense
-        fallback={
-          <Card className="mb-4">
-            <p className="py-10 text-center text-sm text-ink-3">Đang tải biểu đồ...</p>
           </Card>
-        }
-      >
-        <Charts
-          sleepPoints={sleepPoints}
-          weeklyPoints={weekly.points}
-          areas={weekly.areas}
-          retentionPoints={buildWeeklyRetention(reviewLogs, today, 8)}
-          corr={sleepFocusCorrelation(sleepPoints)}
-        />
-      </Suspense>
+
+          {/* ---------- 2. So với baseline ---------- */}
+          {showBaseline && baseline ? (
+            <Disclosure title="So với baseline" right={`${BASELINE_FROM.slice(5)} → ${BASELINE_TO.slice(5)}`}>
+              <p className="mb-2 text-xs text-ink-2">Chỉ số cộng dồn đã quy về mức mỗi tuần.</p>
+              <div className="divide-y divide-line/70">
+                {METRIC_SPECS.map((spec) => (
+                  <MetricRow
+                    key={spec.key}
+                    spec={spec}
+                    value={currentPerWeek[spec.key]}
+                    delta={compareMetric(spec.key, currentPerWeek[spec.key], baseline[spec.key])}
+                  />
+                ))}
+              </div>
+            </Disclosure>
+          ) : (
+            <Notice tone="info">
+              Đang đo baseline ({BASELINE_FROM.slice(5)} → {BASELINE_TO.slice(5)}). Sau{" "}
+              {BASELINE_TO.slice(5)} sẽ có thêm phần so với baseline.
+            </Notice>
+          )}
+
+          {/* ---------- 3. Đều đặn ---------- */}
+          <Card className="mb-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="text-sm font-medium text-ink-2">Đều đặn</h2>
+              <p>
+                <span className="font-num text-2xl font-semibold text-accent">{con.logged}</span>
+                <span className="text-sm text-ink-2"> / {con.total} ngày đã log</span>
+              </p>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-line">
+              <div className="h-full rounded-full bg-accent" style={{ width: `${con.percent}%` }} />
+            </div>
+            <p className="mt-2 text-xs text-ink-2">
+              Số ngày có check-in trong 14 ngày gần nhất. Nghỉ một hôm chỉ mất một hôm.
+            </p>
+          </Card>
+
+          {/* ---------- Tổng kết tuần: xem lại, viết bù (audit F08) ---------- */}
+          <WeeklyReviewHistory input={input} today={today} />
+        </div>
+
+        {/* ================= Cột phải: năng lượng + biểu đồ ================= */}
+        <div className="min-w-0">
+          {/* ---------- 4. Năng lượng -> deep work (gập lại, ít xem) ---------- */}
+          <Disclosure title="Năng lượng → deep work" right="TB / ngày">
+            <div className="divide-y divide-line/70">
+              {energyRows.map((row) => (
+                <div key={row.level} className="flex items-center justify-between gap-2 py-2">
+                  <span className="text-sm text-ink">
+                    <span className="font-num text-ink-2">{row.level}</span> · {ENERGY_LABELS[row.level - 1]}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    {/* Chưa đủ 5 ngày: vẫn cho xem nhưng làm MỜ và ghi "sơ bộ". */}
+                    <span className={`font-num text-sm ${row.enough ? "font-semibold text-ink" : "text-ink-3"}`}>
+                      {row.avgMinutes === null ? "—" : formatMinutes(Math.round(row.avgMinutes))}
+                    </span>
+                    {!row.enough && <Tag tone="neutral">sơ bộ (n={row.n})</Tag>}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-ink-2">
+              Cần ít nhất {ENERGY_MIN_DAYS} ngày ở một mức mới đáng để đọc.
+            </p>
+          </Disclosure>
+
+          {/* ---------- 5. Biểu đồ ---------- */}
+          <Suspense
+            fallback={
+              <Card className="mb-4">
+                <p className="py-10 text-center text-sm text-ink-3">Đang tải biểu đồ...</p>
+              </Card>
+            }
+          >
+            <Charts
+              sleepPoints={sleepPoints}
+              weeklyPoints={weekly.points}
+              areas={weekly.areas}
+              retentionPoints={buildWeeklyRetention(reviewLogs, today, 8)}
+              corr={sleepFocusCorrelation(sleepPoints)}
+            />
+          </Suspense>
+        </div>
+      </div>
     </ScreenShell>
   );
 }
@@ -284,9 +305,9 @@ function MetricTile({
   wide?: boolean;
 }) {
   return (
-    <div className={`rounded-xl bg-surface-2 px-3 py-2.5 ${wide ? "col-span-2" : ""}`}>
+    <div className={`rounded-xl bg-surface-2 px-3 py-2.5 ${wide ? "@xs/content:col-span-2" : ""}`}>
       <div className="text-xs text-ink-2">{spec.label}</div>
-      <div className="mt-1 flex items-baseline justify-between gap-2">
+      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-2">
         <span className="font-num text-xl font-semibold text-ink">
           {value === null ? "—" : spec.format(value)}
         </span>

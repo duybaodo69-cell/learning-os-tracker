@@ -142,7 +142,8 @@ type ExperimentTag = {
 
 ## 4. Rules (non-negotiable)
 
-1. **Mobile-first.** Design for a phone screen first; desktop is an afterthought.
+1. **Mobile-first.** Design for a phone screen first. Wider screens get a left rail / sidebar
+   and two columns on Ôn tập + Thống kê through CSS only (see "Responsive layout" in section 7).
 2. **Large tap targets: minimum 44x44 px** for every button, tab, chip and input.
    Use the `.tap-target` helper class.
    **Never add `maximum-scale=1` or `user-scalable=no` to the viewport meta.** It stops iOS
@@ -198,6 +199,8 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] **Redesign COMPLETE** (design/BRIEF.md Part A + B) — dark "Quantitative Protocol" theme.
 - [x] **Calm redesign (Stitch, 2026-09-27)** — all 5 tabs, dark + light.
 - [x] **Audit fixes (2026-09-27)** — batch 1 + 2 of audit/2026-09-27/REPORT.md (F01–F10).
+- [x] **Responsive + display size + focus fullscreen (2026-09-27)** — phone / tablet / desktop
+      layouts, 100/125/150% display size, landscape fullscreen focus session.
 - [x] **Part C: cloud sync (Dexie Cloud)** — PROD https://zzmteuzif.dexie.cloud (whitelist: production
       URL only), DEV https://zq98wk7oy.dexie.cloud (whitelist: http://localhost:5173 only).
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
@@ -220,7 +223,7 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 src/
   components/
     ui.tsx             # Card, Button, Field, RatingRow, ChipGroup, Counter, Toggle, inputs
-    BottomNav.tsx      # the 5-tab bar
+    AppNav.tsx         # the 5-tab bar: bottom on phones, left rail / sidebar on wide screens
     ScreenShell.tsx    # sticky header + scrollable body, used by every screen
     ConfirmDialog.tsx  # the rule-4 delete confirmation
     ProtocolBanner.tsx
@@ -247,6 +250,9 @@ src/
     brainDump.ts / weeklyReview.ts  # pure helpers for those screens (tested)
     drafts.ts          # localStorage drafts for long forms (brain dump)
     useSubmit.ts       # save wrapper: double-tap lock + error, form stays open
+    uiScale.ts         # display size 100/125/150% (root font-size, per device, tested)
+    viewport.ts        # keyboard inset (visualViewport) + safe-area overlay padding (tested)
+    fullscreen.ts      # focus-session fullscreen + landscape lock, honest notices (tested)
     sync.ts            # Vietnamese sync status + login messages (tested)
     upload.ts          # planUpload: which local rows are new to the account (tested)
     cloudUpload.ts     # reads the local store, adds only new rows to the account
@@ -505,6 +511,57 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   showing the retention definition/denominator, prediction revision history before
   resolution.
 
+### Responsive layout, display size, focus fullscreen (2026-09-27) — rules to keep
+
+- **Layout uses container queries, not media queries.** `App.tsx` makes the app a
+  `@container/app`; `ScreenShell` makes its content a `@container/content`. In a container
+  query `rem` follows the REAL root font size (checked in Chrome), so at 150% a 1280px window
+  lays out like ~850px — exactly like browser zoom. Media queries (`sm:`, `md:`) do not follow
+  the display size; do not use them for app layout.
+- **Breakpoints:** app < 42rem → bottom tab bar, one column. `@2xl/app` (42rem) → left rail
+  (icon over label). `@6xl/app` (72rem) → wide sidebar (icon beside label, app name).
+  `ScreenShell` content max 42rem, or 72rem with `wide` (Ôn tập, Thống kê), which split into
+  two columns at `@3xl/content` (48rem): Thống kê = numbers | energy + charts; Ôn tập =
+  today card | drafts + upcoming, brain-dump form | history, card list as a grid. Phone order
+  is unchanged. Short screens (`short:` = height <= 500px): header scrolls away, bottom bar
+  puts icon beside label.
+- **Never change the React tree per breakpoint.** Every layout switch is CSS only (order,
+  flex direction, grid columns), so rotating the phone or resizing the window never remounts a
+  screen and never loses what is typed (verified: prediction form text survives 390 → 844×390
+  → 1280 → 768 → 390).
+- **Safe areas:** the app root pads `env(safe-area-inset-top/left/right)` (installed iPhone
+  draws under the status bar; landscape notch is on a side), the tab bar pads the bottom.
+  Dialogs use `overlayPadding()` from `lib/viewport.ts`; sheets with inputs (focus capture,
+  focus finish, cloud login) also add the keyboard height from `visualViewport` so the Save
+  button stays above the keyboard. Dialog panels are `max-h-full overflow-y-auto`.
+- **Display size 100/125/150%** (Settings → Giao diện → Cỡ hiển thị, `lib/uiScale.ts`, key
+  `learning-os:ui-scale`, per device, not in backups): `<html data-scale>` sets the root
+  font-size in `index.css`; `index.html` applies it before first paint (keep the key in sync).
+  NEVER `transform: scale()` and never block pinch zoom. Anything sized in px does not scale:
+  use rem (`min-w-[1.125rem]`, `text-[0.9375rem]`), and Recharts font sizes / axis widths go
+  through `px()` = n × `uiScaleFactor()`, read at render time. Narrow content (< 20rem, i.e. a
+  phone at 125-150%) drops two-up grids to one column (`@xs/content:grid-cols-2`, focus buttons
+  `@xs/focus:grid-cols-2`); nav labels are clamped to 12-15px and never wrap.
+- **Focus clock size is relative to its ring** (`@container` on the ring, `text-[length:24cqw]`),
+  so it can never overflow the circle at any display size or orientation.
+- **Fullscreen (`lib/fullscreen.ts`):** `requestFullscreen` is called synchronously inside the
+  tap (nothing awaited before it); `screen.orientation.lock("landscape")` only after fullscreen
+  succeeded, with a 3 s timeout. The old prefixed webkit API returns before fullscreen starts,
+  so `enterFullscreen` waits up to 1 s for `fullscreenchange` before saying "denied". The result
+  is `{entered, locked}` or `{entered:false, reason:"unsupported"|"denied"}`; `fullscreenNotice`
+  turns it (plus the CURRENT orientation) into one honest line — never "đã xoay". Exiting by the
+  app button, Back/Esc (fullscreenchange), save, cancel or unmount always unlocks orientation.
+  While fullscreen, the button always shows the word "Thoát". The clock is re-read on
+  `visibilitychange`. Nothing here touches the timer keys.
+- **Manifest stays `display: standalone`, `orientation: any`.** Only the focus session asks for
+  landscape, and only after the user taps; the 5 tabs are never forced into fullscreen or
+  landscape.
+- **Verified (Chrome, localhost, demo data):** 5 tabs × 390 / 768 / 1280 × dark / light ×
+  100 / 150% — no horizontal overflow, no control under 44px, no page errors. Focus session
+  with simulated Android (real Chrome Fullscreen API + faked orientation lock), desktop Chrome
+  (lock refused), refused fullscreen and iPhone (no Fullscreen API). NOT verified on a real
+  phone yet.
+
 ### Part C (Dexie Cloud sync) — rules to keep
 
 - **Three separate stores** (`src/db/store.ts`): `learning-os` (local, default),
@@ -564,7 +621,8 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 - **Files:** `BackgroundPicker.tsx` (the "Hình nền" dialog), `lib/background.ts` (link check →
   mode, storage, still-image rules), `lib/youtube.ts` (link → video id + start, error texts),
   `config/youtubePresets.ts` (6 study-with-me videos, embeddable per oEmbed 2026-09-26),
-  `lib/fullscreen.ts` (fullscreen + landscape lock, never throws). All tested.
+  `lib/fullscreen.ts` (fullscreen + landscape lock, never throws). All tested
+  (`fullscreen.test.ts`, `FocusSession.test.tsx`).
 - **The background never touches the timer.** It is a sibling layer; the clock still derives
   from the stored start timestamp. `BackgroundPicker.test.tsx` proves a 10 s preview/apply keeps
   the clock counting and leaves the session keys untouched.
@@ -598,10 +656,10 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   for a pure-white or pure-black frame behind them so ink-3 stays >= 4.5:1. No backdrop blur
   over video (battery).
 - **Landscape:** the manifest orientation is `any` (a `portrait` lock stops the installed
-  Android app from ever rotating). Landscape = two columns; `[@media(max-height:500px)]:`
-  classes shrink the clock. Tailwind only sees literal class names — never build them from a
-  variable. Fullscreen tries `screen.orientation.lock("landscape")`; if that fails (iPhone,
-  desktop) a hint asks the user to rotate.
+  Android app from ever rotating). Phone landscape (`phone-landscape:` = landscape and
+  height <= 500px) = clock left, button column right. Tailwind only sees literal class names —
+  never build them from a variable. Fullscreen rules: see "Responsive layout, display size,
+  focus fullscreen" below.
 
 ## 8. Commands
 
@@ -609,7 +667,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
 npm run build:only      # type-check + production build, skipping lint/tests (local only)
-npm test                # unit tests (392: lib/ logic, db upgrade, hooks, components, worker)
+npm test                # unit tests (433: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

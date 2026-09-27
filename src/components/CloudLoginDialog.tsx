@@ -17,6 +17,7 @@ import type { DXCUserInteraction } from "dexie-cloud-addon";
 
 import { db, setSyncEnabled } from "../db/db";
 import { translateLoginAlert } from "../lib/sync";
+import { overlayPadding, useKeyboardInset } from "../lib/viewport";
 import { Button } from "./ui";
 
 export default function CloudLoginDialog() {
@@ -37,6 +38,7 @@ const TITLES: Record<string, string> = {
 function LoginPrompt({ interaction }: { interaction: DXCUserInteraction }) {
   const [value, setValue] = useState("");
   const [sent, setSent] = useState(false);
+  const keyboard = useKeyboardInset();
 
   const isEmail = interaction.type === "email";
   const isOtp = interaction.type === "otp";
@@ -68,9 +70,13 @@ function LoginPrompt({ interaction }: { interaction: DXCUserInteraction }) {
         : "OK";
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-4">
+    // Đệm tránh tai thỏ / thanh home, và đẩy hộp lên trên bàn phím khi gõ mã.
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 sm:items-center"
+      style={overlayPadding(keyboard)}
+    >
       <div
-        className="w-full max-w-md rounded-2xl border border-accent/60 bg-surface p-5 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
+        className="max-h-full w-full max-w-md overflow-y-auto rounded-2xl border border-accent/60 bg-surface p-5 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="cloud-login-title"

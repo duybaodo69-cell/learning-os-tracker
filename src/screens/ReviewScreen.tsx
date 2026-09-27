@@ -3,6 +3,9 @@
  *   Ôn      : hàng đợi thẻ đến hạn hôm nay
  *   Brain dump : bài tập retrieval, tạo thẻ từ chỗ hổng
  *   Thẻ     : quản lý bộ thẻ
+ *
+ * Máy tính: khung `wide`, mỗi mục con tự chia hai cột khi đủ chỗ
+ * (ReviewQueue: thẻ | sắp tới; Brain dump: form | lịch sử; Kho thẻ: lưới).
  */
 import ScreenShell from "../components/ScreenShell";
 import { Segmented } from "../components/ui";
@@ -32,16 +35,19 @@ export default function ReviewScreen({
         : "Quản lý bộ thẻ";
 
   return (
-    <ScreenShell title="Ôn tập" subtitle={subtitle}>
-      <Segmented
-        value={view}
-        onChange={onViewChange}
-        options={[
-          { id: "queue", label: "Ôn thẻ", badge: dueCount },
-          { id: "braindump", label: "Brain dump" },
-          { id: "cards", label: "Kho thẻ" },
-        ]}
-      />
+    <ScreenShell title="Ôn tập" subtitle={subtitle} wide>
+      {/* Màn rộng: thanh mục con không kéo dài hết bề ngang. */}
+      <div className="@3xl/content:max-w-md">
+        <Segmented
+          value={view}
+          onChange={onViewChange}
+          options={[
+            { id: "queue", label: "Ôn thẻ", badge: dueCount },
+            { id: "braindump", label: "Brain dump" },
+            { id: "cards", label: "Kho thẻ" },
+          ]}
+        />
+      </div>
 
       {view === "queue" && <ReviewQueue onOpenCards={() => onViewChange("cards")} />}
       {view === "braindump" && <BrainDumpView onOpenCards={() => onViewChange("cards")} />}

@@ -133,6 +133,33 @@ body,
   height: 100%;
 }
 
+/* ---------------------------------------------------------------
+   CỠ HIỂN THỊ 125% / 150% (src/lib/uiScale.ts)
+
+   Đổi cỡ chữ gốc; mọi kích thước tính bằng rem giãn theo, bố cục tự xuống
+   dòng. Dùng % (không phải px) để vẫn tôn trọng cỡ chữ mặc định mà người
+   dùng đặt trong trình duyệt. KHÔNG dùng transform: scale().
+
+   Lưu ý: media query (sm:, md:...) tính rem theo cỡ MẶC ĐỊNH của trình duyệt,
+   nên không đổi theo mức này. Bố cục app vì vậy dùng container query
+   (@container) — ở đó rem theo cỡ chữ gốc thật, nên 150% trên màn 1280px
+   được xếp như một màn ~850px.
+   --------------------------------------------------------------- */
+:root[data-scale="125"] {
+  font-size: 125%;
+}
+:root[data-scale="150"] {
+  font-size: 150%;
+}
+
+/* Điện thoại xoay ngang: màn thấp (<= 500px) và nằm ngang. Dùng như
+   `phone-landscape:flex-row`. Đơn vị px nên không đổi theo cỡ hiển thị. */
+@custom-variant phone-landscape (@media (orientation: landscape) and (max-height: 500px));
+
+/* Màn thấp nói chung (điện thoại ngang, cửa sổ thấp): thu gọn thanh tab,
+   để tiêu đề cuộn đi thay vì dính trên đầu. */
+@custom-variant short (@media (max-height: 500px));
+
 body {
   margin: 0;
   background-color: var(--canvas);
