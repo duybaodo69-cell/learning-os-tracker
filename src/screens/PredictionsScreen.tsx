@@ -19,7 +19,6 @@ import {
   averageBrierLastDays,
   brierScore,
   buildCalibration,
-  compareToFifty,
   fiftyVerdict,
   describeBrier,
   hasEnoughToConclude,
@@ -77,7 +76,31 @@ export default function PredictionsScreen() {
     if (!toDelete) return;
     await db.predictions.delete(toDelete.id);
     setToDelete(null);
+    // Xoá từ trong form sửa -> đóng luôn form.
+    setFormOpen(false);
+    setEditing(null);
   }
+
+  // Hộp xác nhận xoá dùng chung cho màn danh sách và form sửa.
+  const deleteDialog = (
+    /* Luật số 4: xoá phải xác nhận và nói rõ mất cái gì. */
+    <ConfirmDialog
+      open={toDelete !== null}
+      title="Xoá dự đoán này?"
+      detail={
+        toDelete && (
+          <>
+            <strong>{toDelete.statement}</strong>
+            <br />
+            {toDelete.probability}% · {toDelete.category} · hạn {toDelete.resolveBy}
+            {toDelete.outcome !== null && " · đã chấm"}
+          </>
+        )
+      }
+      onConfirm={handleDelete}
+      onCancel={() => setToDelete(null)}
+    />
+  );
 
   if (formOpen) {
     return (
@@ -91,22 +114,42 @@ export default function PredictionsScreen() {
               setEditing(null);
             }}
           />
+          {/* Nút xoá nằm trong form sửa, không rải trên từng dòng danh sách. */}
+          {editing && (
+            <Button variant="danger" onClick={() => setToDelete(editing)} className="mt-3 w-full text-sm">
+              Xoá dự đoán này
+            </Button>
+          )}
         </Card>
+        {deleteDialog}
       </ScreenShell>
     );
   }
 
+  const overall = averageBrier(all);
+
   return (
     <ScreenShell
       title="Dự đoán"
-      subtitle={view === "list" ? "Dự đoán có xác suất" : "Brier score và calibration"}
+      subtitle={
+        all.length === 0
+          ? "Dự đoán có xác suất"
+          : `Đã chấm ${resolved.length} · Chờ chấm ${dueToScore.length}`
+      }
+      right={
+        overall !== null && (
+          <span className="text-sm text-ink-2">
+            Brier <span className={`font-num font-semibold ${brierTone(overall)}`}>{overall.toFixed(3)}</span>
+          </span>
+        )
+      }
     >
       <Segmented
         value={view}
         onChange={setView}
         options={[
           { id: "list" as View, label: "Dự đoán", badge: dueToScore.length },
-          { id: "score" as View, label: "Điểm số · Calibration" },
+          { id: "score" as View, label: "Điểm số" },
         ]}
       />
 
@@ -126,29 +169,12 @@ export default function PredictionsScreen() {
             setFormOpen(true);
           }}
           onResolve={resolve}
-          onDelete={setToDelete}
         />
       ) : (
         <ScoreView all={all} today={today} />
       )}
 
-      {/* Luật số 4: xoá phải xác nhận và nói rõ mất cái gì. */}
-      <ConfirmDialog
-        open={toDelete !== null}
-        title="Xoá dự đoán này?"
-        detail={
-          toDelete && (
-            <>
-              <strong>{toDelete.statement}</strong>
-              <br />
-              {toDelete.probability}% · {toDelete.category} · hạn {toDelete.resolveBy}
-              {toDelete.outcome !== null && " · đã chấm"}
-            </>
-          )
-        }
-        onConfirm={handleDelete}
-        onCancel={() => setToDelete(null)}
-      />
+      {deleteDialog}
     </ScreenShell>
   );
 }
@@ -167,6 +193,9 @@ function brierTone(score: number): string {
   return "text-ink";
 }
 
+/** Số dự đoán đã chấm hiện sẵn trước khi bấm "Xem tất cả". */
+const RESOLVED_PREVIEW = 5;
+
 function ListView({
   today,
   all,
@@ -176,7 +205,6 @@ function ListView({
   onNew,
   onEdit,
   onResolve,
-  onDelete,
 }: {
   today: string;
   all: Prediction[];
@@ -186,38 +214,15 @@ function ListView({
   onNew: () => void;
   onEdit: (p: Prediction) => void;
   onResolve: (p: Prediction, outcome: boolean) => void;
-  onDelete: (p: Prediction) => void;
 }) {
-  const overall = averageBrier(all);
+  // Tóm tắt (đã chấm / chờ chấm / Brier) nằm ở dòng tiêu đề — không lặp
+  // lại thành hai thẻ to ở đây nữa.
+  // Danh sách đã chấm chỉ hiện 5 dòng mới nhất, bấm mới hiện hết.
+  const [showAllResolved, setShowAllResolved] = useState(false);
+  const resolvedShown = showAllResolved ? resolved : resolved.slice(0, RESOLVED_PREVIEW);
 
   return (
     <div className="pb-4">
-      {/* ---------- Tóm tắt ---------- */}
-      {all.length > 0 && (
-        <div className="mb-5 grid grid-cols-2 gap-2">
-          <Card className="p-3">
-            <SectionLabel>Brier (tất cả)</SectionLabel>
-            <div className={`font-num text-3xl font-semibold ${overall === null ? "text-ink-3" : brierTone(overall)}`}>
-              {overall === null ? "—" : overall.toFixed(3)}
-            </div>
-            <p className="mt-1 text-xs text-ink-2">{compareToFifty(overall)}</p>
-          </Card>
-          <Card className="p-3">
-            <SectionLabel>Tiến độ</SectionLabel>
-            <p className="text-base leading-snug text-ink">
-              Đã chấm <span className="font-num font-semibold">{resolved.length}</span>
-              <span className="text-ink-3"> · </span>
-              Chờ chấm{" "}
-              <span className={`font-num font-semibold ${dueToScore.length > 0 ? "text-warn" : ""}`}>
-                {dueToScore.length}
-              </span>
-            </p>
-            <p className="mt-1 text-xs text-ink-2">
-              <span className="font-num">{open.length}</span> đang mở
-            </p>
-          </Card>
-        </div>
-      )}
 
       {all.length === 0 && (
         <div className="mb-4">
@@ -230,25 +235,25 @@ function ListView({
 
       {/* ---------- Đến hạn chấm ---------- */}
       {dueToScore.length > 0 && (
-        <Section title="Đến hạn chấm" count={dueToScore.length} tone="urgent">
+        <Section title="Cần chấm" count={dueToScore.length} tone="urgent">
           {dueToScore.map((p) => (
-            <Card key={p.id} className="border-warn/40">
+            <Card key={p.id}>
               <Statement p={p} today={today} />
               {/* Hai nút to, bấm một phát là xong. */}
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => onResolve(p, true)}
-                  className="tap-target rounded-lg border border-good/40 bg-good/12 font-bold text-good active:bg-good/25"
+                  className="tap-target rounded-xl bg-good/12 font-bold text-good active:bg-good/25"
                 >
-                  Đúng
+                  ✓ Đúng
                 </button>
                 <button
                   type="button"
                   onClick={() => onResolve(p, false)}
-                  className="tap-target rounded-lg border border-bad/40 bg-bad/12 font-bold text-bad-ink active:bg-bad/20"
+                  className="tap-target rounded-xl bg-bad/12 font-bold text-bad-ink active:bg-bad/20"
                 >
-                  Sai
+                  ✕ Sai
                 </button>
               </div>
             </Card>
@@ -260,25 +265,42 @@ function ListView({
         + Tạo dự đoán mới
       </Button>
 
-      {/* ---------- Đang mở ---------- */}
+      {/* ---------- Đang chờ: một danh sách gọn, bấm để sửa ---------- */}
       {open.length > 0 && (
-        <Section title="Đang mở" count={open.length}>
-          {open.map((p) => (
-            <Card key={p.id} className="flex items-start gap-2">
-              <button type="button" onClick={() => onEdit(p)} className="min-w-0 flex-1 text-left">
-                <Statement p={p} today={today} />
-              </button>
-              <DeleteButton onClick={() => onDelete(p)} />
-            </Card>
-          ))}
+        <Section title="Đang chờ" count={open.length}>
+          <div className="divide-y divide-line/70 overflow-hidden rounded-2xl border border-line/70 bg-surface">
+            {open.map((p) => {
+              const left = daysUntil(today, p.resolveBy);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onEdit(p)}
+                  className="flex min-h-[56px] w-full items-center gap-3 px-4 py-3 text-left active:bg-surface-2"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="line-clamp-2 text-sm font-medium text-ink">{p.statement}</span>
+                    <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-2">
+                      <Tag tone="indigo">{p.category}</Tag>
+                      <span>
+                        Hạn <span className="font-num">{formatShortDate(p.resolveBy)}</span> · còn{" "}
+                        <span className="font-num">{left}</span> ngày
+                      </span>
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-num text-lg font-semibold text-accent">{p.probability}%</span>
+                </button>
+              );
+            })}
+          </div>
         </Section>
       )}
 
       {/* ---------- Đã chấm ---------- */}
       {resolved.length > 0 && (
         <Section title="Đã chấm gần đây" count={resolved.length}>
-          <Card className="divide-y divide-line px-0 py-0">
-            {resolved.map((p) => {
+          <Card className="divide-y divide-line/70 px-0 py-0">
+            {resolvedShown.map((p) => {
               const score = brierScore(p.probability, p.outcome as boolean);
               return (
                 <div key={p.id} className="flex items-center gap-2 px-4 py-3">
@@ -299,10 +321,18 @@ function ListView({
                     </div>
                     <div className="text-xs text-ink-3">Brier</div>
                   </div>
-                  <DeleteButton onClick={() => onDelete(p)} />
                 </div>
               );
             })}
+            {resolved.length > RESOLVED_PREVIEW && (
+              <button
+                type="button"
+                onClick={() => setShowAllResolved(!showAllResolved)}
+                className="tap-target w-full px-4 text-sm font-semibold text-accent active:bg-surface-2"
+              >
+                {showAllResolved ? "Thu gọn" : `Xem tất cả (${resolved.length})`}
+              </button>
+            )}
           </Card>
         </Section>
       )}
@@ -329,7 +359,7 @@ function Section({
           aria-hidden="true"
         />
         <span className="text-sm font-medium text-ink-2">{title}</span>
-        <span className="rounded border border-line bg-surface-2 px-1.5 font-num text-xs text-ink-2">
+        <span className="rounded-md bg-surface-2 px-1.5 font-num text-xs text-ink-2">
           {count}
         </span>
       </div>
@@ -359,35 +389,22 @@ function Statement({ p, today }: { p: Prediction; today: string }) {
           </div>
           <div className="text-base leading-snug font-medium text-ink">{p.statement}</div>
         </div>
-        <div className="shrink-0 rounded-lg border border-line bg-surface-2 px-2.5 py-1 text-center">
-          <div className="text-xs text-ink-3">Xác suất</div>
-          <div className="font-num text-lg font-semibold text-accent">{p.probability}%</div>
+        <div className="shrink-0 text-right">
+          <div className="font-num text-3xl leading-none font-semibold text-accent">{p.probability}%</div>
+          <div className="mt-1 text-xs text-ink-3">xác suất</div>
         </div>
       </div>
       {p.preMortem && (
-        <div className="mt-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink-2">
+        <div className="mt-2 rounded-xl bg-surface-2 px-3 py-2 text-sm text-ink-2">
           <span className="font-semibold text-warn">Pre-mortem:</span> {p.preMortem}
         </div>
       )}
       {p.note && (
-        <div className="mt-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink-2">
+        <div className="mt-2 rounded-xl bg-surface-2 px-3 py-2 text-sm text-ink-2">
           <span className="font-semibold text-accent">Ghi chú:</span> {p.note}
         </div>
       )}
     </>
-  );
-}
-
-function DeleteButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="tap-target shrink-0 rounded-lg px-2 text-sm font-medium text-bad-ink active:bg-bad/15"
-      aria-label="Xoá dự đoán"
-    >
-      Xoá
-    </button>
   );
 }
 
@@ -404,17 +421,17 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
     <div className="pb-4">
       {/* ---------- Brier score ---------- */}
       <Card className="mb-4">
-        <SectionLabel>Brier score</SectionLabel>
+        <SectionLabel right="thấp hơn = tốt hơn">Brier score</SectionLabel>
 
-        <div className="mt-2 grid grid-cols-2 gap-3">
+        <div className="mt-1 grid grid-cols-2 gap-3">
           <div>
-            <div className="font-num text-3xl font-semibold text-ink">
+            <div className={`font-num text-4xl font-semibold ${overall === null ? "text-ink-3" : brierTone(overall)}`}>
               {overall === null ? "—" : overall.toFixed(3)}
             </div>
             <div className="text-xs text-ink-3">tất cả ({resolvedCount} đã chấm)</div>
           </div>
           <div>
-            <div className="font-num text-3xl font-semibold text-ink">
+            <div className="font-num text-4xl font-semibold text-ink">
               {last30 === null ? "—" : last30.toFixed(3)}
             </div>
             <div className="text-xs text-ink-3">30 ngày gần đây</div>
@@ -423,10 +440,13 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
 
         <p className="mt-3 text-sm font-semibold text-ink">{describeBrier(overall)}</p>
 
-        {/* Thước đo để con số có ý nghĩa, thay vì chỉ là một số trơ trọi. */}
-        <div className="mt-3 rounded-lg bg-surface-2 p-3 text-sm">
-          <div className="mb-1.5 font-semibold text-ink-2">Mốc so sánh</div>
-          <ul className="space-y-1 text-ink-2">
+        {/* Thước đo để con số có ý nghĩa — gập lại, bấm mới mở cho đỡ rối. */}
+        <details className="group mt-3 rounded-xl bg-surface-2 px-3 text-sm">
+          <summary className="tap-target flex cursor-pointer list-none items-center justify-between font-semibold text-ink-2">
+            Mốc so sánh
+            <span aria-hidden="true" className="transition-transform group-open:rotate-90">›</span>
+          </summary>
+          <ul className="space-y-1 pb-1 text-ink-2">
             <li className="flex justify-between">
               <span>Hoàn hảo</span>
               <span className="font-semibold font-num">0.000</span>
@@ -440,11 +460,11 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
               <span className="font-semibold font-num">1.000</span>
             </li>
           </ul>
-          <p className="mt-2 text-xs text-ink-3">
+          <p className="mt-2 pb-3 text-xs text-ink-3">
             Càng thấp càng tốt. Nói 90% mà sai bị phạt 0.81; nói 50% thì luôn đúng 0.25 — an toàn
             nhưng vô dụng.
           </p>
-        </div>
+        </details>
       </Card>
 
       {/* ---------- Calibration ---------- */}
@@ -465,8 +485,14 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
           <CalibrationChart buckets={buckets} />
         </Suspense>
 
-        {/* Bảng số liệu — biểu đồ trên điện thoại nhỏ, cần con số kèm theo. */}
-        <table className="mt-3 w-full text-sm">
+        {/* Bảng số liệu — biểu đồ trên điện thoại nhỏ, cần con số kèm theo.
+            Gập lại mặc định. */}
+        <details className="group mt-3 rounded-xl bg-surface-2 px-3 text-sm">
+          <summary className="tap-target flex cursor-pointer list-none items-center justify-between font-semibold text-ink-2">
+            Bảng số liệu
+            <span aria-hidden="true" className="transition-transform group-open:rotate-90">›</span>
+          </summary>
+        <table className="mb-2 w-full text-sm">
           <thead>
             <tr className="text-xs text-ink-3">
               <th className="py-1 text-left font-semibold">Khoảng</th>
@@ -477,7 +503,7 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
           </thead>
           <tbody>
             {buckets.map((b) => (
-              <tr key={b.label} className="border-t border-line">
+              <tr key={b.label} className="border-t border-line/70">
                 <td className="py-1.5 text-ink-2">{b.label}</td>
                 <td className="py-1.5 text-right font-num">{b.count}</td>
                 <td className="py-1.5 text-right font-num text-ink-2">
@@ -490,10 +516,11 @@ function ScoreView({ all, today }: { all: Prediction[]; today: string }) {
             ))}
           </tbody>
         </table>
+        </details>
 
         {!enough && (
-          <p className="mt-3 rounded-lg bg-surface-2 px-3 py-2 text-sm text-ink-2">
-            Mới có {resolvedCount}/{MIN_RESOLVED_FOR_CONCLUSION} dự đoán đã chấm — chưa đủ dữ liệu
+          <p className="mt-3 text-xs text-ink-3">
+            Sơ bộ — mới có {resolvedCount}/{MIN_RESOLVED_FOR_CONCLUSION} dự đoán đã chấm — chưa đủ dữ liệu
             để kết luận. Cứ tiếp tục ghi, đừng vội đổi cách ước lượng dựa trên biểu đồ này.
           </p>
         )}

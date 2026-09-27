@@ -186,6 +186,21 @@ export function dueCount(cards: Card[], today: string, limit: number = DAILY_LIM
   return Math.min(cards.filter((c) => isDue(c, today)).length, limit);
 }
 
+/**
+ * Lịch "Sắp tới": số thẻ đến hạn trong `days` ngày kế tiếp (KHÔNG tính hôm
+ * nay), chỉ những ngày có thẻ, sớm nhất trước. Dùng cho màn hình chờ ôn.
+ */
+export function upcomingDue(cards: Card[], today: string, days = 7): { date: string; count: number }[] {
+  const last = addDays(today, days);
+  const counts = new Map<string, number>();
+  for (const c of cards) {
+    if (c.dueDate > today && c.dueDate <= last) counts.set(c.dueDate, (counts.get(c.dueDate) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, count]) => ({ date, count }));
+}
+
 /* ==================== Tạo thẻ từ brain dump ==================== */
 
 /**

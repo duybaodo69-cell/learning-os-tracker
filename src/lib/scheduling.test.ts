@@ -18,6 +18,7 @@ import {
   newCardState,
   scheduleNext,
   splitGapsIntoFronts,
+  upcomingDue,
 } from "./scheduling";
 
 describe("scheduleNext — nút Quên (again)", () => {
@@ -319,5 +320,28 @@ describe("kịch bản thật: một thẻ đi qua nhiều ngày", () => {
     expect(state.intervalDays).toBe(1); // lại từ nấc đầu
     state = scheduleNext(state, "good");
     expect(state.intervalDays).toBe(3);
+  });
+});
+
+describe("upcomingDue — lịch 'Sắp tới'", () => {
+  it("đếm theo ngày trong 7 ngày tới, bỏ hôm nay / quá hạn / quá xa, sớm nhất trước", () => {
+    const cards = [
+      makeCard("qua-han", "2026-09-20"),
+      makeCard("hom-nay", "2026-09-25"),
+      makeCard("mai-1", "2026-09-26"),
+      makeCard("mai-2", "2026-09-26"),
+      makeCard("t2", "2026-09-28"),
+      makeCard("ngay-7", "2026-10-02"),
+      makeCard("ngay-8", "2026-10-03"),
+    ];
+    expect(upcomingDue(cards, "2026-09-25")).toEqual([
+      { date: "2026-09-26", count: 2 },
+      { date: "2026-09-28", count: 1 },
+      { date: "2026-10-02", count: 1 },
+    ]);
+  });
+
+  it("không có thẻ nào sắp tới thì trả về mảng rỗng", () => {
+    expect(upcomingDue([makeCard("a", "2026-09-25")], "2026-09-25")).toEqual([]);
   });
 });

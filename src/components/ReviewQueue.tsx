@@ -14,22 +14,27 @@ import { db } from "../db/db";
 import type { Card, Grade } from "../db/types";
 import { newId } from "../lib/dates";
 import { useToday } from "../lib/useToday";
-import { DAILY_LIMIT, addDays, buildQueue, scheduleNext } from "../lib/scheduling";
+import { DAILY_LIMIT, addDays, buildQueue, scheduleNext, upcomingDue } from "../lib/scheduling";
+import { formatDayLabel } from "../lib/dates";
 
-import { Button, Card as CardBox, EmptyState, SectionLabel, Tag, Toggle } from "./ui";
+import { Button, Card as CardBox, EmptyState, ListGroup, ListRow, SectionLabel, SwitchKnob, Tag } from "./ui";
 
 /** Chế độ 10 phút: hết giờ là dừng buổi ôn. */
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 
-/** Bốn nút chấm điểm. Thứ tự từ khó nhớ nhất tới dễ nhất. */
+/**
+ * Bốn nút chấm điểm. Thứ tự từ khó nhớ nhất tới dễ nhất.
+ * Bản "Calm": chỉ "Được" (lựa chọn hay dùng nhất) có viền màu nhấn; "Quên"
+ * đỏ nhạt; còn lại trung tính — bốn ô màu đặc cạnh nhau rất rối mắt.
+ */
 const GRADE_BUTTONS: { grade: Grade; label: string; className: string }[] = [
-  { grade: "again", label: "Quên", className: "bg-surface-2 border border-bad/40 text-bad-ink active:bg-bad/20" },
-  { grade: "hard", label: "Khó", className: "bg-warn/15 border border-warn/50 text-warn active:bg-warn/25" },
-  { grade: "good", label: "Được", className: "bg-accent text-on-accent active:brightness-110" },
-  { grade: "easy", label: "Dễ", className: "bg-good/15 border border-good/40 text-good active:bg-good/25" },
+  { grade: "again", label: "Quên", className: "bg-bad/10 text-bad-ink active:bg-bad/20" },
+  { grade: "hard", label: "Khó", className: "bg-surface-2 text-ink-2 active:bg-line" },
+  { grade: "good", label: "Được", className: "border border-accent bg-accent/10 text-accent active:bg-accent/20" },
+  { grade: "easy", label: "Dễ", className: "bg-surface-2 text-ink-2 active:bg-line" },
 ];
 
-export default function ReviewQueue() {
+export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void }) {
   const today = useToday();
 
   const allCards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
@@ -60,6 +65,10 @@ export default function ReviewQueue() {
 
   // Danh sách thẻ đến hạn, tính lại khi dữ liệu đổi (dùng cho màn hình chờ).
   const dueCards = useMemo(() => buildQueue(allCards, today), [allCards, today]);
+  // Thẻ mới (chưa ôn lần nào) và lịch mấy ngày tới — chỉ để hiển thị.
+  const newDue = dueCards.filter((c) => c.reps === 0).length;
+  const upcoming = useMemo(() => upcomingDue(allCards, today).slice(0, 3), [allCards, today]);
+  const missingBack = allCards.filter((c) => c.back.trim() === "").length;
 
   // Đồng hồ đếm ngược của chế độ 10 phút.
   // Giống bộ đếm ở màn hình Hôm nay: mốc bắt đầu là nguồn sự thật duy nhất,
@@ -137,12 +146,21 @@ export default function ReviewQueue() {
   if (queueIds === null) {
     return (
       <div className="pb-4">
-        <CardBox className="mb-4 text-center">
-          <div className="font-num text-5xl font-semibold text-ink">{dueCards.length}</div>
-          <p className="mt-1 text-sm text-ink-2">
-            thẻ đến hạn hôm nay
-            {allCards.length > dueCards.length && ` (tổng ${allCards.length} thẻ)`}
+        <CardBox className="mb-3">
+          <p className="text-sm text-ink-2">Hôm nay</p>
+          <p className="mt-1 flex items-baseline gap-2">
+            <span className="font-num text-5xl font-semibold text-accent">{dueCards.length}</span>
+            <span className="text-base font-medium text-ink">thẻ đến hạn</span>
           </p>
+          {dueCards.length > 0 && (
+            <p className="mt-1 text-sm text-ink-2">
+              <span className="font-num">{newDue}</span> thẻ mới ·{" "}
+              <span className="font-num">{dueCards.length - newDue}</span> ôn lại
+              {allCards.length > dueCards.length && (
+                <span className="text-ink-3"> · tổng {allCards.length} thẻ</span>
+              )}
+            </p>
+          )}
 
           {dueCards.length >= DAILY_LIMIT && (
             <p className="mt-2 text-xs text-ink-3">
@@ -150,23 +168,60 @@ export default function ReviewQueue() {
             </p>
           )}
 
-          <div className="mt-4">
-            <Toggle
-              label="Chế độ 10 phút"
-              description="Tự dừng buổi ôn sau 10 phút"
-              checked={tenMinuteMode}
-              onChange={setTenMinuteMode}
-            />
-          </div>
+          {/* Công tắc là một dòng trong thẻ, ngăn bằng đường kẻ mảnh. */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={tenMinuteMode}
+            onClick={() => setTenMinuteMode(!tenMinuteMode)}
+            className="mt-4 flex min-h-[52px] w-full items-center justify-between gap-3 border-t border-line/70 pt-3 text-left"
+          >
+            <span>
+              <span className="block text-sm font-semibold text-ink">Chế độ 10 phút</span>
+              <span className="block text-xs text-ink-3">Tự dừng buổi ôn sau 10 phút</span>
+            </span>
+            <SwitchKnob checked={tenMinuteMode} />
+          </button>
 
           <Button
             onClick={startSession}
             disabled={dueCards.length === 0}
-            className="mt-4 w-full text-base"
+            className="mt-3 w-full py-3 text-base"
           >
             Bắt đầu ôn
           </Button>
         </CardBox>
+
+        {/* Thẻ nháp từ brain dump chưa có mặt sau — một chạm sang Kho thẻ. */}
+        {missingBack > 0 && onOpenCards && (
+          <ListGroup className="mb-3">
+            <ListRow
+              label={
+                <>
+                  <span className="font-num">{missingBack}</span> thẻ chưa có mặt sau
+                </>
+              }
+              description="Viết nốt đáp án để ôn được"
+              onClick={onOpenCards}
+            />
+          </ListGroup>
+        )}
+
+        {upcoming.length > 0 && (
+          <ListGroup label="Sắp tới" className="mb-3">
+            {upcoming.map(({ date, count }) => (
+              <ListRow
+                key={date}
+                label={date === addDays(today, 1) ? "Mai" : formatDayLabel(date)}
+                value={
+                  <span className="rounded-md bg-surface-2 px-2 py-0.5">
+                    <span className="font-num">{count}</span> thẻ
+                  </span>
+                }
+              />
+            ))}
+          </ListGroup>
+        )}
 
         {dueCards.length === 0 && (
           <EmptyState
@@ -241,7 +296,7 @@ export default function ReviewQueue() {
           <Button
             variant="secondary"
             onClick={() => setAnswerShown(true)}
-            className="w-full bg-canvas py-3 text-base text-accent"
+            className="w-full py-3 text-base"
           >
             Hiện đáp án
           </Button>
@@ -251,7 +306,7 @@ export default function ReviewQueue() {
         </>
       ) : (
         <>
-          <CardBox className="mb-4 border-accent/30 bg-accent/10">
+          <CardBox className="mb-3 bg-surface-2">
             <SectionLabel>Mặt sau</SectionLabel>
             {card.back.trim() === "" ? (
               <p className="text-sm text-warn">
@@ -263,6 +318,7 @@ export default function ReviewQueue() {
           </CardBox>
 
           {/* 4 nút chấm điểm, kèm ngày ôn lại tiếp theo để bạn thấy hậu quả lựa chọn */}
+          <p className="mb-2 text-center text-xs text-ink-3">Nhớ tới đâu? Ôn lại sau:</p>
           <div className="grid grid-cols-4 gap-2">
             {GRADE_BUTTONS.map(({ grade: g, label, className }) => {
               const preview = scheduleNext(
@@ -279,10 +335,12 @@ export default function ReviewQueue() {
                   key={g}
                   type="button"
                   onClick={() => grade(card, g)}
-                  className={`tap-target flex flex-col items-center justify-center rounded-lg py-2 font-semibold ${className}`}
+                  className={`tap-target flex flex-col items-center justify-center rounded-xl py-2 font-semibold ${className}`}
                 >
                   <span className="text-sm">{label}</span>
-                  <span className="font-num text-xs font-normal">{preview.intervalDays}d</span>
+                  <span className="text-xs font-normal">
+                    <span className="font-num">{preview.intervalDays}</span> ngày
+                  </span>
                 </button>
               );
             })}
@@ -291,7 +349,7 @@ export default function ReviewQueue() {
       )}
 
       {/* Phiên hiện tại + tiến độ */}
-      <div className="mt-4 rounded-lg border border-line bg-surface px-4 py-3">
+      <div className="mt-4 rounded-2xl border border-line/70 bg-surface px-4 py-3">
         <div className="flex items-center justify-between text-sm">
           <span className="text-ink-2">
             Phiên hiện tại{" "}

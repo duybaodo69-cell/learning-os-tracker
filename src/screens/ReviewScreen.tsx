@@ -24,7 +24,9 @@ export default function ReviewScreen({
 }) {
   const subtitle =
     view === "queue"
-      ? "Thẻ đến hạn hôm nay"
+      ? dueCount > 0
+        ? `${dueCount} thẻ đến hạn hôm nay`
+        : "Không còn thẻ đến hạn hôm nay"
       : view === "braindump"
         ? "Viết lại những gì nhớ được"
         : "Quản lý bộ thẻ";
@@ -41,7 +43,7 @@ export default function ReviewScreen({
         ]}
       />
 
-      {view === "queue" && <ReviewQueue />}
+      {view === "queue" && <ReviewQueue onOpenCards={() => onViewChange("cards")} />}
       {view === "braindump" && <BrainDumpView />}
       {view === "cards" && <CardsView />}
     </ScreenShell>
