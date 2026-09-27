@@ -144,6 +144,12 @@ describe("parseBackup — kiểm tra TỪNG bản ghi (audit F01)", () => {
       ["experimentTags", { key: "k", date: "2026-09-25", experimentId: "e", condition: "C" }],
       ["cards", null],
       ["cards", [1, 2]],
+      // IELTS (Đợt 1)
+      ["focusBlocks", { ...BLOCK, ielts: { skill: "Grammar" } }],
+      ["focusBlocks", { ...BLOCK, ielts: { skill: "Listening", test: { book: 10, test: 1, parts: [1], questions: 10, correct: 7, errors: [3] } } }],
+      ["mockTests", { id: "m", date: "2026-10-03", source: "online" }],
+      ["mockTests", { id: "m", date: "2026-10-03", source: "home", listeningRaw: 41 }],
+      ["mockTests", { id: "m", date: "2026-10-03", source: "home", writingBand: 6.3 }],
     ];
     for (const [table, row] of bad) {
       expect(() => parseBackup(fileWith({ [table]: [row] })), `${table} ${JSON.stringify(row)}`).toThrow("hỏng");
@@ -228,5 +234,38 @@ describe("normaliseBackupData — file cũ và dữ liệu từ Dexie Cloud", ()
   it("bảng thiếu thành danh sách rỗng", () => {
     const d = normaliseBackupData({});
     for (const name of TABLE_NAMES) expect(d[name]).toEqual([]);
+  });
+});
+
+describe("IELTS (Đợt 1) trong file sao lưu", () => {
+  const IELTS_BLOCK = {
+    ...BLOCK,
+    ielts: { skill: "Listening", test: { book: 10, test: 1, parts: [1, 2], questions: 20, correct: 14, errors: [3, 1, 2, 0] }, dictationMinutes: 10 },
+  };
+  const MOCK = { id: "m1", date: "2026-10-03", source: "home", listeningRaw: 22, readingRaw: 30, writingBand: 6, speakingBand: 6 };
+
+  it("nhận block có phần IELTS và bảng thi thử", () => {
+    const { counts } = parseBackup(fileWith({ focusBlocks: [IELTS_BLOCK, { ...BLOCK, id: "2" }], mockTests: [MOCK] }));
+    expect(counts.focusBlocks).toBe(2);
+    expect(counts.mockTests).toBe(1);
+  });
+
+  it("thi thử chỉ có một kỹ năng vẫn hợp lệ", () => {
+    expect(() => parseBackup(fileWith({ mockTests: [{ id: "m2", date: "2026-10-03", source: "ai", writingBand: 6.5 }] }))).not.toThrow();
+  });
+
+  it("file cũ (trước Đợt 1) không có mockTests: nhập được, bảng rỗng", () => {
+    const { counts } = parseBackup(fileWith({ focusBlocks: [BLOCK] }));
+    expect(counts.mockTests).toBe(0);
+    expect(normaliseBackupData({}).mockTests).toEqual([]);
+  });
+
+  it("thi thử trùng id bị từ chối", () => {
+    expect(() => parseBackup(fileWith({ mockTests: [MOCK, MOCK] }))).toThrow("trùng khoá");
+  });
+
+  it("làm sạch trường Dexie Cloud trên bản ghi thi thử", () => {
+    const d = normaliseBackupData({ mockTests: [{ ...MOCK, owner: "u", realmId: "r", $ts: 1 } as never] });
+    expect(d.mockTests[0]).toEqual(MOCK);
   });
 });

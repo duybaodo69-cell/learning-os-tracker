@@ -10,12 +10,13 @@ const local = normaliseBackupData({
   checkins: [{ date: "2026-09-25" } as never, { date: "2026-09-26" } as never],
   focusBlocks: [{ id: "b1" } as never, { id: "b2" } as never, { id: "b3" } as never],
   experimentTags: [{ key: "2026-09-26|e1" } as never],
+  mockTests: [{ id: "m1" } as never],
 });
 
 describe("planUpload", () => {
   it("tài khoản trống -> đưa lên tất cả", () => {
     const p = planUpload(local, {});
-    expect(p.totalToAdd).toBe(6);
+    expect(p.totalToAdd).toBe(7);
     expect(p.totalSkipped).toBe(0);
   });
 
@@ -37,10 +38,11 @@ describe("planUpload", () => {
       checkins: first.toAdd.checkins.map((c) => c.id),
       focusBlocks: first.toAdd.focusBlocks.map((b) => b.id),
       experimentTags: first.toAdd.experimentTags.map((t) => t.key),
+      mockTests: first.toAdd.mockTests.map((m) => m.id),
     };
     const second = planUpload(local, keysAfter);
     expect(second.totalToAdd).toBe(0);
-    expect(second.totalSkipped).toBe(6);
+    expect(second.totalSkipped).toBe(7);
   });
 
   it("khoá lặp ngay trong dữ liệu trên máy chỉ lấy một bản", () => {
@@ -50,7 +52,7 @@ describe("planUpload", () => {
 
   it("mỗi bảng đều có một dòng xem trước, cộng đúng", () => {
     const p = planUpload(local, { focusBlocks: ["b1"] });
-    expect(p.rows).toHaveLength(9);
+    expect(p.rows).toHaveLength(10);
     for (const r of p.rows) expect(r.toAdd + r.skipped).toBe(r.incoming);
   });
 });

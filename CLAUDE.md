@@ -71,6 +71,34 @@ type FocusBlock = {
   phoneAway: boolean;
   resumeNote?: string;
   capturedNotes?: string[]; // "Việc chen ngang" typed during a timed session (Dexie v5)
+  ielts?: IeltsSession;     // only for area "IELTS" (Dexie v8, Đợt 1)
+};
+
+// The IELTS part of a focus block. `test` absent = "Không làm đề", or Writing/Speaking.
+type IeltsSession = {
+  skill: "Listening" | "Reading" | "Writing" | "Speaking";
+  test?: {
+    book: number;       // Cam 10-19
+    test: number;       // 1-4
+    parts: number[];    // Listening section 1-4 / Reading passage 1-3
+    questions: number;  // default 10 per section, 13/13/14 per passage, editable
+    correct: number;
+    errors: [number, number, number, number]; // meaning depends on skill, see Đợt 1 rules
+  };
+  dictationMinutes?: number; // Listening only
+  aiBand?: number;           // Writing/Speaking only, 0-9 step 0.5
+};
+
+// A mock test (Dexie v8). L/R bands and overall are computed, never stored.
+type MockTest = {
+  id: string;
+  date: string;
+  source: "home" | "center" | "ai";
+  listeningRaw?: number; // 0-40
+  readingRaw?: number;   // 0-40
+  writingBand?: number;
+  speakingBand?: number;
+  note?: string;
 };
 
 type Area =
@@ -213,8 +241,10 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
       URL only), DEV https://zq98wk7oy.dexie.cloud (whitelist: http://localhost:5173 only).
 - [x] **Product interview (2026-09-27)** — `docs/PRODUCT.md`: IELTS 7.5 (March 2027) is the one
       self-assigned goal; 9:30 daily anchor; predictions + experiments to be hidden.
-- [ ] **Next: `docs/PRODUCT.md` Đợt 1** (IELTS start shortcut, IELTS finish step with 4 error
-      types, mock-test results) — needed before the baseline mock on 2026-10-03.
+- [x] **`docs/PRODUCT.md` Đợt 1 (2026-09-27)** — IELTS start shortcut + "Khung 9:30: x/7",
+      IELTS finish step (skill, next test, correct, 4 error types per skill, dictation),
+      mock-test results in Ôn tập → Thi thử.
+- [ ] **Next: `docs/PRODUCT.md` Đợt 2** (countdown, "dời khung", IELTS tab) — before 2026-10-12.
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
@@ -241,6 +271,8 @@ src/
     ProtocolBanner.tsx
     CheckinForm.tsx
     FocusBlockForm.tsx
+    IeltsSessionFields.tsx  # IELTS part of the block/finish form (area IELTS only)
+    MockTestView.tsx   # Ôn tập → Thi thử: mock-test form + history
   screens/             # one file per tab, plus FocusSession.tsx (full-screen timer)
   config/
     protocolPhases.ts  # EDIT HERE to change the 12-week schedule
@@ -268,6 +300,7 @@ src/
     sync.ts            # Vietnamese sync status + login messages (tested)
     upload.ts          # planUpload: which local rows are new to the account (tested)
     cloudUpload.ts     # reads the local store, adds only new rows to the account
+    ielts.ts           # IELTS: band table, overall rounding, next test, 9:30 anchor, form draft (tested)
   config/cloud.ts      # Dexie Cloud database URLs (dev + prod; not secret)
   config/backgrounds.ts  # focus-session background presets + source/licence of each
 public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
@@ -574,6 +607,50 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   (lock refused), refused fullscreen and iPhone (no Fullscreen API). NOT verified on a real
   phone yet.
 
+### IELTS Đợt 1 (2026-09-27) — rules to keep
+
+- **Source of truth is `docs/PRODUCT.md`** mục 3 (band table, overall rounding, test order,
+  "giữ khung 9:30"), mục 7 (Listening errors ①–④) and 7b (Reading errors Ⓐ–Ⓓ). All of it is
+  in `src/lib/ielts.ts` (110 tests in `ielts.test.ts`, every table boundary). Change it there.
+- **No second timer.** "Bắt đầu IELTS" on Hôm nay only sets the last area to IELTS and starts
+  the normal focus session. The finish form shows the IELTS part because the area is IELTS.
+- **The IELTS result lives on the block** (`FocusBlock.ielts`), not in its own table, so the
+  session and its score are one write and can never disagree. Switching an edited IELTS block
+  to another area drops `ielts` on save; the form says so in orange before saving (rule 4).
+- **Save is blocked until the 4 error counters add up to the wrong count** (`draftError`).
+  The two error sets never mix: `errors[i]` means ①–④ for Listening, Ⓐ–Ⓓ for Reading — always
+  read it with `skill`. "Không làm đề" saves the session without a test (still counts for
+  IELTS time and the 9:30 anchor). Writing/Speaking only store an optional AI band.
+- **Next test is per skill** (`nextTest`): the part after the highest part of the MOST RECENT
+  session (date, then start time) of that skill — not the furthest test. Listening has 4
+  sections × 10, Reading 3 passages 13/13/14 (the total is editable). After Cam 19 → null.
+  The form preselects ONE part (owner's choice). Editing a block excludes itself from history.
+- **Khung 9:30** = IELTS block starting 09:00–10:30 inclusive, >= 45 min. `anchorWeek` counts
+  DAYS Monday–Sunday (two sessions on one day = 1). Shown as "x/7" + 7 dots, never a streak.
+- **Bands:** raw → band only for a full 40 questions (`practiceBand`); fewer shows raw and %.
+  Raw < 10 is below the table → null ("dưới 4.0"), never guessed. Overall =
+  `floor(avg × 2 + 0.5) / 2` (x.25 → x.5, x.75 → next whole); needs all 4 skills.
+  Every band on screen is written "≈".
+- **Mock tests** (`mockTests`, Dexie v8, UUID keys): every skill optional; only raw L/R and W/S
+  bands are stored, bands/overall are recomputed. Temporarily in Ôn tập → "Thi thử"; Đợt 2
+  moves it to the IELTS tab. Delete only inside the edit form, through ConfirmDialog.
+- **Backup:** `mockTests` is a backup table (TABLE_NAMES, ROW_RULES, UNIQUE_FIELD, PRIMARY_KEY
+  in upload.ts, so cloud upload picks it up). `focusBlocks.ielts` is shape-checked by
+  `isValidIeltsSession`; an error total that does not match is still ACCEPTED on import (it
+  breaks nothing, and an old export must always restore). Files without `mockTests` import
+  with that table empty — the import preview shows its count like every other table.
+- **Hôm nay:** "Bắt đầu IELTS · <next Listening part>" is now the ONE filled accent button;
+  "Bắt đầu đếm" (any area) became secondary. The block form's area chips are one scroll row.
+- **`Counter compact`**: 44px square buttons so a label and a counter share one row at 390px.
+- **Verified (headless Chromium 1228 via playwright-core, localhost, fake data):** timer at a
+  faked 09:30 Tuesday → +50 min → finish form → 7/10 with errors ①2 ③1 → saved → "Khung 9:30"
+  0/7 → 1/7 and the button moved to S2; mock test L23 R30 W6 S6 → overall ≈ 6.5. Layout:
+  390 / 768 / 1280 × dark / light × 100 / 150% on Hôm nay, the finish sheet (Listening +
+  Reading) and Thi thử — no control under 44px, no page overflow, no page errors. The Chrome
+  extension was not connected, so this was not done in the owner's Chrome, nor on a phone.
+- **Not built (Đợt 2/3):** IELTS tab, countdown, "dời khung", error-trend charts, IELTS
+  hours/week chart, cards from IELTS errors.
+
 ### Part C (Dexie Cloud sync) — rules to keep
 
 - **Three separate stores** (`src/db/store.ts`): `learning-os` (local, default),
@@ -679,7 +756,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
 npm run build:only      # type-check + production build, skipping lint/tests (local only)
-npm test                # unit tests (433: lib/ logic, db upgrade, hooks, components, worker)
+npm test                # unit tests (555: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

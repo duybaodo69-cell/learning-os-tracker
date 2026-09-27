@@ -21,6 +21,7 @@ import type {
   Experiment,
   ExperimentTag,
   FocusBlock,
+  MockTest,
   Prediction,
   ReviewLog,
   WeeklyReview,
@@ -66,6 +67,8 @@ export class LearningDB extends Dexie {
   weekReviews!: Table<WeeklyReview, string>;
   experiments!: Table<Experiment, string>;
   experimentTags!: Table<ExperimentTag, string>;
+  // IELTS (Đợt 1)
+  mockTests!: Table<MockTest, string>;
 
   constructor(databaseName: string, options?: DexieOptions) {
     super(databaseName, options);
@@ -139,6 +142,17 @@ export class LearningDB extends Dexie {
     this.version(7).stores({
       checkins: null,
       weeklyReviews: null,
+    });
+
+    // version(8) — IELTS (Đợt 1).
+    //   - bảng mới `mockTests` (kết quả thi thử), khoá UUID như mọi bảng khác
+    //     để Dexie Cloud đồng bộ được
+    //   - trường mới FocusBlock.ielts (không có index, nên cấu trúc
+    //     focusBlocks giữ nguyên; ghi lại ở đây giống version 5)
+    // Không migration: block cũ không có `ielts` vẫn hợp lệ.
+    this.version(8).stores({
+      focusBlocks: "id, date, area",
+      mockTests: "id, date",
     });
   }
 }

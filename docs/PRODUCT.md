@@ -40,7 +40,7 @@ Nguyên tắc thiết kế số 1: **"Không cần nhớ quy trình — mở app
 | Kết quả giữa chặng | Band các lần thi thử (bảng mục 5) | L 6.0 → 6.5 → 7.0 |
 | **Lock-in (dẫn dắt)** | **Số ngày giữ khung 9:30 / 7 mỗi tuần** | ≥ 5/7 |
 | Khối lượng | Giờ IELTS mỗi tuần | ~11.5 (tuần thi môn: sàn 30 phút Listening/ngày) |
-| Chất lượng luyện | Số câu Listening sai theo 4 loại lỗi | loại lớn nhất giảm dần |
+| Chất lượng luyện | Số câu sai theo loại lỗi (Listening mục 7, Reading mục 7b) | loại lớn nhất giảm dần |
 | Giấc ngủ | Lên giường trước 00:00 (check-in) | ≥ 5/7 |
 | Phụ | Tài liệu thương vụ bao bì được manager chấp nhận | mỗi vòng góp ý ít lỗi lặp lại hơn |
 
@@ -74,15 +74,16 @@ Giả định bạn thi **Academic** (Reading của General Training quy đổi 
 
 Overall = trung bình 4 kỹ năng, làm tròn tới 0.5 gần nhất (x.25 lên x.5, x.75 lên số tròn kế tiếp).
 
-**Thứ tự đề luyện:** Cam 10 → 14, trong mỗi cuốn Test 1 → 4, trong mỗi test Section 1 → 4. "Đề
-tiếp theo" = section ngay sau section cuối cùng đã ghi.
+**Thứ tự đề luyện:** Cam 10 → 14, trong mỗi cuốn Test 1 → 4. Listening: Section 1 → 4 (10 câu
+mỗi section). Reading: Passage 1 → 3 (mặc định 13 / 13 / 14 câu, **sửa được** vì vài đề chia khác).
+"Đề tiếp theo" tính **riêng cho từng kỹ năng** = phần ngay sau phần cuối cùng đã ghi của kỹ năng đó.
 
 **Cổng quyết định 12/12:** thi thử 2 (trả tiền, ở trung tâm) dưới 6.5 overall → dời thi thật sang
 tháng 5–6/2027 (phương án C). Dời vì có dữ liệu, không dời vì sợ trước.
 
 ## 4. Lịch tuần cố định (bắt đầu thứ 3, 29/09/2026)
 
-Buổi sáng cả 7 ngày đều trống (lớp: T3 15:30, T4 12:00, T6 12:00 — mỗi buổi 3 tiếng).
+Buổi sáng cả 7 ngày đều trống (lớp: T3 15:00 EFM, T4 12:00 AFEP, T6 12:00 BFN — mỗi buổi 3 tiếng).
 
 | Ngày | Ra khỏi nhà | Khung IELTS | Nội dung |
 |---|---|---|---|
@@ -144,6 +145,23 @@ máy chủ nên không tự gửi thông báo được). Khung 9:30 **phải ra 
 
 Buổi chỉ tính **xong** khi tổng 4 loại lỗi = số câu sai.
 
+## 7b. Buổi Reading
+
+1. Làm 1–3 passage Cam, bấm giờ **20 phút mỗi passage**, chấm điểm thô.
+2. Mở lại bài, **phân loại từng câu sai** bằng bộ lỗi **riêng của Reading** (hỏi theo thứ tự):
+
+   | Câu hỏi | Loại |
+   |---|---|
+   | **Không kịp làm**, bỏ trống hoặc đoán bừa vì hết giờ? | Ⓐ Hết giờ |
+   | **Không tìm ra đoạn** chứa đáp án (không nhận ra paraphrase)? | Ⓑ Không tìm ra chỗ |
+   | Tìm đúng đoạn nhưng **hiểu sai nghĩa** (từ vựng, câu phức)? | Ⓒ Hiểu sai câu |
+   | Hiểu đúng mà vẫn sai: **nhầm False / Not Given**, quá số từ, chép sai chính tả? | Ⓓ Sai logic / format |
+
+3. Từ vựng mới gặp ở loại Ⓒ → thẻ ôn (Đợt 3 có nguồn thẻ riêng).
+
+Giống Listening: chỉ tính **xong** khi tổng 4 loại = số câu sai. Hai bộ lỗi **không trộn**: thống kê
+xu hướng lỗi hiển thị riêng Listening và Reading.
+
 Writing/Speaking: 2 bài Writing mỗi tuần do AI chấm theo 4 tiêu chí band descriptor; Speaking ghi âm
 Part 2–3 → bản chép lời → AI nhận xét. **Lỗi lặp lại → thẻ ôn.** Hiệu chỉnh độ lệch điểm AI bằng
 điểm giám khảo ở thi thử 2 và 4.
@@ -156,8 +174,9 @@ một area; khi phiên có area IELTS thì bước kết thúc có thêm phần 
 **Đợt 1 — trước thi thử 0 (3/10)**
 - Hôm nay: nút lớn "Bắt đầu IELTS · <đề tiếp theo>" (lối tắt chọn sẵn area IELTS) + "Khung 9:30:
   x/7 tuần này".
-- Kết thúc phiên IELTS: kỹ năng, đề (tự gợi ý section tiếp theo), điểm thô, 4 bộ đếm lỗi (tổng phải
-  khớp số câu sai), phút chép chính tả. Nhập < 30 giây.
+- Kết thúc phiên IELTS: kỹ năng, đề (tự gợi ý phần tiếp theo của kỹ năng đó), số câu đúng, 4 bộ đếm
+  lỗi **theo kỹ năng** (Listening: mục 7; Reading: mục 7b; tổng phải khớp số câu sai), phút chép
+  chính tả (chỉ Listening). Writing / Speaking: chỉ band AI chấm, tuỳ chọn. Nhập < 30 giây.
 - Ghi kết quả thi thử: L/R điểm thô → band, W/S band, nguồn (ở nhà / trung tâm / AI).
 
 **Đợt 2 — trước 12/10**

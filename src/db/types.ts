@@ -55,6 +55,64 @@ export type FocusBlock = {
    * Không bắt buộc: block cũ và block log tay không có trường này.
    */
   capturedNotes?: string[];
+  /**
+   * Phần IELTS của phiên — chỉ có khi area là "IELTS" (Đợt 1, 2026-09).
+   * Nằm ngay trong block để phiên và điểm luôn được lưu cùng một lần ghi.
+   * Block cũ và block area khác không có trường này.
+   */
+  ielts?: IeltsSession;
+};
+
+/* ===================== IELTS (Đợt 1) ===================== */
+
+export const IELTS_SKILLS = ["Listening", "Reading", "Writing", "Speaking"] as const;
+export type IeltsSkill = (typeof IELTS_SKILLS)[number];
+
+/**
+ * Một đề đã làm trong phiên Listening / Reading.
+ * `errors` là 4 bộ đếm lỗi. Nghĩa của từng ô TUỲ KỸ NĂNG (docs/PRODUCT.md):
+ *   Listening (mục 7):  [① Không nghe ra, ② Viết sai, ③ Bẫy/paraphrase, ④ Lạc chỗ]
+ *   Reading   (mục 7b): [Ⓐ Hết giờ, Ⓑ Không tìm ra chỗ, Ⓒ Hiểu sai câu, Ⓓ Sai logic/format]
+ * Hai bộ KHÔNG trộn: luôn đọc kèm `skill` của phiên.
+ * Luôn đúng: errors cộng lại = questions − correct.
+ */
+export type IeltsTestResult = {
+  book: number;       // Cam 10-19
+  test: number;       // Test 1-4
+  parts: number[];    // Listening: section 1-4 · Reading: passage 1-3 (tăng dần)
+  questions: number;  // số câu đã làm (mặc định tự cộng từ các phần, sửa được)
+  correct: number;    // số câu đúng
+  errors: [number, number, number, number];
+};
+
+export type IeltsSession = {
+  skill: IeltsSkill;
+  /** Không có = buổi không làm đề (chỉ chép chính tả, từ vựng...) hoặc Writing/Speaking. */
+  test?: IeltsTestResult;
+  /** Phút chép chính tả — chỉ Listening. */
+  dictationMinutes?: number;
+  /** Band AI chấm — chỉ Writing/Speaking, tuỳ chọn (0-9, bước 0.5). */
+  aiBand?: number;
+};
+
+/** Nơi thi thử (PRODUCT.md mục 8: ở nhà / trung tâm / AI). */
+export const MOCK_SOURCES = ["home", "center", "ai"] as const;
+export type MockSource = (typeof MOCK_SOURCES)[number];
+
+/**
+ * Một lần thi thử. Mỗi kỹ năng tuỳ chọn (thi thử AI có thể chỉ chấm Writing).
+ * Band L/R và overall KHÔNG lưu — luôn tính lại từ điểm thô (src/lib/ielts.ts),
+ * để sửa bảng quy đổi là mọi màn hình đổi theo.
+ */
+export type MockTest = {
+  id: string;
+  date: string;            // "YYYY-MM-DD"
+  source: MockSource;
+  listeningRaw?: number;   // 0-40
+  readingRaw?: number;     // 0-40
+  writingBand?: number;    // 0-9, bước 0.5
+  speakingBand?: number;   // 0-9, bước 0.5
+  note?: string;
 };
 
 /* ===================== Phase 2 ===================== */

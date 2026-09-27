@@ -26,6 +26,7 @@ export const PRIMARY_KEY: Record<TableName, string> = {
   weeklyReviews: "id",
   experiments: "id",
   experimentTags: "key",
+  mockTests: "id",
 };
 
 export type UploadRow = { table: TableName; incoming: number; toAdd: number; skipped: number };

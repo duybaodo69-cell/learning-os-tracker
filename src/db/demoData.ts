@@ -9,10 +9,11 @@
  */
 import { db } from "./db";
 import { checkinId, weekReviewId } from "./keys";
-import type { Area, BrainDump, Card, DailyCheckin, Experiment, ExperimentTag, FocusBlock, Grade, Prediction, PredictionCategory, ReviewLog, Rating, WeeklyReview } from "./types";
+import type { Area, BrainDump, Card, DailyCheckin, Experiment, ExperimentTag, FocusBlock, Grade, IeltsSession, MockTest, Prediction, PredictionCategory, ReviewLog, Rating, WeeklyReview } from "./types";
 import { newId } from "../lib/dates";
 import { START_EASE, addDays } from "../lib/scheduling";
 import { experimentTagKey, mondayOf } from "../lib/metrics";
+import { FIRST_POSITION, defaultQuestions, positionAfter, type TestPosition } from "../lib/ielts";
 
 /** Trừ đi n ngày từ một chuỗi "YYYY-MM-DD". */
 function minusDays(iso: string, n: number): string {
@@ -83,6 +84,111 @@ export async function loadDemoData(today: string): Promise<void> {
       });
     }
   }
+
+  /* ---------- IELTS (Đợt 1) ----------
+     Mỗi ngày trừ Thứ Năm một buổi Listening lúc 9:30, đi tiếp theo thứ tự đề
+     (Cam 10 · Test 1 · S1, S2, ...), Thứ Hai / Thứ Bảy thêm một passage
+     Reading. Vài buổi cố ý NGOÀI khung 9:30 (bắt đầu 11:00, hoặc chỉ 30 phút)
+     để thấy "Khung 9:30" không đếm chúng. Một buổi "không làm đề". */
+  let listenPos: TestPosition | null = FIRST_POSITION;
+  let readPos: TestPosition | null = FIRST_POSITION;
+  for (let i = 13; i >= 0; i--) {
+    const date = minusDays(today, i);
+    const [y, m, d] = date.split("-").map(Number);
+    const weekday = new Date(y, m - 1, d).getDay(); // 0 = Chủ Nhật
+    if (weekday === 4) continue; // Thứ Năm nghỉ — có ngày trống để thấy x/7 < 7
+
+    // Buổi Listening. i % 5 === 2: bắt đầu muộn (ngoài khung).
+    // i % 6 === 3: chỉ chép chính tả, không làm đề.
+    const noTest = i % 6 === 3;
+    let ielts: IeltsSession;
+    if (noTest || listenPos === null) {
+      ielts = { skill: "Listening", dictationMinutes: 15 };
+    } else {
+      const correct = 5 + (i % 5); // 5-9 trên 10 câu
+      const wrong = 10 - correct;
+      // Chia số câu sai vào 4 loại, loại ① nhiều nhất (đúng hiện trạng L 5.5).
+      const e1 = Math.ceil(wrong / 2);
+      const e2 = Math.min(1, wrong - e1);
+      const e3 = wrong - e1 - e2;
+      ielts = {
+        skill: "Listening",
+        test: { book: listenPos.book, test: listenPos.test, parts: [listenPos.part], questions: 10, correct, errors: [e1, e2, e3, 0] },
+        dictationMinutes: [5, 10][i % 2],
+      };
+      listenPos = positionAfter("Listening", listenPos);
+    }
+    blocks.push({
+      id: newId(),
+      date,
+      startTime: i % 5 === 2 ? "11:00" : "09:30",
+      minutes: i % 7 === 1 ? 30 : 55,
+      area: "IELTS",
+      focusRating: (((i + 2) % 5) + 1) as Rating,
+      distractions: i % 3,
+      phoneAway: true,
+      resumeNote: "[MẪU] buổi IELTS xem thử",
+      ielts,
+    });
+
+    // Thêm một passage Reading vào Thứ Hai và Thứ Bảy (ngày L + R, PRODUCT.md mục 4).
+    if ((weekday === 1 || weekday === 6) && readPos !== null) {
+      const questions = defaultQuestions("Reading", [readPos.part]);
+      const correct = questions - 4;
+      blocks.push({
+        id: newId(),
+        date,
+        startTime: "10:30",
+        minutes: 25,
+        area: "IELTS",
+        focusRating: 3,
+        distractions: 1,
+        phoneAway: true,
+        resumeNote: "[MẪU] passage xem thử",
+        ielts: {
+          skill: "Reading",
+          test: { book: readPos.book, test: readPos.test, parts: [readPos.part], questions, correct, errors: [1, 2, 0, 1] },
+        },
+      });
+      readPos = positionAfter("Reading", readPos);
+    }
+  }
+
+  // Một bài Writing do AI chấm.
+  blocks.push({
+    id: newId(),
+    date: minusDays(today, 1),
+    startTime: "14:00",
+    minutes: 45,
+    area: "IELTS",
+    focusRating: 4,
+    distractions: 0,
+    phoneAway: false,
+    resumeNote: "[MẪU] Writing Task 2",
+    ielts: { skill: "Writing", aiBand: 6 },
+  });
+
+  /* Thi thử: baseline ở nhà (đủ 4 kỹ năng -> có overall) và một bài AI
+     chỉ chấm Writing (thiếu kỹ năng -> không có overall). */
+  const mockTests: MockTest[] = [
+    {
+      id: newId(),
+      date: minusDays(today, 10),
+      source: "home",
+      listeningRaw: 21,
+      readingRaw: 30,
+      writingBand: 6,
+      speakingBand: 6,
+      note: "[MẪU] thi thử 0 — baseline",
+    },
+    {
+      id: newId(),
+      date: minusDays(today, 2),
+      source: "ai",
+      writingBand: 6.5,
+      note: "[MẪU] AI chấm Task 2",
+    },
+  ];
 
   /* ---------- Thẻ ôn tập ----------
      Cố ý trải đều nhiều trạng thái để xem thử được mọi màn hình:
@@ -259,6 +365,7 @@ export async function loadDemoData(today: string): Promise<void> {
   await db.experiments.bulkPut([experiment]);
   await db.experimentTags.bulkPut(experimentTags);
   await db.weekReviews.bulkPut(weeklyReviews);
+  await db.mockTests.bulkPut(mockTests);
 }
 
 /** Xoá sạch database demo. Chỉ ảnh hưởng chế độ demo. */
@@ -272,4 +379,5 @@ export async function clearDemoData(): Promise<void> {
   await db.experiments.clear();
   await db.experimentTags.clear();
   await db.weekReviews.clear();
+  await db.mockTests.clear();
 }

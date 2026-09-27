@@ -23,7 +23,7 @@ Cách làm:
    - Sự kiện lặp "IELTS · Tổ Kiến" T2–T6 9:30–11:00, thông báo 15 phút trước (9:15 = ra khỏi nhà).
    - "IELTS · Altec" T7 9:30–11:00 và CN 9:30–12:00, thông báo 30 phút trước (9:00 ra khỏi nhà).
    - "Chốt kế hoạch tuần" CN 12:00–12:10.
-   - Lớp học: T3 15:30–18:30, T4 12:00–15:00, T6 12:00–15:00 (hỏi tôi tên môn từng buổi).
+   - Lớp học: T3 15:00–18:00 EFM, T4 12:00–15:00 AFEP, T6 12:00–15:00 BFN (đã có trong lịch WSU).
    - Các mốc: thi thử 0 (3/10), midterm EFM (11/10), AFEP cá nhân (25/10), AFEP nhóm (8/11),
      thi thử 1 (15/11), final EFM + AFEP reflection (25/11), final BFN (2/12), thi thử 2 (12/12).
    - "Lên giường" 23:45 hằng ngày, thông báo đúng giờ.
@@ -39,7 +39,7 @@ Giờ Asia/Ho_Chi_Minh. Không gửi lời mời cho ai.
 
 ```
 Làm Đợt 1 trong docs/PRODUCT.md mục 8. Đọc kỹ mục 3 (định nghĩa đếm, bảng quy đổi band) và
-mục 7 (quy trình Listening, 4 loại lỗi) trước khi thiết kế.
+mục 7 (Listening, 4 loại lỗi ①–④) và 7b (Reading, 4 loại lỗi Ⓐ–Ⓓ) trước khi thiết kế.
 
 Cần có:
 1. Màn Hôm nay: một nút lớn "Bắt đầu IELTS · <đề tiếp theo>", bấm là chạy đồng hồ phiên như
@@ -47,11 +47,14 @@ Cần có:
    này" theo định nghĩa ở mục 3.
 2. Khi hoàn thành một phiên area IELTS, form kết thúc có thêm phần IELTS:
    - kỹ năng (Listening / Reading / Writing / Speaking), mặc định Listening;
-   - đề: Cam (10–19), Test (1–4), Section (1–4, chọn được nhiều), tự điền đề tiếp theo;
-   - số câu đã làm (tự tính từ số section × 10) và số câu đúng;
-   - 4 bộ đếm lỗi ① Không nghe ra ② Viết sai ③ Bẫy/paraphrase ④ Lạc chỗ, mỗi bộ có một dòng
-     định nghĩa. Chỉ lưu được khi tổng 4 bộ = số câu sai;
-   - phút chép chính tả (chip 0 / 5 / 10 / 15).
+   - đề: Cam (10–19), Test (1–4), rồi Listening: Section 1–4 (10 câu mỗi section) / Reading:
+     Passage 1–3 (mặc định 13 / 13 / 14 câu, sửa được); chọn được nhiều phần; tự điền phần tiếp
+     theo, tính riêng cho từng kỹ năng;
+   - số câu đã làm (tự cộng từ các phần đã chọn) và số câu đúng;
+   - 4 bộ đếm lỗi THEO KỸ NĂNG, mỗi bộ có một dòng định nghĩa. Chỉ lưu được khi tổng 4 bộ = số
+     câu sai. Listening: ① Không nghe ra ② Viết sai ③ Bẫy/paraphrase ④ Lạc chỗ. Reading:
+     Ⓐ Hết giờ Ⓑ Không tìm ra chỗ Ⓒ Hiểu sai câu Ⓓ Sai logic / format. Hai bộ không trộn;
+   - phút chép chính tả (chip 0 / 5 / 10 / 15), chỉ với Listening.
    Cả phần này nhập được dưới 30 giây. Writing/Speaking: chỉ ghi band AI chấm (tuỳ chọn), không
    đếm lỗi.
 3. Ghi kết quả thi thử (tối thiểu một form trong Ôn tập hoặc Cài đặt, tab IELTS là Đợt 2):
@@ -94,7 +97,7 @@ Cần có:
    (chip: việc gấp của trường / công ty / việc riêng / khác). Không bao giờ hiện lời trách.
    Đếm số lần dời mỗi tuần.
 3. Tab IELTS thay tab Dự đoán trên thanh điều hướng: đề tiếp theo + nút bắt đầu, lịch sử buổi
-   luyện, kết quả thi thử, tổng lỗi theo 4 loại trong 4 tuần gần nhất.
+   luyện, kết quả thi thử, tổng lỗi theo loại trong 4 tuần gần nhất (Listening và Reading riêng).
 4. Chuyển Dự đoán và Thí nghiệm vào Cài đặt → "Công cụ khác". Dữ liệu giữ nguyên, vẫn mở và dùng
    được, vẫn nằm trong sao lưu. Không xoá bảng, không migration phá dữ liệu (luật số 4).
 
@@ -117,7 +120,8 @@ Làm Đợt 3 trong docs/PRODUCT.md mục 8. Đợt 1 và 2 đã xong; đọc co
 
 Cần có:
 1. Thống kê: đầu trang là biểu đồ "giờ IELTS mỗi tuần" (cột) ghép với "điểm Listening" (đường:
-   % đúng các buổi luyện, và band ≈ các lần thi thử), rồi xu hướng 4 loại lỗi theo tuần, rồi số
+   % đúng các buổi luyện, và band ≈ các lần thi thử), rồi xu hướng loại lỗi theo tuần (Listening
+   và Reading riêng), rồi số
    ngày giữ khung 9:30 mỗi tuần. Các biểu đồ cũ (deep work theo area, ngủ và deep work, tỷ lệ nhớ)
    giữ nguyên, xếp bên dưới. Trung thực thống kê: n nhỏ thì ghi "sơ bộ (n=…)", không p-value.
    Biểu đồ nằm trong DashboardCharts.tsx (lazy), chữ trục qua px() theo cỡ hiển thị.

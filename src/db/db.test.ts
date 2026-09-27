@@ -40,7 +40,7 @@ async function makeVersion5Db() {
   old.close();
 }
 
-describe("nâng cấp version 5 -> 7", () => {
+describe("nâng cấp version 5 -> 8", () => {
   it("chép đủ mọi check-in sang bảng mới với khoá #ngày, giữ nguyên nội dung", async () => {
     await makeVersion5Db();
     const db = new LearningDB(NAME);
@@ -70,14 +70,62 @@ describe("nâng cấp version 5 -> 7", () => {
     expect(names).not.toContain("checkins");
     expect(names).not.toContain("weeklyReviews");
     expect(await db.focusBlocks.count()).toBe(1);
-    expect(db.verno).toBe(7);
+    expect(db.verno).toBe(8);
     db.close();
   });
 
-  it("máy mới cài (chưa có database) mở thẳng version 7", async () => {
+  it("máy mới cài (chưa có database) mở thẳng version 8", async () => {
     const db = new LearningDB(NAME);
     await db.dailyCheckins.put({ id: "#2026-09-26", date: "2026-09-26", bedTime: "23:00", wakeTime: "06:00", sleepHours: 7, energy: 3 });
     expect(await db.dailyCheckins.count()).toBe(1);
+    db.close();
+  });
+});
+
+/**
+ * Version 8 (IELTS Đợt 1): thêm bảng mockTests + trường FocusBlock.ielts.
+ * Máy của chủ app đang ở version 7 — nâng lên KHÔNG được mất block nào,
+ * và block cũ (không có `ielts`) vẫn đọc được như cũ.
+ */
+describe("nâng cấp version 7 -> 8", () => {
+  async function makeVersion7Db() {
+    const old = new Dexie(NAME);
+    old.version(1).stores({ checkins: "date", focusBlocks: "id, date, area" });
+    old.version(2).stores({ brainDumps: "id, date, area", cards: "id, area, dueDate", reviewLogs: "id, cardId, date" });
+    old.version(3).stores({ predictions: "id, resolveBy, category" });
+    old.version(4).stores({ weeklyReviews: "weekStart", experiments: "id, active", experimentTags: "key, date, experimentId" });
+    old.version(5).stores({ focusBlocks: "id, date, area" });
+    old.version(6).stores({ dailyCheckins: "id, date", weekReviews: "id, weekStart" });
+    old.version(7).stores({ checkins: null, weeklyReviews: null });
+    await old.open();
+    await old.table("focusBlocks").bulkAdd([
+      { id: "b1", date: "2026-09-26", startTime: "09:30", minutes: 50, area: "IELTS", focusRating: 4, distractions: 0, phoneAway: true },
+      { id: "b2", date: "2026-09-26", startTime: "14:00", minutes: 30, area: "EFM", focusRating: 3, distractions: 1, phoneAway: false },
+    ]);
+    await old.table("dailyCheckins").add({ id: "#2026-09-26", date: "2026-09-26", bedTime: "23:30", wakeTime: "07:00", sleepHours: 7.5, energy: 4 });
+    old.close();
+  }
+
+  it("giữ nguyên mọi block và check-in, thêm bảng mockTests rỗng", async () => {
+    await makeVersion7Db();
+    const db = new LearningDB(NAME);
+    expect(await db.focusBlocks.count()).toBe(2);
+    expect((await db.focusBlocks.get("b1"))?.ielts).toBeUndefined();
+    expect(await db.dailyCheckins.count()).toBe(1);
+    expect(await db.mockTests.count()).toBe(0);
+    expect(db.verno).toBe(8);
+    db.close();
+  });
+
+  it("lưu được block có phần IELTS và một lần thi thử", async () => {
+    await makeVersion7Db();
+    const db = new LearningDB(NAME);
+    await db.focusBlocks.update("b1", {
+      ielts: { skill: "Listening", test: { book: 10, test: 1, parts: [1], questions: 10, correct: 7, errors: [2, 1, 0, 0] } },
+    });
+    await db.mockTests.add({ id: "m1", date: "2026-10-03", source: "home", listeningRaw: 22 });
+    expect((await db.focusBlocks.get("b1"))?.ielts?.test?.correct).toBe(7);
+    expect(await db.mockTests.where("date").equals("2026-10-03").count()).toBe(1);
     db.close();
   });
 });

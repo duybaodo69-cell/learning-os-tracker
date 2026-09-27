@@ -6,10 +6,17 @@
  *   - số phút: chip nhanh 25/45/60/90, hoặc tự nhập
  *   - độ tập trung: 5 nút
  *   - phân tâm: bộ đếm −/+
+ *
+ * Area "IELTS" thêm phần "Buổi IELTS" (IeltsSessionFields): kỹ năng, đề, số
+ * câu đúng, 4 loại lỗi, chép chính tả. Lưu vào `block.ielts` cùng một lần ghi.
  */
 import { useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "../db/db";
 import type { Area, FocusBlock, Rating } from "../db/types";
 import { AREAS } from "../db/types";
+import { draftError, draftFromSession, draftToSession, newDraft, type IeltsDraft } from "../lib/ielts";
+import IeltsSessionFields from "./IeltsSessionFields";
 import { newId, nowHHmm, subtractMinutesFromHHmm } from "../lib/dates";
 import { getLastArea, setLastArea } from "../lib/prefs";
 import { useSubmit } from "../lib/useSubmit";
@@ -69,6 +76,22 @@ export default function FocusBlockForm({
   const [phoneAway, setPhoneAway] = useState(existing?.phoneAway ?? false);
   const [resumeNote, setResumeNote] = useState(existing?.resumeNote ?? "");
 
+  /* ----- Phần IELTS -----
+     Các buổi IELTS đã lưu, để điền sẵn "đề tiếp theo". Khi SỬA thì bỏ chính
+     block này ra, nếu không đề gợi ý sẽ là phần ngay sau chính nó.
+     undefined = đang đọc database. */
+  const ieltsHistory = useLiveQuery(
+    async () => (await db.focusBlocks.where("area").equals("IELTS").toArray()).filter((b) => b.id !== existing?.id),
+    [existing?.id]
+  );
+  // null = chưa chạm vào: dùng bản điền sẵn (tính từ lịch sử khi đã đọc xong).
+  const [editedIelts, setIeltsDraft] = useState<IeltsDraft | null>(
+    existing?.ielts ? draftFromSession(existing.ielts) : null
+  );
+  const ieltsDraft = editedIelts ?? (ieltsHistory ? newDraft("Listening", ieltsHistory) : null);
+  const isIelts = area === "IELTS";
+  const ieltsError = isIelts ? (ieltsDraft ? draftError(ieltsDraft) : "Đang tải đề tiếp theo...") : null;
+
   // Số phút có khớp một chip nhanh không? Nếu không thì hiện ô nhập tay.
   const isQuickMinutes = (QUICK_MINUTES as readonly number[]).includes(minutes);
   const [customOpen, setCustomOpen] = useState(!isQuickMinutes);
@@ -84,7 +107,7 @@ export default function FocusBlockForm({
   // Kiểm tra thật lúc lưu — `min`/`max` của ô nhập không chặn được nút Lưu.
   const minutesError = checkBlockMinutes(minutes);
   const timeError = checkTime(startTime, "Giờ bắt đầu");
-  const canSave = focusRating !== null && minutesError === null && timeError === null;
+  const canSave = focusRating !== null && minutesError === null && timeError === null && ieltsError === null;
   const submit = useSubmit();
 
   function handleSave() {
@@ -109,14 +132,28 @@ export default function FocusBlockForm({
         const notes = existing?.capturedNotes ?? initialCapturedNotes ?? [];
         return notes.length > 0 ? notes : undefined;
       })(),
+      // Phần IELTS chỉ đi cùng area IELTS.
+      ielts: isIelts && ieltsDraft ? draftToSession(ieltsDraft) : undefined,
     }));
   }
 
   return (
     <div>
       <Field label="Area">
-        <ChipGroup options={AREAS} value={area} onChange={setArea} />
+        {/* Một hàng vuốt ngang (luật "Calm"): 10 area xếp nhiều hàng đẩy phần IELTS xuống quá xa. */}
+        <ChipGroup scroll options={AREAS} value={area} onChange={setArea} />
+        {/* Sửa một buổi IELTS rồi đổi area: báo trước, không bỏ điểm âm thầm (luật số 4). */}
+        {existing?.ielts && !isIelts && (
+          <p className="mt-2 text-sm text-warn">Lưu với area khác sẽ bỏ phần IELTS (đề, điểm, lỗi) của block này.</p>
+        )}
       </Field>
+
+      {isIelts &&
+        (ieltsDraft ? (
+          <IeltsSessionFields draft={ieltsDraft} onChange={setIeltsDraft} history={ieltsHistory ?? []} />
+        ) : (
+          <p className="mb-4 text-sm text-ink-3">Đang tải đề tiếp theo...</p>
+        ))}
 
       <Field label="Số phút">
         <ChipGroup
@@ -224,6 +261,8 @@ export default function FocusBlockForm({
       {focusRating === null && (
         <p className="mt-2 text-center text-xs text-ink-3">Chọn độ tập trung để lưu</p>
       )}
+      {/* Lý do phần IELTS chưa lưu được — thường là "Đã phân loại x/y câu sai". */}
+      {ieltsError && ieltsDraft && <p className="mt-2 text-center text-xs text-warn">{ieltsError}</p>}
     </div>
   );
 }

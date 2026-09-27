@@ -262,23 +262,37 @@ export function ChipGroup<T extends string | number>({
 
 /* ---------------------------------------------------------- Counter */
 
-/** Bộ đếm −/+ (dùng cho số lần bị phân tâm). Không cần gõ bàn phím. */
-export function Counter({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+/**
+ * Bộ đếm −/+ (dùng cho số lần bị phân tâm). Không cần gõ bàn phím.
+ * `compact`: nút vuông 44px thay vì nút rộng — để nhãn và bộ đếm nằm cùng một
+ * hàng ở màn hẹp (4 bộ đếm lỗi IELTS). Vẫn đủ 44x44 (luật số 2).
+ */
+export function Counter({
+  value,
+  onChange,
+  compact = false,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  compact?: boolean;
+}) {
+  const btn = compact
+    ? "tap-target w-11 rounded-xl bg-surface-2 text-xl font-bold text-ink-2 active:bg-line"
+    : "tap-target rounded-xl bg-surface-2 px-5 text-2xl font-bold text-ink-2 active:bg-line";
   return (
-    <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={() => onChange(Math.max(0, value - 1))}
-        className="tap-target rounded-xl bg-surface-2 px-5 text-2xl font-bold text-ink-2 active:bg-line"
-        aria-label="Giảm"
-      >
+    <div className={`flex items-center ${compact ? "gap-1.5" : "gap-3"}`}>
+      <button type="button" onClick={() => onChange(Math.max(0, value - 1))} className={btn} aria-label="Giảm">
         −
       </button>
-      <span className="min-w-10 text-center font-num text-2xl font-semibold text-ink">{value}</span>
+      <span
+        className={`text-center font-num font-semibold text-ink ${compact ? "min-w-8 text-xl" : "min-w-10 text-2xl"}`}
+      >
+        {value}
+      </span>
       <button
         type="button"
         onClick={() => onChange(value + 1)}
-        className="tap-target rounded-xl bg-surface-2 px-5 text-2xl font-bold text-ink-2 active:bg-line"
+        className={btn}
         aria-label="Tăng"
       >
         +

@@ -3,6 +3,7 @@
  *   Ôn      : hàng đợi thẻ đến hạn hôm nay
  *   Brain dump : bài tập retrieval, tạo thẻ từ chỗ hổng
  *   Thẻ     : quản lý bộ thẻ
+ *   Thi thử : ghi kết quả thi thử IELTS (Đợt 1; Đợt 2 chuyển sang tab IELTS)
  *
  * Máy tính: khung `wide`, mỗi mục con tự chia hai cột khi đủ chỗ
  * (ReviewQueue: thẻ | sắp tới; Brain dump: form | lịch sử; Kho thẻ: lưới).
@@ -12,9 +13,10 @@ import { Segmented } from "../components/ui";
 import ReviewQueue from "../components/ReviewQueue";
 import BrainDumpView from "../components/BrainDumpView";
 import CardsView from "../components/CardsView";
+import MockTestView from "../components/MockTestView";
 
 /** Ba mục con. Kiểu này được App dùng chung để chuyển thẳng từ tab Hôm nay. */
-export type ReviewView = "queue" | "braindump" | "cards";
+export type ReviewView = "queue" | "braindump" | "cards" | "mock";
 
 export default function ReviewScreen({
   view,
@@ -32,7 +34,9 @@ export default function ReviewScreen({
         : "Không còn thẻ đến hạn hôm nay"
       : view === "braindump"
         ? "Viết lại những gì nhớ được"
-        : "Quản lý bộ thẻ";
+        : view === "cards"
+          ? "Quản lý bộ thẻ"
+          : "Kết quả thi thử IELTS";
 
   return (
     <ScreenShell title="Ôn tập" subtitle={subtitle} wide>
@@ -45,6 +49,7 @@ export default function ReviewScreen({
             { id: "queue", label: "Ôn thẻ", badge: dueCount },
             { id: "braindump", label: "Brain dump" },
             { id: "cards", label: "Kho thẻ" },
+            { id: "mock", label: "Thi thử" },
           ]}
         />
       </div>
@@ -52,6 +57,7 @@ export default function ReviewScreen({
       {view === "queue" && <ReviewQueue onOpenCards={() => onViewChange("cards")} />}
       {view === "braindump" && <BrainDumpView onOpenCards={() => onViewChange("cards")} />}
       {view === "cards" && <CardsView />}
+      {view === "mock" && <MockTestView />}
     </ScreenShell>
   );
 }
