@@ -8,6 +8,14 @@ practise calibrated forecasting, and see the numbers on a dashboard.
 
 **Hard requirement: every log action must take under 30 seconds.**
 
+**Product scope lives in `docs/PRODUCT.md`** (vision, mission, the problem, metrics, weekly
+schedule, rules, build order, what NOT to build — agreed with the owner on 2026-09-27). It is
+imported below, so it is always in context. A feature that does not serve its "Vấn đề" section is
+not built. Its build order (Đợt 1 → 3) replaces the old phase roadmap for all new work.
+Ready-made kickoff prompts for each round are in `docs/PROMPTS.md`.
+
+@docs/PRODUCT.md
+
 - UI language: **Vietnamese**. Keep standard English terms as-is: "deep work", "retrieval",
   "Brier score", "area", "PWA".
 - Code, comments, file names, type names: English.
@@ -203,6 +211,10 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
       layouts, 100/125/150% display size, landscape fullscreen focus session.
 - [x] **Part C: cloud sync (Dexie Cloud)** — PROD https://zzmteuzif.dexie.cloud (whitelist: production
       URL only), DEV https://zq98wk7oy.dexie.cloud (whitelist: http://localhost:5173 only).
+- [x] **Product interview (2026-09-27)** — `docs/PRODUCT.md`: IELTS 7.5 (March 2027) is the one
+      self-assigned goal; 9:30 daily anchor; predictions + experiments to be hidden.
+- [ ] **Next: `docs/PRODUCT.md` Đợt 1** (IELTS start shortcut, IELTS finish step with 4 error
+      types, mock-test results) — needed before the baseline mock on 2026-10-03.
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
