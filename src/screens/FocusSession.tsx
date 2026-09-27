@@ -414,7 +414,7 @@ export default function FocusSession({
       {captureOpen && (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={() => setCaptureOpen(false)}>
           <div
-            className="max-h-[88dvh] w-full max-w-xl overflow-y-auto rounded-t-xl border-t border-accent/60 bg-surface-2 p-4 text-ink"
+            className="max-h-[88dvh] w-full max-w-xl overflow-y-auto rounded-t-2xl border-t border-accent/60 bg-surface p-4 text-ink"
             style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
@@ -473,7 +473,7 @@ export default function FocusSession({
       {finishing && (
         <div className="fixed inset-0 z-40 flex items-end bg-black/70" onClick={() => setFinishing(null)}>
           <div
-            className="max-h-[88dvh] w-full overflow-y-auto rounded-t-xl border-t border-accent/60 bg-surface-2 p-4 text-ink shadow-[0_-8px_32px_rgba(0,0,0,0.65)]"
+            className="max-h-[88dvh] w-full overflow-y-auto rounded-t-2xl border-t border-accent/60 bg-surface p-4 text-ink shadow-[0_-8px_32px_rgba(0,0,0,0.65)]"
             style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"

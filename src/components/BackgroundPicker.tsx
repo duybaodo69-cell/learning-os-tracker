@@ -128,7 +128,7 @@ export default function BackgroundPicker({ saved, previewStatus, stillNote, onPr
     // Nền mờ NHẸ: để thấy bản xem trước nền phủ phía sau.
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center sm:p-4" onClick={cancel}>
       <div
-        className="flex max-h-[92dvh] w-full max-w-xl flex-col rounded-t-xl border border-line bg-surface-2 shadow-[0_8px_32px_rgba(0,0,0,0.65)] sm:rounded-xl"
+        className="flex max-h-[92dvh] w-full max-w-xl flex-col rounded-t-2xl border border-line bg-surface shadow-[0_8px_32px_rgba(0,0,0,0.65)] sm:rounded-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

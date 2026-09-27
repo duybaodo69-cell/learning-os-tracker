@@ -70,7 +70,7 @@ function LoginPrompt({ interaction }: { interaction: DXCUserInteraction }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-4">
       <div
-        className="w-full max-w-md rounded-lg border border-accent/60 bg-surface-2 p-5 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
+        className="w-full max-w-md rounded-2xl border border-accent/60 bg-surface p-5 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="cloud-login-title"

@@ -90,8 +90,10 @@
   --indigo: #6366f1;
   --indigo-ink: #4338ca;  /* indigo-700 */
 
-  --good: #15803d;        /* green-700 (green-600 chỉ 3.0) */
-  --warn: #b45309;        /* amber-700 (amber-600 chỉ 2.9) */
+  /* green-800 / amber-800: chữ nằm cả trên nền tô nhạt (vd nhãn "Đúng"
+     bg-good/12) vẫn >= 4.5:1. green-700 / amber-700 chỉ còn 4.2 trên nền tô. */
+  --good: #166534;        /* green-800 */
+  --warn: #92400e;        /* amber-800 */
   --bad: #dc2626;         /* red-600 */
   --bad-ink: #b91c1c;     /* red-700 */
 

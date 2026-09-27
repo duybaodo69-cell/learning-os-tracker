@@ -396,7 +396,7 @@ export function Segmented<T extends string>({
         >
           {opt.label}
           {opt.badge !== undefined && opt.badge > 0 && (
-            <span className="ml-1.5 rounded-full bg-accent/15 px-1.5 py-0.5 font-num text-xs">
+            <span className="ml-1.5 rounded-full bg-accent px-1.5 py-0.5 font-num text-xs text-on-accent">
               {opt.badge}
             </span>
           )}

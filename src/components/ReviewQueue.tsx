@@ -30,7 +30,7 @@ const TEN_MINUTES_MS = 10 * 60 * 1000;
 const GRADE_BUTTONS: { grade: Grade; label: string; className: string }[] = [
   { grade: "again", label: "Quên", className: "bg-bad/10 text-bad-ink active:bg-bad/20" },
   { grade: "hard", label: "Khó", className: "bg-surface-2 text-ink-2 active:bg-line" },
-  { grade: "good", label: "Được", className: "border border-accent bg-accent/10 text-accent active:bg-accent/20" },
+  { grade: "good", label: "Được", className: "border border-accent text-accent active:bg-accent/10" },
   { grade: "easy", label: "Dễ", className: "bg-surface-2 text-ink-2 active:bg-line" },
 ];
 

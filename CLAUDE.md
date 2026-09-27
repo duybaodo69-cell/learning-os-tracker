@@ -194,6 +194,7 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] **Phase 4 COMPLETE** — dashboard, weekly review, experiments, JSON export/import.
 - [x] **Phase 5 COMPLETE** — PWA: installable, offline, icons, version line.
 - [x] **Redesign COMPLETE** (design/BRIEF.md Part A + B) — dark "Quantitative Protocol" theme.
+- [x] **Calm redesign (Stitch, 2026-09-27)** — all 5 tabs, dark + light.
 - [x] **Part C: cloud sync (Dexie Cloud)** — PROD https://zzmteuzif.dexie.cloud (whitelist: production
       URL only), DEV https://zq98wk7oy.dexie.cloud (whitelist: http://localhost:5173 only).
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
@@ -430,6 +431,25 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 - **No decorative jargon** from the mockups (SYS_ACTIVE, EXP ids, "Brier Loss"...). The "Sao chép
   tóm tắt tuần cho Claude" button in the stats mockup is Phase 6 and was deliberately not built.
 
+### Calm redesign (Stitch, 2026-09-27) — rules to keep
+
+- **Source:** Stitch project "Learning OS — UX gọn 2026-09" (design system "Learning OS — Calm
+  Protocol", same colour tokens and fonts). The owner approved all 5 tabs and asked for BOTH themes.
+  The focus-session screen and its backgrounds were deliberately left as they were.
+- **Calm rules:** sentence-case titles and section labels (no ALL-CAPS tracking); ONE filled
+  accent button per screen (weekly-review "Bắt đầu" is secondary); Segmented = `bg-track` rail +
+  `bg-thumb` selected cell with accent text (tokens in both theme blocks); long area lists use
+  `ChipGroup scroll` (one horizontal row); warnings are one slim `Notice` row, not yellow boxes;
+  rarely read content goes behind `Disclosure` / `<details>`; settings use `ListGroup` + `ListRow`.
+- **Delete buttons live inside edit forms** (blocks on Hôm nay, predictions), never on every list
+  row. They still go through `ConfirmDialog` (rule 4) and close the form after deleting.
+- **Sheets and dialogs use `bg-surface`**, never `bg-surface-2`: unselected chips, rating buttons
+  and secondary buttons are `bg-surface-2` and vanish on a sheet of the same colour.
+- **Light theme contrast:** `--good` is green-800 and `--warn` amber-800 because tinted tags
+  (`bg-good/12`) dropped green-700 / amber-700 text to 4.2:1. Segmented badges are solid accent.
+  A text scan of 11 views (5 tabs + check-in/block forms, review session, brain dump, cards,
+  score) gave min 5.26:1 dark and 4.62:1 light. Off switches use `bg-ink-3/45` so they show on white.
+
 ### Part C (Dexie Cloud sync) — rules to keep
 
 - **Three separate stores** (`src/db/store.ts`): `learning-os` (local, default),
@@ -533,7 +553,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 ```bash
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # type-check + production build
-npm test                # unit tests (347: lib/ logic, db upgrade, hooks, background picker, worker)
+npm test                # unit tests (349: lib/ logic, db upgrade, hooks, background picker, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

@@ -47,7 +47,7 @@ export default function ConfirmDialog({
     >
       {/* stopPropagation: bấm vào trong hộp thì KHÔNG bị tính là bấm ra ngoài. */}
       <div
-        className="w-full max-w-md rounded-lg border border-accent/60 bg-surface-2 p-5 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
+        className="w-full max-w-md rounded-2xl border border-accent/60 bg-surface p-5 shadow-[0_8px_32px_rgba(0,0,0,0.65)]"
         onClick={(e) => e.stopPropagation()}
         role="alertdialog"
         aria-modal="true"
