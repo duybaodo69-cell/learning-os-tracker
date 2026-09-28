@@ -26,7 +26,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import FocusBlockForm from "../components/FocusBlockForm";
 import IeltsStartCard from "../components/IeltsStartCard";
 import MockTestView from "../components/MockTestView";
-import PlanBanner from "../components/PlanBanner";
+import CountdownCard from "../components/CountdownCard";
 import { Button, Card, EmptyState, SectionLabel, Segmented } from "../components/ui";
 
 export type IeltsView = "overview" | "sessions" | "mock";
@@ -68,7 +68,7 @@ export default function IeltsScreen({ onStartIelts }: { onStartIelts: () => void
       {view === "overview" && (
         <div className="grid items-start gap-x-4 pb-4 @3xl/content:grid-cols-2">
           <div className="min-w-0">
-            <PlanBanner date={today} />
+            <CountdownCard date={today} />
             <IeltsStartCard blocks={ieltsBlocks} today={today} onStart={onStartIelts}>
               <p className="mt-2 text-xs text-ink-3">
                 Dời khung <span className="font-num">{delaysInWeek(delays, today)}</span> lần tuần này

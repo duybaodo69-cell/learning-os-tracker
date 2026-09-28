@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { BASELINE, MILESTONES, type Milestone } from "../config/schedule";
 import type { AnchorDelay, FocusBlock } from "../db/types";
 import { BASELINE_FROM, BASELINE_TO } from "./metrics";
-import { delaysInWeek, lightWeekExam, nextTestMilestone, shouldAskDelay } from "./plan";
+import { currentStretch, delaysInWeek, lightWeekExam, nextTestMilestone, roadToExam, shouldAskDelay } from "./plan";
 
 function block(over: Partial<FocusBlock> = {}): FocusBlock {
   return {
@@ -121,5 +121,45 @@ describe("delaysInWeek", () => {
   });
   it("hai bản ghi cùng ngày (hiếm, nếu đồng bộ lệch) vẫn là 1", () => {
     expect(delaysInWeek([delay("2026-09-30"), { ...delay("2026-09-30"), id: "x" }], "2026-09-30")).toBe(1);
+  });
+});
+
+describe("currentStretch — thanh tiến độ của chặng hiện tại", () => {
+  it("chặng đầu: từ 28/9 (bắt đầu lịch) tới thi thử 0 ngày 3/10", () => {
+    expect(currentStretch("2026-09-28")).toEqual({ from: "2026-09-28", to: "2026-10-03", progress: 0 });
+    expect(currentStretch("2026-10-01")?.progress).toBeCloseTo(3 / 5);
+  });
+  it("đang thi thử 0 (3/10 và 4/10): đầy", () => {
+    expect(currentStretch("2026-10-04")?.progress).toBe(1);
+  });
+  it("sau thi thử 0: chặng mới từ NGÀY CUỐI của nó (4/10) tới thi thử 1 (15/11)", () => {
+    const s = currentStretch("2026-10-05");
+    expect(s?.from).toBe("2026-10-04");
+    expect(s?.to).toBe("2026-11-15");
+    expect(s?.progress).toBeCloseTo(1 / 42);
+  });
+  it("trước ngày bắt đầu lịch: 0, không âm", () => {
+    expect(currentStretch("2026-09-20")?.progress).toBe(0);
+  });
+  it("hết lịch: null", () => {
+    expect(currentStretch("2027-04-01")).toBeNull();
+  });
+});
+
+describe("roadToExam — các nút timeline", () => {
+  it("6 nút: T0..T4 + Thi thật, T2 là cổng quyết định", () => {
+    const road = roadToExam("2026-09-28");
+    expect(road.map((n) => n.milestone.short)).toEqual(["T0", "T1", "T2", "T3", "T4", "Thi thật"]);
+    expect(road.filter((n) => n.milestone.gate).map((n) => n.milestone.short)).toEqual(["T2"]);
+  });
+  it("28/9: T0 là mốc kế tiếp, còn lại chưa tới", () => {
+    expect(roadToExam("2026-09-28").map((n) => n.state)).toEqual(["next", "later", "later", "later", "later", "later"]);
+  });
+  it("4/10 (ngày 2 của T0): T0 vẫn là 'next'; 5/10: T0 xong, T1 kế tiếp", () => {
+    expect(roadToExam("2026-10-04")[0].state).toBe("next");
+    expect(roadToExam("2026-10-05").map((n) => n.state).slice(0, 3)).toEqual(["done", "next", "later"]);
+  });
+  it("sau thi thật: tất cả đã qua", () => {
+    expect(roadToExam("2027-03-21").every((n) => n.state === "done")).toBe(true);
   });
 });

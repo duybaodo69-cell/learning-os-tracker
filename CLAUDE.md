@@ -281,7 +281,8 @@ src/
     AppNav.tsx         # the 5-tab bar: bottom on phones, left rail / sidebar on wide screens
     ScreenShell.tsx    # sticky header + scrollable body, used by every screen
     ConfirmDialog.tsx  # the rule-4 delete confirmation
-    PlanBanner.tsx     # countdown to the next mock test + light-week notice (Đợt 2)
+    CountdownCard.tsx  # countdown card: big days number, stretch bar, "Đường tới 7.5" timeline,
+                       # light-week row (Hôm nay + tab IELTS)
     IeltsStartCard.tsx # "Bắt đầu IELTS" + Khung 9:30 x/7 (Hôm nay + tab IELTS)
     AnchorDelayRow.tsx # "dời khung" question / "đã dời" line on Hôm nay
     CheckinForm.tsx
@@ -677,7 +678,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   2027-02-20, thi thật = 2027-03-20 are PLACEHOLDERS the owner chose on 2026-09-28 (PRODUCT.md
   only said "giữa T1 / giữa T2 / T3"); change them there when real dates exist.
   `protocolPhases.ts` and `ProtocolBanner.tsx` are gone; `metrics.ts` reads `BASELINE`.
-- **Countdown** (`nextTestMilestone`, `PlanBanner` on Hôm nay + IELTS tab): next `mock`, then
+- **Countdown** (`nextTestMilestone`, `CountdownCard` on Hôm nay + IELTS tab): next `mock`, then
   the `exam`; a multi-day mock counts as "Hôm nay: …" on every day of it; after the exam: none.
 - **Light week** (`lightWeekExam`): the Monday–Sunday week containing a `school-exam` (11/10,
   25/11, 2/12) shows "Tuần nhẹ nhịp …: giữ sàn 30 phút Listening". AFEP deadlines do not.
@@ -688,7 +689,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   and time), there is no delete. The app only records and counts (no server → no reminder at
   the new time — owner's choice). Wording is neutral; a test checks there is no blame text.
   Once an IELTS block exists today the row disappears; the week count stays as a small line.
-- **Tab IELTS** (`IeltsScreen`, wide): Tổng quan (PlanBanner + IeltsStartCard + delays this
+- **Tab IELTS** (`IeltsScreen`, wide): Tổng quan (CountdownCard + IeltsStartCard + delays this
   week | error totals of the last 28 days, Listening and Reading in separate cards, "nhiều
   nhất" on the largest type), Buổi luyện (IELTS blocks newest first, 15 per page, tap → the
   same FocusBlockForm, delete inside the form via ConfirmDialog), Thi thử (MockTestView, moved
@@ -704,6 +705,36 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   from Công cụ khác. Layout: 5 tabs + 3 IELTS views + Dự đoán (list, score) + Thí nghiệm ×
   390 / 768 / 1280 × dark / light × 100 / 150% — no control under 44px, no overflow, no page
   errors. Not verified on a phone. Dexie Cloud sync of the new table not tested while signed in.
+
+### Countdown card (2026-09-28) — rules to keep
+
+- **Why:** the Đợt 2 one-line banner did not make the next mock feel close. References
+  (web, 2026-09): Pretty Progress (one big number + one supporting visual, calm colours for
+  high-stakes dates), Countdawns (bar/ring of the preparation stretch), Poro and DayDrop
+  (next event prominent, later events on a multi-event timeline). Stitch project "Learning OS
+  — UX gọn 2026-09": screens "Hôm nay — Learning OS (Countdown IELTS 7.5)" (mobile) and
+  "Hôm nay — Learning OS (Desktop 1280px)".
+- **Content** (`CountdownCard`, logic in `plan.ts`, tested): label "Thi thử kế tiếp" + "T7 ·
+  03/10"; milestone label; the days number (`text-[4rem]` Geist) + "≈ N khung 9:30 nữa" (N =
+  days before the test day; 1 day → "Mai là ngày thi — hôm nay là khung 9:30 cuối"); during a
+  (multi-day) mock → "Hôm nay"; a 6px bar of the CURRENT stretch (`currentStretch`: from the
+  last day of the previous test milestone, or `BASELINE.from`, to the next one); "Đường tới
+  7.5" = `roadToExam` nodes T0–T4 + Thi thật (`short`, `gate` in schedule.ts): done = filled
+  ink-3, next = cyan ring + dot, later = hollow, gate = dashed + footnote, exam = flag. A cyan
+  "hôm nay" dot sits on the track between the last done node and the next, proportional to
+  the stretch, clamped away from both nodes so they never hide it. Light-week row at the
+  bottom. After the real exam the card renders nothing.
+- **Nodes are evenly spaced, not time-proportional**, so labels always stay readable.
+- **Layout is a container query on the card itself** (`@container/count`): >= 34rem → two
+  zones (number | timeline, 2fr/3fr, vertical hairline) — desktop and tablet at 100%; narrower
+  (phones, or 150% display size) → stacked. Below 18rem (a phone at 150%) only the next node
+  and the exam show a date, otherwise "03/10" labels ran into each other.
+- **No new filled button:** the card is information only; the one filled accent button on
+  Hôm nay is still "Bắt đầu IELTS". No urgency colours (calm), no streaks.
+- **Verified (headless Chromium, localhost):** 390 / 768 / 1280 × dark / light × 100 / 150%
+  plus 1/10, 2/10, 4/10 (ongoing), 6/10 (light week), 20/12 (after the gate), 22/3/2027 (no
+  card): nothing leaves the card, node labels and dates never touch, no text under 12px, no
+  page errors; one column on phones, two zones from 768px at 100%.
 
 ### Part C (Dexie Cloud sync) — rules to keep
 
@@ -810,7 +841,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
 npm run build:only      # type-check + production build, skipping lint/tests (local only)
-npm test                # unit tests (584: lib/ logic, db upgrade, hooks, components, worker)
+npm test                # unit tests (598: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

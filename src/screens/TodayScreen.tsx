@@ -33,7 +33,7 @@ import { AREAS } from "../db/types";
 import type { Area } from "../db/types";
 
 import ScreenShell from "../components/ScreenShell";
-import PlanBanner from "../components/PlanBanner";
+import CountdownCard from "../components/CountdownCard";
 import IeltsStartCard from "../components/IeltsStartCard";
 import AnchorDelayRow from "../components/AnchorDelayRow";
 import CheckinForm from "../components/CheckinForm";
@@ -208,7 +208,7 @@ export default function TodayScreen({
         </Notice>
       )}
 
-      <PlanBanner date={today} />
+      <CountdownCard date={today} />
 
       {/* Tổng kết tuần — chỉ Chủ Nhật. */}
       {showWeeklyReview && weeklyReview !== undefined && (

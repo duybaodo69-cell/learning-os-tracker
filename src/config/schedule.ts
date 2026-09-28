@@ -19,6 +19,10 @@ export type Milestone = {
   to?: string;    // ngày kết thúc nếu kéo dài nhiều ngày (tính cả ngày đó)
   label: string;  // câu hiện trên màn hình
   kind: MilestoneKind;
+  /** Nhãn ngắn trên timeline "Đường tới 7.5" (chỉ mốc thi thử / thi thật). */
+  short?: string;
+  /** Cổng quyết định (PRODUCT.md mục 3): dưới 6.5 thì dời thi thật. */
+  gate?: boolean;
 };
 
 /**
@@ -26,17 +30,17 @@ export type Milestone = {
  * chỉ ghi "giữa T1 / giữa T2 / T3". Có lịch chính thức thì sửa ở đây.
  */
 export const MILESTONES: Milestone[] = [
-  { date: "2026-10-03", to: "2026-10-04", label: "Thi thử 0 · baseline, ở nhà", kind: "mock" },
+  { date: "2026-10-03", to: "2026-10-04", label: "Thi thử 0 · baseline, ở nhà", kind: "mock", short: "T0" },
   { date: "2026-10-11", label: "Midterm EFM", kind: "school-exam" },
   { date: "2026-10-25", label: "AFEP bản cá nhân + thuyết trình", kind: "deadline" },
   { date: "2026-11-08", label: "AFEP bản nhóm + thuyết trình", kind: "deadline" },
-  { date: "2026-11-15", label: "Thi thử 1 · ở nhà", kind: "mock" },
+  { date: "2026-11-15", label: "Thi thử 1 · ở nhà", kind: "mock", short: "T1" },
   { date: "2026-11-25", label: "Final EFM + AFEP reflection", kind: "school-exam" },
   { date: "2026-12-02", label: "Final BFN", kind: "school-exam" },
-  { date: "2026-12-12", to: "2026-12-13", label: "Thi thử 2 · trung tâm · cổng quyết định", kind: "mock" },
-  { date: "2027-01-16", label: "Thi thử 3 · ở nhà", kind: "mock" },
-  { date: "2027-02-20", label: "Thi thử 4 · trung tâm", kind: "mock" },
-  { date: "2027-03-20", label: "Thi thật IELTS", kind: "exam" },
+  { date: "2026-12-12", to: "2026-12-13", label: "Thi thử 2 · trung tâm · cổng quyết định", kind: "mock", short: "T2", gate: true },
+  { date: "2027-01-16", label: "Thi thử 3 · ở nhà", kind: "mock", short: "T3" },
+  { date: "2027-02-20", label: "Thi thử 4 · trung tâm", kind: "mock", short: "T4" },
+  { date: "2027-03-20", label: "Thi thật IELTS", kind: "exam", short: "Thi thật" },
 ];
 
 /**

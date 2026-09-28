@@ -6,7 +6,7 @@
  *
  * Nguồn: docs/PRODUCT.md mục 3 (định nghĩa), 5 (mốc), 6 (luật dời khung).
  */
-import { MILESTONES, type Milestone } from "../config/schedule";
+import { BASELINE, MILESTONES, type Milestone } from "../config/schedule";
 import type { AnchorDelay, DelayReason, DelayTarget, FocusBlock } from "../db/types";
 import { daysUntil } from "./dates";
 import { mondayOf } from "./metrics";
@@ -33,6 +33,55 @@ export function nextTestMilestone(today: string, milestones: readonly Milestone[
   if (!m) return null;
   const ongoing = today >= m.date;
   return { milestone: m, daysLeft: ongoing ? 0 : daysUntil(today, m.date), ongoing };
+}
+
+/** Mốc thi thử + thi thật, theo thứ tự ngày — các nút của timeline "Đường tới 7.5". */
+export function testMilestones(milestones: readonly Milestone[] = MILESTONES): Milestone[] {
+  return milestones
+    .filter((m) => m.kind === "mock" || m.kind === "exam")
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Chặng chuẩn bị hiện tại: từ mốc thi TRƯỚC (ngày cuối của nó) tới mốc kế tiếp.
+ * Chặng đầu tiên bắt đầu từ ngày bắt đầu lịch (`start`, mặc định baseline 28/9).
+ * `progress` 0 → 1: đã đi được bao nhiêu phần chặng — dùng cho thanh tiến độ.
+ * Đang thi (ongoing) thì progress = 1.
+ */
+export type Stretch = { from: string; to: string; progress: number };
+
+export function currentStretch(
+  today: string,
+  start: string = BASELINE.from,
+  milestones: readonly Milestone[] = MILESTONES
+): Stretch | null {
+  const next = nextTestMilestone(today, milestones);
+  if (!next) return null;
+  const tests = testMilestones(milestones);
+  const idx = tests.indexOf(next.milestone);
+  const prev = idx > 0 ? tests[idx - 1] : null;
+  const from = prev ? (prev.to ?? prev.date) : start;
+  const to = next.milestone.date;
+  if (next.ongoing) return { from, to, progress: 1 };
+  const total = daysUntil(from, to);
+  const done = daysUntil(from, today);
+  const progress = total <= 0 ? 1 : Math.min(1, Math.max(0, done / total));
+  return { from, to, progress };
+}
+
+export type RoadNode = {
+  milestone: Milestone;
+  /** done = đã qua · next = mốc kế tiếp (hoặc đang thi) · later = còn xa. */
+  state: "done" | "next" | "later";
+};
+
+/** Các nút của timeline "Đường tới 7.5" kèm trạng thái so với hôm nay. */
+export function roadToExam(today: string, milestones: readonly Milestone[] = MILESTONES): RoadNode[] {
+  const next = nextTestMilestone(today, milestones);
+  return testMilestones(milestones).map((m) => ({
+    milestone: m,
+    state: next?.milestone === m ? "next" : (m.to ?? m.date) < today ? "done" : "later",
+  }));
 }
 
 /**
