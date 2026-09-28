@@ -11,8 +11,10 @@ import {
   CartesianGrid,
   ComposedChart,
   Legend,
+  LabelList,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -20,6 +22,9 @@ import {
 } from "recharts";
 
 import type { SleepVsFocusPoint, WeeklyAreaPoint, WeeklyRetentionPoint } from "../lib/metrics";
+import type { ErrorWeekPoint, IeltsWeekPoint } from "../lib/ieltsStats";
+import type { ErrorType } from "../lib/ielts";
+import { formatBand } from "../lib/ielts";
 import { areaColor } from "../lib/areaColors";
 import { uiScaleFactor } from "../lib/uiScale";
 
@@ -39,6 +44,15 @@ function shortDate(iso: string): string {
  */
 const px = (n: number) => Math.round(n * uiScaleFactor());
 const axis = () => ({ fontSize: px(12), fill: "var(--ink-2)" });
+const tooltipStyle = () => ({
+  fontSize: px(12),
+  borderRadius: 8,
+  background: "var(--surface-2)",
+  border: "1px solid var(--line)",
+  color: "var(--ink)",
+});
+/** Chữ chú thích luôn ink-2 (Recharts mặc định tô theo màu chuỗi — thiếu tương phản). */
+const legendText = (value: string) => <span style={{ color: "var(--ink-2)" }}>{value}</span>;
 
 /**
  * LƯU Ý VỀ LỀ BIỂU ĐỒ:
@@ -165,6 +179,148 @@ export function RetentionChart({ points }: { points: WeeklyRetentionPoint[] }) {
             dot={{ r: 3 }}
           />
         </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/* ==================== IELTS (Đợt 3) ==================== */
+
+/**
+ * Giờ IELTS mỗi tuần (cột, trục trái) + % đúng Listening của các buổi luyện
+ * (đường, trục phải). Thi thử vẽ thành chấm tròn rỗng CÙNG trục %: điểm thô
+ * /40 đổi ra %, nhãn là band ≈. Đường kẻ ngang = mục tiêu 11.5 giờ.
+ */
+export function IeltsHoursChart({ points, targetHours }: { points: IeltsWeekPoint[]; targetHours: number }) {
+  if (points.every((p) => p.hours === 0 && p.listeningPct === null && p.mockPct === null)) return <NoData />;
+  const maxHours = Math.max(targetHours + 2, ...points.map((p) => Math.ceil(p.hours)));
+
+  return (
+    <div className="h-64 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={points} margin={{ top: 16, right: 4, bottom: 0, left: 0 }}>
+          <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="weekStart" tickFormatter={shortDate} tick={axis()} />
+          <YAxis yAxisId="h" tick={axis()} width={px(30)} domain={[0, maxHours]} allowDecimals={false} />
+          <YAxis yAxisId="pct" orientation="right" tick={axis()} width={px(40)} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} unit="%" />
+          <Tooltip
+            labelFormatter={(v) => `Tuần từ ${shortDate(String(v))}`}
+            formatter={(value, name, item) => {
+              const p = item.payload as IeltsWeekPoint;
+              if (name === "Giờ IELTS") return [`${value}h`, name];
+              if (name === "Thi thử") return [`${value}%${p.mockBand !== null ? ` · ≈ ${formatBand(p.mockBand)}` : ""}`, name];
+              return [`${value}% · n=${p.listeningQuestions} câu${p.listeningQuestions < 20 ? " · sơ bộ" : ""}`, name];
+            }}
+            contentStyle={tooltipStyle()}
+          />
+          <Legend wrapperStyle={{ fontSize: px(12) }} formatter={legendText} />
+          <ReferenceLine
+            yAxisId="h"
+            y={targetHours}
+            stroke="var(--ink-3)"
+            strokeDasharray="4 4"
+            label={{ value: `${targetHours}h`, position: "insideTopLeft", fill: "var(--ink-2)", fontSize: px(12) }}
+          />
+          <Bar yAxisId="h" dataKey="hours" name="Giờ IELTS" fill="var(--chart-bar)" radius={[3, 3, 0, 0]} />
+          {/* connectNulls: tuần không làm đề thì nối qua, không kéo đường về 0%. */}
+          <Line
+            yAxisId="pct"
+            type="monotone"
+            dataKey="listeningPct"
+            name="% đúng Listening"
+            stroke="var(--accent)"
+            strokeWidth={2}
+            connectNulls
+            dot={{ r: 3, fill: "var(--accent)" }}
+          />
+          <Line
+            yAxisId="pct"
+            dataKey="mockPct"
+            name="Thi thử"
+            // Không vẽ đường nối (chỉ chấm), nhưng giữ màu để ký hiệu chú thích có màu.
+            stroke="var(--accent)"
+            strokeWidth={0}
+            legendType="circle"
+            isAnimationActive={false}
+            dot={{ r: 6, stroke: "var(--accent)", strokeWidth: 2, fill: "var(--surface)" }}
+          >
+            <LabelList
+              dataKey="mockBand"
+              position="top"
+              formatter={(v: unknown) => (typeof v === "number" ? `≈${formatBand(v)}` : "")}
+              style={{ fill: "var(--ink)", fontSize: px(12), fontWeight: 600 }}
+            />
+          </Line>
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** Màu của 4 loại lỗi — theo thứ tự ①–④ / Ⓐ–Ⓓ (token trong index.css, đủ 3:1 cả hai theme). */
+const ERROR_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)"];
+
+/**
+ * Xu hướng 4 loại lỗi của MỘT kỹ năng: cột chồng, đơn vị "số câu sai trên
+ * 10 câu" để tuần làm nhiều đề và tuần làm ít đề so được với nhau.
+ */
+export function ErrorTrendChart({ points, types }: { points: ErrorWeekPoint[]; types: readonly ErrorType[] }) {
+  if (points.every((p) => p.questions === 0)) return <NoData />;
+
+  return (
+    <div className="h-56 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={points} margin={{ top: 8, right: 14, bottom: 0, left: 0 }}>
+          <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="weekStart" tickFormatter={shortDate} tick={axis()} />
+          <YAxis tick={axis()} width={px(30)} allowDecimals={false} />
+          <Tooltip
+            labelFormatter={(v, payload) => {
+              const p = payload?.[0]?.payload as ErrorWeekPoint | undefined;
+              const n = p ? ` · n=${p.questions} câu${p.prelim ? " · sơ bộ" : ""}` : "";
+              return `Tuần từ ${shortDate(String(v))}${n}`;
+            }}
+            formatter={(value, name) => [`${value} / 10 câu`, name]}
+            contentStyle={tooltipStyle()}
+          />
+          <Legend wrapperStyle={{ fontSize: px(12) }} formatter={legendText} />
+          {types.map((t, i) => (
+            <Bar
+              key={t.mark}
+              dataKey={`e${i}`}
+              name={`${t.mark} ${t.label}`}
+              stackId="errors"
+              fill={ERROR_COLORS[i]}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** Số ngày giữ khung 9:30 mỗi tuần (0–7), đường kẻ = đích 5/7. */
+export function AnchorWeeksChart({ points, target }: { points: IeltsWeekPoint[]; target: number }) {
+  return (
+    <div className="h-44 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={points} margin={{ top: 8, right: 14, bottom: 0, left: 0 }}>
+          <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="weekStart" tickFormatter={shortDate} tick={axis()} />
+          <YAxis tick={axis()} width={px(24)} domain={[0, 7]} ticks={[0, 3, 5, 7]} />
+          <Tooltip
+            labelFormatter={(v) => `Tuần từ ${shortDate(String(v))}`}
+            formatter={(value) => [`${value}/7 ngày`, "Giữ khung 9:30"]}
+            contentStyle={tooltipStyle()}
+          />
+          <ReferenceLine
+            y={target}
+            stroke="var(--ink-3)"
+            strokeDasharray="4 4"
+            label={{ value: `đích ${target}/7`, position: "insideTopLeft", fill: "var(--ink-2)", fontSize: px(12) }}
+          />
+          <Bar dataKey="anchorDays" name="Giữ khung 9:30" fill="var(--accent)" radius={[3, 3, 0, 0]} />
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );

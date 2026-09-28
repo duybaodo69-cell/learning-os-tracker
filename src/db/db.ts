@@ -16,6 +16,7 @@ import { CLOUD_DB_URL } from "../config/cloud";
 import { STORE_DB_NAME, chooseStore, type StoreKind } from "./store";
 import type {
   AnchorDelay,
+  Deadline,
   BrainDump,
   Card,
   DailyCheckin,
@@ -72,6 +73,8 @@ export class LearningDB extends Dexie {
   mockTests!: Table<MockTest, string>;
   // Dời khung 9:30 (Đợt 2)
   anchorDelays!: Table<AnchorDelay, string>;
+  /** Deadline tự thêm (Đợt 3). */
+  deadlines!: Table<Deadline, string>;
 
   constructor(databaseName: string, options?: DexieOptions) {
     super(databaseName, options);
@@ -163,6 +166,13 @@ export class LearningDB extends Dexie {
     // hai máy dời cùng ngày vẫn là một bản ghi khi đồng bộ.
     this.version(9).stores({
       anchorDelays: "id, date",
+    });
+
+    // version(10) — Đợt 3: bảng `deadlines` (deadline tự thêm khi chốt kế
+    // hoạch tuần), khoá UUID. Trường mới Card.source và WeeklyReview.plan/note
+    // không có index nên không cần khai báo; bản ghi cũ không có vẫn hợp lệ.
+    this.version(10).stores({
+      deadlines: "id, date",
     });
   }
 }

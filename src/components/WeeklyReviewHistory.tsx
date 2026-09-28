@@ -12,7 +12,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 import { db } from "../db/db";
 import type { WeeklyReview } from "../db/types";
-import { computeMetrics, recentWeekStarts, type MetricsInput } from "../lib/metrics";
+import { recentWeekStarts } from "../lib/metrics";
 import { addDays } from "../lib/scheduling";
 import { formatShortDate } from "../lib/dates";
 import { Card, ListGroup, ListRow } from "./ui";
@@ -27,7 +27,7 @@ function weekLabel(monday: string): string {
   return `${formatShortDate(monday).slice(0, 5)} – ${formatShortDate(addDays(monday, 6)).slice(0, 5)}`;
 }
 
-export default function WeeklyReviewHistory({ input, today }: { input: MetricsInput; today: string }) {
+export default function WeeklyReviewHistory({ today }: { today: string }) {
   const reviews = useLiveQuery(() => db.weekReviews.toArray(), [], [] as WeeklyReview[]);
   const [openWeek, setOpenWeek] = useState<string | null>(null);
 
@@ -35,14 +35,11 @@ export default function WeeklyReviewHistory({ input, today }: { input: MetricsIn
   const weeks = recentWeekStarts(today, HISTORY_WEEKS);
 
   if (openWeek) {
-    const end = addDays(openWeek, 6);
     return (
       <Card className="mb-5">
       <WeeklyReviewForm
         key={openWeek}
         weekStart={openWeek}
-        // Tuần đang chạy thì chỉ tính tới hôm nay.
-        metrics={computeMetrics(input, openWeek, end < today ? end : today)}
         existing={byWeek.get(openWeek)}
         previousChange={byWeek.get(addDays(openWeek, -7))?.oneChange.trim() || undefined}
         onSave={async (r) => {
@@ -55,7 +52,7 @@ export default function WeeklyReviewHistory({ input, today }: { input: MetricsIn
   }
 
   return (
-    <ListGroup label="Tổng kết tuần">
+    <ListGroup label="Kế hoạch tuần">
       {weeks.map((monday, i) => {
         const r = byWeek.get(monday);
         const result = changeResultLabel(r?.lastChangeResult);
@@ -65,12 +62,16 @@ export default function WeeklyReviewHistory({ input, today }: { input: MetricsIn
             label={i === 0 ? `Tuần này · ${weekLabel(monday)}` : weekLabel(monday)}
             description={
               r
-                ? [r.oneChange && `Điều chỉnh: ${r.oneChange}`, result && `Tuần trước: ${result}`]
+                ? [
+                    r.plan && `Tuần sau: L ${r.plan.listening} · R ${r.plan.reading}${r.plan.light ? " · nhẹ" : ""}`,
+                    r.oneChange && `Điều chỉnh: ${r.oneChange}`,
+                    result && `Tuần trước: ${result}`,
+                  ]
                     .filter(Boolean)
                     .join(" · ") || "Đã viết"
-                : "Chưa viết"
+                : "Chưa chốt"
             }
-            value={r ? "Xem" : i === 0 ? "Viết" : "Viết bù"}
+            value={r ? "Xem" : i === 0 ? "Chốt" : "Chốt bù"}
             valueTone={r ? "muted" : "accent"}
             onClick={() => setOpenWeek(monday)}
           />

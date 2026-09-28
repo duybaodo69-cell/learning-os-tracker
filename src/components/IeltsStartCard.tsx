@@ -4,13 +4,19 @@
  *   - Nút chính "▶ Bắt đầu IELTS · <phần Listening tiếp theo>" (Đợt 1)
  *   - Dòng "Reading tiếp theo"
  *   - "Khung 9:30: x/7 tuần này" + 7 chấm Thứ Hai → Chủ Nhật (đếm ngày, không chuỗi)
+ *   - "Kế hoạch tuần: Listening x/8 · Reading y/6" nếu Chủ nhật trước đã chốt (Đợt 3)
  *   - `children`: phần thêm ở cuối thẻ (Hôm nay đặt dòng "dời khung" ở đây)
  *
  * Bấm nút KHÔNG tạo đồng hồ riêng: màn cha chọn area IELTS rồi chạy đồng hồ phiên thường.
  */
 import type { ReactNode } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "../db/db";
 import type { FocusBlock } from "../db/types";
 import { ANCHOR_MIN_MINUTES, anchorWeek, formatTestRef, nextTest, partShort } from "../lib/ielts";
+import { mondayOf } from "../lib/metrics";
+import { addDays } from "../lib/scheduling";
+import { partsDone, planForWeek } from "../lib/weekPlan";
 import { Button, Card } from "./ui";
 
 /** Nhãn 7 chấm khung 9:30, Thứ Hai trước. */
@@ -33,6 +39,10 @@ export default function IeltsStartCard({
   const nextReading = nextTest(blocks, "Reading");
   const week = anchorWeek(blocks, today);
   const held = week.filter((d) => d.held).length;
+  const reviews = useLiveQuery(() => db.weekReviews.toArray(), []);
+  const monday = mondayOf(today);
+  const plan = reviews ? planForWeek(monday, reviews) : null;
+  const sunday = addDays(monday, 6);
 
   return (
     <Card className="mb-3">
@@ -53,6 +63,25 @@ export default function IeltsStartCard({
       {nextReading && (
         <p className="mt-2 text-center text-xs text-ink-3">
           Reading tiếp theo: Cam {nextReading.book} · Test {nextReading.test} · {partShort("Reading", nextReading.part)}
+        </p>
+      )}
+
+      {/* Kế hoạch đã chốt Chủ nhật trước (Đợt 3): làm được bao nhiêu phần. */}
+      {plan && (plan.listening > 0 || plan.reading > 0) && (
+        <p className="mt-1 text-center text-xs text-ink-2">
+          Kế hoạch tuần{plan.light && " (nhẹ nhịp)"}: Listening{" "}
+          <span className="font-num font-semibold text-ink">
+            {partsDone(blocks, "Listening", monday, sunday)}/{plan.listening}
+          </span>
+          {plan.reading > 0 && (
+            <>
+              {" "}
+              · Reading{" "}
+              <span className="font-num font-semibold text-ink">
+                {partsDone(blocks, "Reading", monday, sunday)}/{plan.reading}
+              </span>
+            </>
+          )}
         </p>
       )}
 

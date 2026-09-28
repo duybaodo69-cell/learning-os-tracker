@@ -9,7 +9,7 @@
  */
 import { db } from "./db";
 import { anchorDelayId, checkinId, weekReviewId } from "./keys";
-import type { AnchorDelay, Area, BrainDump, Card, DailyCheckin, Experiment, ExperimentTag, FocusBlock, Grade, IeltsSession, MockTest, Prediction, PredictionCategory, ReviewLog, Rating, WeeklyReview } from "./types";
+import type { AnchorDelay, Area, BrainDump, Card, CardSource, DailyCheckin, Deadline, Experiment, ExperimentTag, FocusBlock, Grade, IeltsSession, MockTest, Prediction, PredictionCategory, ReviewLog, Rating, WeeklyReview } from "./types";
 import { newId } from "../lib/dates";
 import { START_EASE, addDays } from "../lib/scheduling";
 import { experimentTagKey, mondayOf } from "../lib/metrics";
@@ -23,7 +23,7 @@ function minusDays(iso: string, n: number): string {
 const DEMO_AREAS: Area[] = ["Internship VC", "Financial modeling", "IELTS", "IM/Memo", "EFM"];
 
 /**
- * Tạo 14 ngày dữ liệu mẫu: check-in, focus block, brain dump,
+ * Tạo dữ liệu mẫu (14 ngày; IELTS 8 tuần cho biểu đồ Đợt 3): check-in, focus block, brain dump,
  * thẻ ôn tập và nhật ký ôn.
  *
  * Các con số thay đổi theo một quy luật cố định (không ngẫu nhiên)
@@ -85,18 +85,23 @@ export async function loadDemoData(today: string): Promise<void> {
     }
   }
 
-  /* ---------- IELTS (Đợt 1) ----------
-     Mỗi ngày trừ Thứ Năm một buổi Listening lúc 9:30, đi tiếp theo thứ tự đề
+  /* ---------- IELTS (Đợt 1, kéo dài 8 tuần ở Đợt 3) ----------
+     8 tuần để các biểu đồ IELTS ở Thống kê có xu hướng: số câu đúng tăng dần,
+     lỗi ① giảm dần, ③ nhích lên. Mỗi ngày trừ Thứ Năm một buổi Listening lúc 9:30, đi tiếp theo thứ tự đề
      (Cam 10 · Test 1 · S1, S2, ...), Thứ Hai / Thứ Bảy thêm một passage
      Reading. Vài buổi cố ý NGOÀI khung 9:30 (bắt đầu 11:00, hoặc chỉ 30 phút)
      để thấy "Khung 9:30" không đếm chúng. Một buổi "không làm đề". */
   let listenPos: TestPosition | null = FIRST_POSITION;
   let readPos: TestPosition | null = FIRST_POSITION;
-  for (let i = 13; i >= 0; i--) {
+  const IELTS_DAYS = 55;
+  for (let i = IELTS_DAYS; i >= 0; i--) {
     const date = minusDays(today, i);
     const [y, m, d] = date.split("-").map(Number);
     const weekday = new Date(y, m - 1, d).getDay(); // 0 = Chủ Nhật
     if (weekday === 4) continue; // Thứ Năm nghỉ — có ngày trống để thấy x/7 < 7
+    // Vài tuần cũ nghỉ thêm Thứ Ba để số ngày giữ khung mỗi tuần khác nhau.
+    if (weekday === 2 && i > 20 && i % 3 === 0) continue;
+    const progress = (IELTS_DAYS - i) / IELTS_DAYS; // 0 (8 tuần trước) -> 1 (hôm nay)
 
     // Buổi Listening. i % 5 === 2: bắt đầu muộn (ngoài khung).
     // i % 6 === 3: chỉ chép chính tả, không làm đề.
@@ -105,15 +110,17 @@ export async function loadDemoData(today: string): Promise<void> {
     if (noTest || listenPos === null) {
       ielts = { skill: "Listening", dictationMinutes: 15 };
     } else {
-      const correct = 5 + (i % 5); // 5-9 trên 10 câu
+      // 4-6 đúng lúc đầu, 7-9 gần đây (dao động ±1 theo ngày).
+      const correct = Math.min(10, Math.max(3, Math.round(4.5 + progress * 3.5 + ((i % 3) - 1))));
       const wrong = 10 - correct;
-      // Chia số câu sai vào 4 loại, loại ① nhiều nhất (đúng hiện trạng L 5.5).
-      const e1 = Math.ceil(wrong / 2);
+      // Chia số câu sai vào 4 loại: ① nhiều nhất lúc đầu (L 5.5), giảm dần theo tiến độ.
+      const e1 = Math.min(wrong, Math.round(wrong * (0.6 - progress * 0.35)));
       const e2 = Math.min(1, wrong - e1);
-      const e3 = wrong - e1 - e2;
+      const e4 = wrong - e1 - e2 > 1 && i % 4 === 0 ? 1 : 0;
+      const e3 = wrong - e1 - e2 - e4;
       ielts = {
         skill: "Listening",
-        test: { book: listenPos.book, test: listenPos.test, parts: [listenPos.part], questions: 10, correct, errors: [e1, e2, e3, 0] },
+        test: { book: listenPos.book, test: listenPos.test, parts: [listenPos.part], questions: 10, correct, errors: [e1, e2, e3, e4] },
         dictationMinutes: [5, 10][i % 2],
       };
       listenPos = positionAfter("Listening", listenPos);
@@ -134,7 +141,12 @@ export async function loadDemoData(today: string): Promise<void> {
     // Thêm một passage Reading vào Thứ Hai và Thứ Bảy (ngày L + R, PRODUCT.md mục 4).
     if ((weekday === 1 || weekday === 6) && readPos !== null) {
       const questions = defaultQuestions("Reading", [readPos.part]);
-      const correct = questions - 4;
+      const wrongR = Math.max(1, Math.round(5 - progress * 2));
+      const correct = questions - wrongR;
+      // Ⓑ nhiều nhất; Ⓐ (hết giờ) chỉ ở các tuần đầu.
+      const ra = progress < 0.4 ? 1 : 0;
+      const rd = wrongR - ra > 1 ? 1 : 0;
+      const rb = wrongR - ra - rd;
       blocks.push({
         id: newId(),
         date,
@@ -147,7 +159,7 @@ export async function loadDemoData(today: string): Promise<void> {
         resumeNote: "[MẪU] passage xem thử",
         ielts: {
           skill: "Reading",
-          test: { book: readPos.book, test: readPos.test, parts: [readPos.part], questions, correct, errors: [1, 2, 0, 1] },
+          test: { book: readPos.book, test: readPos.test, parts: [readPos.part], questions, correct, errors: [ra, rb, 0, rd] },
         },
       });
       readPos = positionAfter("Reading", readPos);
@@ -171,6 +183,14 @@ export async function loadDemoData(today: string): Promise<void> {
   /* Thi thử: baseline ở nhà (đủ 4 kỹ năng -> có overall) và một bài AI
      chỉ chấm Writing (thiếu kỹ năng -> không có overall). */
   const mockTests: MockTest[] = [
+    {
+      id: newId(),
+      date: minusDays(today, 45),
+      source: "home",
+      listeningRaw: 18,
+      readingRaw: 28,
+      note: "[MẪU] thi thử cũ (chỉ L + R)",
+    },
     {
       id: newId(),
       date: minusDays(today, 10),
@@ -199,7 +219,7 @@ export async function loadDemoData(today: string): Promise<void> {
   const cards: Card[] = [];
   const logs: ReviewLog[] = [];
 
-  const CARD_SEEDS: { front: string; back: string; area: Area }[] = [
+  const CARD_SEEDS: { front: string; back: string; area: Area; source?: CardSource }[] = [
     { front: "[MẪU] WACC tính thế nào?", back: "E/V·Re + D/V·Rd·(1−t)", area: "Financial modeling" },
     { front: "[MẪU] FCFF khác FCFE ở đâu?", back: "FCFF trước trả nợ, FCFE sau trả nợ.", area: "Financial modeling" },
     { front: "[MẪU] Terminal value: hai cách tính?", back: "Gordon growth và exit multiple.", area: "Financial modeling" },
@@ -209,6 +229,11 @@ export async function loadDemoData(today: string): Promise<void> {
     { front: "[MẪU] Cohort retention đọc thế nào?", back: "Tỷ lệ còn hoạt động theo tháng kể từ lúc vào.", area: "Internship VC" },
     { front: "[MẪU] IELTS Writing Task 1: mở bài gồm gì?", back: "Paraphrase đề + overview xu hướng chính.", area: "IELTS" },
     { front: "[MẪU] Từ nối chỉ tương phản?", back: "However, nevertheless, conversely, whereas.", area: "IELTS" },
+    // Thẻ có nguồn (Đợt 3): lỗi nghe, từ vựng, lỗi Writing, góp ý manager.
+    { front: "[MẪU] Nghe nhầm 'fifteen' / 'fifty'", back: "Trọng âm: fifTEEN (cuối) · FIFty (đầu).", area: "IELTS", source: "ielts-listening" },
+    { front: "[MẪU] 'mitigate' nghĩa là?", back: "Làm giảm nhẹ (tác hại, rủi ro).", area: "IELTS", source: "ielts-vocab" },
+    { front: "[MẪU] Lỗi lặp: mạo từ trước danh từ không đếm được", back: "Không dùng 'a/an': 'information', 'advice'.", area: "IELTS", source: "writing" },
+    { front: "[MẪU] Góp ý: số liệu trong memo phải có nguồn", back: "Ghi nguồn + ngày ngay dưới mỗi bảng.", area: "Internship VC", source: "manager" },
     { front: "[MẪU] IM một trang gồm mục nào?", back: "Vấn đề, giải pháp, thị trường, traction, team, deal.", area: "IM/Memo" },
     // Hai thẻ cuối để TRỐNG mặt sau — mô phỏng thẻ vừa tạo từ chỗ hổng.
     { front: "[MẪU] Chỗ hổng chưa điền đáp án", back: "", area: "EFM" },
@@ -239,6 +264,7 @@ export async function loadDemoData(today: string): Promise<void> {
       ease: START_EASE,
       reps,
       lapses,
+      ...(seed.source ? { source: seed.source } : {}),
     });
 
     // Nhật ký ôn tương ứng, để Phase 4 có dữ liệu vẽ biểu đồ.
@@ -346,14 +372,35 @@ export async function loadDemoData(today: string): Promise<void> {
     });
   }
 
-  /* ---------- Tổng kết tuần ---------- */
-  const weeklyReviews: WeeklyReview[] = [1, 2].map((weeksAgo) => ({
-    id: weekReviewId(mondayOf(minusDays(today, weeksAgo * 7))),
-    weekStart: mondayOf(minusDays(today, weeksAgo * 7)),
-    learnedWithoutNotes: "[MẪU] Dựng được mô hình DCF từ đầu mà không mở template.",
-    dataInsight: "[MẪU] Ngày ngủ dưới 7h thì deep work hôm sau giảm rõ.",
-    oneChange: "[MẪU] Tuần tới đặt giờ đi ngủ cố định 23:15.",
-  }));
+  /* ---------- Tổng kết tuần / chốt kế hoạch ----------
+     3 tuần trước: dạng CŨ (3 câu hỏi viết tay) — để thấy tuần cũ vẫn đọc được.
+     1 và 2 tuần trước: dạng MỚI (Đợt 3) có kế hoạch; kế hoạch chốt tuần trước
+     là kế hoạch của TUẦN NÀY -> Hôm nay hiện "Kế hoạch tuần: Listening x/8". */
+  const weeklyReviews: WeeklyReview[] = [
+    {
+      id: weekReviewId(mondayOf(minusDays(today, 21))),
+      weekStart: mondayOf(minusDays(today, 21)),
+      learnedWithoutNotes: "[MẪU] Dựng được mô hình DCF từ đầu mà không mở template.",
+      dataInsight: "[MẪU] Ngày ngủ dưới 7h thì deep work hôm sau giảm rõ.",
+      oneChange: "[MẪU] Tuần tới đặt giờ đi ngủ cố định 23:15.",
+    },
+    ...[2, 1].map((weeksAgo) => ({
+      id: weekReviewId(mondayOf(minusDays(today, weeksAgo * 7))),
+      weekStart: mondayOf(minusDays(today, weeksAgo * 7)),
+      learnedWithoutNotes: "",
+      dataInsight: "",
+      oneChange: weeksAgo === 2 ? "[MẪU] Ra khỏi nhà 9:15, báo thức 8:00" : "[MẪU] Gạch chân từ khoá, đoán paraphrase trước khi nghe",
+      lastChangeResult: weeksAgo === 1 ? ("partly" as const) : undefined,
+      note: weeksAgo === 1 ? "[MẪU] Tuần sau có deadline nhóm AFEP." : undefined,
+      plan: { listening: 8, reading: 6, light: false },
+    })),
+  ];
+
+  /* Deadline tự thêm (Đợt 3): một cái trong 72 giờ (hiện ở Hôm nay), một cái xa hơn. */
+  const deadlines: Deadline[] = [
+    { id: newId(), date: addDays(today, 2), title: "[MẪU] Nộp báo cáo tuần cho manager" },
+    { id: newId(), date: addDays(today, 6), title: "[MẪU] Slide nhóm AFEP" },
+  ];
 
   // bulkPut = thêm mới hoặc ghi đè nếu trùng khoá.
   await db.dailyCheckins.bulkPut(checkins);
@@ -366,11 +413,13 @@ export async function loadDemoData(today: string): Promise<void> {
   await db.experimentTags.bulkPut(experimentTags);
   await db.weekReviews.bulkPut(weeklyReviews);
   await db.mockTests.bulkPut(mockTests);
+  await db.deadlines.bulkPut(deadlines);
 
   /* Dời khung (Đợt 2): hai lần trong 14 ngày, lý do khác nhau. */
   const delays: AnchorDelay[] = [
     { id: anchorDelayId(minusDays(today, 3)), date: minusDays(today, 3), target: "evening", reason: "school", at: "10:40" },
     { id: anchorDelayId(minusDays(today, 9)), date: minusDays(today, 9), target: "after-class", reason: "work", at: "11:05" },
+    { id: anchorDelayId(minusDays(today, 24)), date: minusDays(today, 24), target: "tomorrow", reason: "personal", at: "10:50" },
   ];
   await db.anchorDelays.bulkPut(delays);
 }
@@ -388,4 +437,5 @@ export async function clearDemoData(): Promise<void> {
   await db.weekReviews.clear();
   await db.mockTests.clear();
   await db.anchorDelays.clear();
+  await db.deadlines.clear();
 }

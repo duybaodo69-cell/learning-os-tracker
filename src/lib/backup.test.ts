@@ -288,3 +288,36 @@ describe("Dời khung 9:30 (Đợt 2) trong file sao lưu", () => {
     expect(normaliseBackupData({}).anchorDelays).toEqual([]);
   });
 });
+
+describe("Đợt 3 trong file sao lưu: nguồn thẻ, kế hoạch tuần, deadline", () => {
+  const DEADLINE = { id: "d1", date: "2026-10-09", title: "Báo cáo tuần" };
+  const PLAN = { listening: 8, reading: 6, light: false, listeningFrom: { book: 10, test: 2, part: 1 } };
+
+  it("nhận thẻ có nguồn, tổng kết có plan + note, bảng deadline", () => {
+    const { counts } = parseBackup(
+      fileWith({
+        cards: [{ ...CARD, source: "ielts-listening" }],
+        weeklyReviews: [{ ...REVIEW, plan: PLAN, note: "ok" }],
+        deadlines: [DEADLINE],
+      })
+    );
+    expect(counts.cards).toBe(1);
+    expect(counts.deadlines).toBe(1);
+  });
+  it("giá trị sai bị từ chối", () => {
+    const bad: [string, unknown][] = [
+      ["cards", { ...CARD, source: "teacher" }],
+      ["weeklyReviews", { ...REVIEW, plan: { listening: -1, reading: 6, light: false } }],
+      ["weeklyReviews", { ...REVIEW, plan: { ...PLAN, light: "yes" } }],
+      ["weeklyReviews", { ...REVIEW, plan: { ...PLAN, readingFrom: { book: 10, test: 5, part: 1 } } }],
+      ["deadlines", { id: "d", date: "2026-13-01", title: "x" }],
+      ["deadlines", { id: "", date: "2026-10-01", title: "x" }],
+    ];
+    for (const [table, row] of bad) {
+      expect(() => parseBackup(fileWith({ [table]: [row] })), `${table} ${JSON.stringify(row)}`).toThrow("hỏng");
+    }
+  });
+  it("file cũ không có bảng deadline: rỗng", () => {
+    expect(normaliseBackupData({}).deadlines).toEqual([]);
+  });
+});

@@ -27,6 +27,7 @@ import FocusBlockForm from "../components/FocusBlockForm";
 import IeltsStartCard from "../components/IeltsStartCard";
 import MockTestView from "../components/MockTestView";
 import CountdownCard from "../components/CountdownCard";
+import WritingPromptButton from "../components/WritingPromptButton";
 import { Button, Card, EmptyState, SectionLabel, Segmented } from "../components/ui";
 
 export type IeltsView = "overview" | "sessions" | "mock";
@@ -81,6 +82,14 @@ export default function IeltsScreen({ onStartIelts }: { onStartIelts: () => void
             </SectionLabel>
             <ErrorCard skill="Listening" blocks={ieltsBlocks} from={from} to={today} />
             <ErrorCard skill="Reading" blocks={ieltsBlocks} from={from} to={today} />
+            {/* Đợt 3: Writing do AI chấm — app chỉ chép prompt, không gửi gì đi. */}
+            <Card className="mb-3">
+              <h3 className="text-base font-semibold text-ink">Writing</h3>
+              <p className="mt-0.5 mb-3 text-xs text-ink-2">
+                2 bài mỗi tuần, AI chấm theo 4 tiêu chí band descriptor. Lỗi lặp lại → thẻ ôn nguồn "Lỗi Writing".
+              </p>
+              <WritingPromptButton />
+            </Card>
           </div>
         </div>
       )}

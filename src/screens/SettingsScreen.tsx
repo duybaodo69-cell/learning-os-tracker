@@ -48,6 +48,7 @@ export default function SettingsScreen({
   const experimentCount = useLiveQuery(() => db.experiments.count(), [], 0);
   const mockCount = useLiveQuery(() => db.mockTests.count(), [], 0);
   const delayCount = useLiveQuery(() => db.anchorDelays.count(), [], 0);
+  const deadlineCount = useLiveQuery(() => db.deadlines.count(), [], 0);
 
   // Tổng mọi bản ghi — dùng để biết kho có trống hay không.
   const totalCount =
@@ -61,7 +62,8 @@ export default function SettingsScreen({
     tagCount +
     experimentCount +
     mockCount +
-    delayCount;
+    delayCount +
+    deadlineCount;
 
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -148,9 +150,9 @@ export default function SettingsScreen({
             <Count n={checkinCount} /> check-in · <Count n={blockCount} /> block ·{" "}
             <Count n={dumpCount} /> brain dump · <Count n={cardCount} /> thẻ ·{" "}
             <Count n={logCount} /> lượt ôn · <Count n={predictionCount} /> dự đoán ·{" "}
-            <Count n={reviewCount} /> tổng kết tuần · <Count n={experimentCount} /> thí nghiệm ·{" "}
+            <Count n={reviewCount} /> kế hoạch tuần · <Count n={experimentCount} /> thí nghiệm ·{" "}
             <Count n={tagCount} /> nhãn thí nghiệm · <Count n={mockCount} /> thi thử ·{" "}
-            <Count n={delayCount} /> lần dời khung
+            <Count n={delayCount} /> lần dời khung · <Count n={deadlineCount} /> deadline
           </p>
         )}
       </ListGroup>
@@ -221,7 +223,7 @@ export default function SettingsScreen({
         {demo && (
           <div className="flex flex-wrap gap-2 px-4 py-3">
             <Button variant="secondary" onClick={handleLoadDemo} disabled={busy} className="text-sm">
-              {busy ? "Đang nạp..." : "Nạp 14 ngày dữ liệu mẫu"}
+              {busy ? "Đang nạp..." : "Nạp dữ liệu mẫu"}
             </Button>
             <Button
               variant="danger"
@@ -251,9 +253,9 @@ export default function SettingsScreen({
           <>
             <strong>
               {checkinCount} check-in, {blockCount} focus block, {dumpCount} brain dump,{" "}
-              {cardCount} thẻ, {logCount} lượt ôn, {predictionCount} dự đoán, {reviewCount} tổng kết
-              tuần, {experimentCount} thí nghiệm, {tagCount} nhãn thí nghiệm, {mockCount} thi thử và{" "}
-              {delayCount} lần dời khung
+              {cardCount} thẻ, {logCount} lượt ôn, {predictionCount} dự đoán, {reviewCount} kế hoạch
+              tuần, {experimentCount} thí nghiệm, {tagCount} nhãn thí nghiệm, {mockCount} thi thử,{" "}
+              {delayCount} lần dời khung và {deadlineCount} deadline
             </strong>{" "}
             trong kho dữ liệu mẫu sẽ bị xoá.
             <br />

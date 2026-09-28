@@ -19,10 +19,10 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 import { db, isDemoMode } from "../db/db";
 import { anchorDelayId, checkinId, weekReviewId } from "../db/keys";
-import type { AnchorDelay, DailyCheckin, Experiment, ExperimentTag, FocusBlock, Prediction, ReviewLog, WeeklyReview } from "../db/types";
+import type { AnchorDelay, DailyCheckin, Experiment, ExperimentTag, FocusBlock, ReviewLog, WeeklyReview } from "../db/types";
 import { formatDayLabel, formatMinutes, todayISO, yesterdayISO } from "../lib/dates";
 import { useNowHHmm, useToday } from "../lib/useToday";
-import { computeMetrics, isSunday, mondayOf } from "../lib/metrics";
+import { isSunday, mondayOf } from "../lib/metrics";
 import { EXPORT_REMINDER_DAYS, daysSinceLastExport } from "../lib/backup";
 import { getLastArea, setLastArea } from "../lib/prefs";
 import { addDays } from "../lib/scheduling";
@@ -34,6 +34,7 @@ import type { Area } from "../db/types";
 
 import ScreenShell from "../components/ScreenShell";
 import CountdownCard from "../components/CountdownCard";
+import DeadlinesSoon from "../components/DeadlinesSoon";
 import IeltsStartCard from "../components/IeltsStartCard";
 import AnchorDelayRow from "../components/AnchorDelayRow";
 import CheckinForm from "../components/CheckinForm";
@@ -84,7 +85,6 @@ export default function TodayScreen({
   const allCheckins = useLiveQuery(() => db.dailyCheckins.toArray(), [], [] as DailyCheckin[]);
   const allBlocks = useLiveQuery(() => db.focusBlocks.toArray(), [], [] as FocusBlock[]);
   const allLogs = useLiveQuery(() => db.reviewLogs.toArray(), [], [] as ReviewLog[]);
-  const allPredictions = useLiveQuery(() => db.predictions.toArray(), [], [] as Prediction[]);
 
   const thisMonday = mondayOf(today);
   const weeklyReview = useLiveQuery(
@@ -209,21 +209,12 @@ export default function TodayScreen({
       )}
 
       <CountdownCard date={today} />
+      <DeadlinesSoon today={today} />
 
-      {/* Tổng kết tuần — chỉ Chủ Nhật. */}
+      {/* Chốt kế hoạch tuần — chỉ Chủ Nhật (Đợt 3). */}
       {showWeeklyReview && weeklyReview !== undefined && (
         <WeeklyReviewCard
           weekStart={thisMonday}
-          metrics={computeMetrics(
-            {
-              checkins: allCheckins,
-              focusBlocks: allBlocks,
-              reviewLogs: allLogs,
-              predictions: allPredictions,
-            },
-            thisMonday,
-            today
-          )}
           existing={weeklyReview ?? undefined}
           previousChange={lastWeekChange}
           onSave={async (r: WeeklyReview) => {

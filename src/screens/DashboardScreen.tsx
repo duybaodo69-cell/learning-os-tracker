@@ -2,6 +2,9 @@
  * Màn hình "Thống kê".
  *
  * Bố cục: tóm tắt trước, chi tiết sau.
+ *   0. IELTS (Đợt 3, PRODUCT.md mục 8): giờ IELTS/tuần + % đúng Listening
+ *      và band thi thử, xu hướng 4 loại lỗi (Listening, Reading riêng),
+ *      số ngày giữ khung 9:30 — 8 tuần gần nhất
  *   1. Chỉ số của khoảng đang chọn (Tuần / 4 tuần / Từ đầu), mỗi dòng chỉ
  *      hiện chênh lệch kèm mũi tên và màu
  *   2. So với baseline (chỉ sau khi giai đoạn đo baseline kết thúc)
@@ -22,7 +25,11 @@ import { Suspense, lazy, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { db } from "../db/db";
-import type { DailyCheckin, FocusBlock, Prediction, ReviewLog } from "../db/types";
+import type { DailyCheckin, FocusBlock, MockTest, Prediction, ReviewLog } from "../db/types";
+import { LISTENING_ERRORS, READING_ERRORS, errorSummary } from "../lib/ielts";
+import { PRELIM_QUESTIONS, errorWeekly, ieltsWeekly, type ErrorWeekPoint, type IeltsWeekPoint } from "../lib/ieltsStats";
+import { ANCHOR_TARGET_DAYS, WEEK_TARGET_MINUTES, topError, type TopError } from "../lib/weekPlan";
+import { addDays } from "../lib/scheduling";
 import { formatMinutes } from "../lib/dates";
 import { useToday } from "../lib/useToday";
 import {
@@ -72,6 +79,58 @@ const Charts = lazy(() =>
     },
   }))
 );
+
+/** Phần IELTS ở đầu trang — cùng file (cùng chunk Recharts) với các biểu đồ cũ. */
+const IeltsCharts = lazy(() =>
+  import("../components/DashboardCharts").then((m) => ({
+    default: function Ielts(props: IeltsProps) {
+      return (
+        <div className="grid items-start gap-x-4 @3xl/content:grid-cols-2">
+          <div className="min-w-0">
+            <ChartCard title="Giờ IELTS và điểm Listening" hint="mỗi tuần">
+              <m.IeltsHoursChart points={props.weeks} targetHours={WEEK_TARGET_MINUTES / 60} />
+              <p className="mt-2 text-xs text-ink-2">
+                Đường: % đúng các buổi luyện Listening. Chấm tròn: thi thử (điểm thô /40, nhãn là band ≈).
+                {props.lastListening !== null && (
+                  <>
+                    {" "}
+                    Tuần này: n = <span className="font-num">{props.lastListening}</span> câu
+                    {props.lastListening < PRELIM_QUESTIONS && " · sơ bộ"}.
+                  </>
+                )}
+              </p>
+            </ChartCard>
+            <ChartCard title="Giữ khung 9:30" hint="số ngày / 7">
+              <m.AnchorWeeksChart points={props.weeks} target={ANCHOR_TARGET_DAYS} />
+            </ChartCard>
+          </div>
+          <div className="min-w-0">
+            <ChartCard title="Lỗi Listening" hint="số câu sai / 10 câu">
+              <m.ErrorTrendChart points={props.listening} types={LISTENING_ERRORS} />
+              <TopErrorNote top={props.topListening} n={props.listeningN} />
+            </ChartCard>
+            <ChartCard title="Lỗi Reading" hint="số câu sai / 10 câu">
+              <m.ErrorTrendChart points={props.reading} types={READING_ERRORS} />
+              <TopErrorNote top={props.topReading} n={props.readingN} />
+            </ChartCard>
+          </div>
+        </div>
+      );
+    },
+  }))
+);
+
+type IeltsProps = {
+  weeks: IeltsWeekPoint[];
+  listening: ErrorWeekPoint[];
+  reading: ErrorWeekPoint[];
+  topListening: TopError | null;
+  topReading: TopError | null;
+  listeningN: number;
+  readingN: number;
+  /** Số câu Listening tuần này (null = chưa làm đề). */
+  lastListening: number | null;
+};
 
 type ChartProps = {
   sleepPoints: ReturnType<typeof buildSleepVsSameDayFocus>;
@@ -126,6 +185,7 @@ export default function DashboardScreen() {
   const focusBlocks = useLiveQuery(() => db.focusBlocks.toArray(), [], [] as FocusBlock[]);
   const reviewLogs = useLiveQuery(() => db.reviewLogs.toArray(), [], [] as ReviewLog[]);
   const predictions = useLiveQuery(() => db.predictions.toArray(), [], [] as Prediction[]);
+  const mockTests = useLiveQuery(() => db.mockTests.toArray(), [], [] as MockTest[]);
 
   const input: MetricsInput = { checkins, focusBlocks, reviewLogs, predictions };
 
@@ -148,8 +208,16 @@ export default function DashboardScreen() {
   const weekly = buildWeeklyByArea(focusBlocks, today, 8);
 
 
+  // IELTS: 8 tuần gần nhất; "nhiều nhất" tính trên 28 ngày như tab IELTS.
+  const ieltsWeeks = ieltsWeekly(focusBlocks, mockTests, today);
+  const from28 = addDays(today, -27);
+  const l28 = errorSummary(focusBlocks, "Listening", from28, today);
+  const r28 = errorSummary(focusBlocks, "Reading", from28, today);
+  const thisWeek = ieltsWeeks[ieltsWeeks.length - 1];
+
   // Có dự đoán đã chấm thôi cũng đủ để có Brier — không được coi là "trống".
   const nothingYet =
+    mockTests.length === 0 &&
     checkins.length === 0 &&
     focusBlocks.length === 0 &&
     reviewLogs.length === 0 &&
@@ -172,6 +240,28 @@ export default function DashboardScreen() {
       subtitle={previous ? `So cùng số ngày (${days}) với kỳ trước` : `${days} ngày`}
       wide
     >
+      {/* ---------- 0. IELTS: đầu trang (Đợt 3) ---------- */}
+      <h2 className="mb-2 text-sm font-medium text-ink-2">IELTS · 8 tuần gần nhất</h2>
+      <Suspense
+        fallback={
+          <Card className="mb-4">
+            <p className="py-10 text-center text-sm text-ink-3">Đang tải biểu đồ...</p>
+          </Card>
+        }
+      >
+        <IeltsCharts
+          weeks={ieltsWeeks}
+          listening={errorWeekly(focusBlocks, "Listening", today)}
+          reading={errorWeekly(focusBlocks, "Reading", today)}
+          topListening={topError("Listening", l28.errors)}
+          topReading={topError("Reading", r28.errors)}
+          listeningN={l28.questions}
+          readingN={r28.questions}
+          lastListening={thisWeek && thisWeek.listeningQuestions > 0 ? thisWeek.listeningQuestions : null}
+        />
+      </Suspense>
+
+      <h2 className="mt-2 mb-2 text-sm font-medium text-ink-2">Tổng quan</h2>
       {/* Chọn khoảng thời gian: nằm DƯỚI tiêu đề, không chen cạnh nó.
           Màn rộng: không kéo dài hết bề ngang. */}
       <div className="@3xl/content:max-w-md">
@@ -241,7 +331,7 @@ export default function DashboardScreen() {
           </Card>
 
           {/* ---------- Tổng kết tuần: xem lại, viết bù (audit F08) ---------- */}
-          <WeeklyReviewHistory input={input} today={today} />
+          <WeeklyReviewHistory today={today} />
         </div>
 
         {/* ================= Cột phải: năng lượng + biểu đồ ================= */}
@@ -372,6 +462,27 @@ function ChartCard({
       <SectionLabel right={hint}>{title}</SectionLabel>
       {children}
     </Card>
+  );
+}
+
+/** "Nhiều nhất 28 ngày: ③ Bẫy / paraphrase" — kèm n câu, dưới 20 câu là sơ bộ. */
+function TopErrorNote({ top, n }: { top: TopError | null; n: number }) {
+  if (n === 0) return null;
+  return (
+    <p className="mt-2 text-xs text-ink-2">
+      {top ? (
+        <>
+          Nhiều nhất 28 ngày:{" "}
+          <span className="font-semibold text-ink">
+            {top.mark} {top.label}
+          </span>{" "}
+          ({top.count} câu)
+        </>
+      ) : (
+        "28 ngày qua không có câu sai nào"
+      )}{" "}
+      · n = <span className="font-num">{n}</span> câu{n < PRELIM_QUESTIONS && " · sơ bộ"}
+    </p>
   );
 }
 

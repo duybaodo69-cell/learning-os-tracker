@@ -36,6 +36,8 @@ import {
   wrongCount,
   type IeltsDraft,
 } from "../lib/ielts";
+import QuickCardRow from "./QuickCardRow";
+import WritingPromptButton from "./WritingPromptButton";
 import { ChipGroup, Counter, Field } from "./ui";
 
 const SELECT =
@@ -115,6 +117,10 @@ export default function IeltsSessionFields({
           />
         </Field>
       )}
+
+      {/* Đợt 3: prompt chấm Writing (chỉ chép, không gửi đi) + thẻ ôn từ buổi này. */}
+      {skill === "Writing" && <WritingPromptButton className="mb-2" />}
+      <QuickCardRow skill={skill} />
     </section>
   );
 }

@@ -1,5 +1,6 @@
 /**
- * Quản lý bộ thẻ: tạo / sửa / xoá, lọc theo area.
+ * Quản lý bộ thẻ: tạo / sửa / xoá, lọc theo area và theo NGUỒN (Đợt 3:
+ * lỗi nghe, từ vựng IELTS, lỗi Writing, góp ý manager, brain dump, tự tạo).
  *
  * Thẻ tạo từ brain dump có mặt sau TRỐNG — màn hình này đẩy chúng lên đầu
  * để bạn thấy ngay còn thẻ nào chưa điền đáp án.
@@ -8,14 +9,25 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { db } from "../db/db";
-import type { Area, Card } from "../db/types";
-import { AREAS } from "../db/types";
+import type { Area, Card, CardSource } from "../db/types";
+import { AREAS, CARD_SOURCES } from "../db/types";
+import {
+  CARD_SOURCE_LABELS,
+  SOURCE_FILTERS,
+  SOURCE_FILTER_LABELS,
+  defaultAreaFor,
+  sourceOf,
+  type SourceFilter,
+} from "../lib/cardSources";
 import { newId, todayISO } from "../lib/dates";
 import { getLastArea, setLastArea } from "../lib/prefs";
 import { newCardState } from "../lib/scheduling";
 
 import ConfirmDialog from "./ConfirmDialog";
 import { Button, Card as CardBox, ChipGroup, EmptyState, Field, TextArea } from "./ui";
+
+/** Thẻ không gắn nguồn (tạo tay, brain dump). */
+const NO_SOURCE = "Không";
 
 /** "Tất cả" là lựa chọn lọc thêm, không phải một area thật. */
 const ALL = "Tất cả";
@@ -25,13 +37,16 @@ export default function CardsView() {
   const today = todayISO();
 
   const [filter, setFilter] = useState<Filter>(ALL);
+  const [sourceFilter, setSourceFilter] = useState<typeof ALL | SourceFilter>(ALL);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Card | null>(null);
   const [toDelete, setToDelete] = useState<Card | null>(null);
 
   const allCards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
 
-  const visible = (filter === ALL ? allCards : allCards.filter((c) => c.area === filter))
+  const visible = allCards
+    .filter((c) => filter === ALL || c.area === filter)
+    .filter((c) => sourceFilter === ALL || sourceOf(c) === sourceFilter)
     // Thẻ chưa có mặt sau lên trước, rồi tới thẻ mới tạo gần đây nhất.
     .sort((a, b) => {
       const aEmpty = a.back.trim() === "" ? 0 : 1;
@@ -87,13 +102,22 @@ export default function CardsView() {
         </p>
       )}
 
-      <Field label="Lọc theo area">
-        <ChipGroup options={[ALL, ...AREAS] as const} value={filter} onChange={setFilter} />
+      <Field label="Nguồn">
+        <ChipGroup
+          scroll
+          options={[ALL, ...SOURCE_FILTERS] as const}
+          value={sourceFilter}
+          onChange={setSourceFilter}
+          format={(f) => (f === ALL ? ALL : SOURCE_FILTER_LABELS[f])}
+        />
+      </Field>
+      <Field label="Area">
+        <ChipGroup scroll options={[ALL, ...AREAS] as const} value={filter} onChange={setFilter} />
       </Field>
 
       {visible.length === 0 ? (
         <EmptyState
-          title={allCards.length === 0 ? "Chưa có thẻ nào" : "Không có thẻ trong area này"}
+          title={allCards.length === 0 ? "Chưa có thẻ nào" : "Không có thẻ nào khớp bộ lọc"}
           hint={allCards.length === 0 ? 'Tạo ở đây, hoặc từ chỗ hổng trong brain dump' : undefined}
         />
       ) : (
@@ -118,6 +142,7 @@ export default function CardsView() {
                   <div className="mt-1 line-clamp-2 text-sm text-ink-2">{card.back}</div>
                 )}
                 <div className="mt-1 text-xs text-ink-3">
+                  {card.source && `${CARD_SOURCE_LABELS[card.source]} · `}
                   {card.area} · đến hạn {card.dueDate}
                   {card.lapses > 0 && ` · quên ${card.lapses} lần`}
                 </div>
@@ -170,6 +195,13 @@ function CardForm({
   const [front, setFront] = useState(existing?.front ?? "");
   const [back, setBack] = useState(existing?.back ?? "");
   const [area, setArea] = useState<Area>(existing?.area ?? getLastArea());
+  const [source, setSource] = useState<typeof NO_SOURCE | CardSource>(existing?.source ?? NO_SOURCE);
+
+  function pickSource(s: typeof NO_SOURCE | CardSource) {
+    setSource(s);
+    // Thẻ mới: chọn nguồn thì gợi ý luôn area hợp (IELTS / Internship VC).
+    if (!existing && s !== NO_SOURCE) setArea(defaultAreaFor(s));
+  }
 
   async function handleSave() {
     if (front.trim() === "") return;
@@ -182,6 +214,8 @@ function CardForm({
         front: front.trim(),
         back: back.trim(),
         area,
+        // undefined = bỏ trường (Dexie update xoá key khi giá trị là undefined).
+        source: source === NO_SOURCE ? undefined : source,
       });
     } else {
       const state = newCardState();
@@ -196,6 +230,7 @@ function CardForm({
         ease: state.ease,
         reps: state.reps,
         lapses: state.lapses,
+        ...(source === NO_SOURCE ? {} : { source }),
       });
     }
     onDone();
@@ -215,8 +250,17 @@ function CardForm({
         <TextArea value={back} onChange={setBack} rows={5} placeholder="Viết bằng lời của bạn." />
       </Field>
 
+      <Field label="Nguồn" hint="tuỳ chọn">
+        <ChipGroup
+          options={[NO_SOURCE, ...CARD_SOURCES] as const}
+          value={source}
+          onChange={pickSource}
+          format={(s) => (s === NO_SOURCE ? NO_SOURCE : CARD_SOURCE_LABELS[s])}
+        />
+      </Field>
+
       <Field label="Area">
-        <ChipGroup options={AREAS} value={area} onChange={setArea} />
+        <ChipGroup scroll options={AREAS} value={area} onChange={setArea} />
       </Field>
 
       {existing && (

@@ -16,10 +16,17 @@
  *
  * Lịch sửa ở src/config/schedule.ts; tính toán ở src/lib/plan.ts (có test).
  */
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "../db/db";
 import { formatShortDate } from "../lib/dates";
+import { mondayOf } from "../lib/metrics";
+import { planForWeek } from "../lib/weekPlan";
 import { currentStretch, lightWeekExam, nextTestMilestone, roadToExam, type RoadNode } from "../lib/plan";
 
 const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+
+/** Tuần nhẹ bật tay (không có kỳ thi môn): dòng nhắc không ghi ngày. */
+const MANUAL_LIGHT = { label: "bạn chọn khi chốt kế hoạch", date: "" };
 
 /** "T7 · 03/10" */
 function dayLabel(iso: string): string {
@@ -32,7 +39,12 @@ const ddmm = (iso: string) => formatShortDate(iso).slice(0, 5);
 
 export default function CountdownCard({ date }: { date: string }) {
   const next = nextTestMilestone(date);
-  const light = lightWeekExam(date);
+  // Tuần nhẹ nhịp: tự động theo kỳ thi môn, trừ khi Chủ nhật trước đã chốt khác
+  // (bật tay khi dồn việc, hoặc tắt tay) — Đợt 3.
+  const reviews = useLiveQuery(() => db.weekReviews.toArray(), []);
+  const plan = reviews ? planForWeek(mondayOf(date), reviews) : null;
+  const exam = lightWeekExam(date);
+  const light = plan ? (plan.light ? (exam ?? MANUAL_LIGHT) : null) : exam;
   if (!next) {
     // Hết lịch thi: chỉ còn nhắc tuần nhẹ nhịp (nếu có).
     return light ? <LightWeekRow label={light.label} date={light.date} standalone /> : null;
@@ -40,7 +52,7 @@ export default function CountdownCard({ date }: { date: string }) {
 
   const stretch = currentStretch(date);
   const road = roadToExam(date);
-  const exam = road[road.length - 1]?.milestone;
+  const finalExam = road[road.length - 1]?.milestone;
   const m = next.milestone;
   const progress = stretch?.progress ?? 0;
 
@@ -111,9 +123,9 @@ export default function CountdownCard({ date }: { date: string }) {
         <div className="pt-4 @[34rem]/count:pt-0 @[34rem]/count:pl-5">
           <div className="flex flex-wrap items-baseline justify-between gap-x-2 text-sm">
             <span className="font-medium text-ink">Đường tới 7.5</span>
-            {exam && (
+            {finalExam && (
               <span className="text-ink-3">
-                Mục tiêu <span className="font-num">{formatShortDate(exam.date)}</span>
+                Mục tiêu <span className="font-num">{formatShortDate(finalExam.date)}</span>
               </span>
             )}
           </div>
@@ -252,7 +264,8 @@ function LightWeekRow({ label, date, standalone = false }: { label: string; date
     >
       <InfoIcon />
       <span>
-        <span className="font-medium text-ink">Tuần nhẹ nhịp</span> · {label} {ddmm(date)}: giữ sàn 30 phút
+        <span className="font-medium text-ink">Tuần nhẹ nhịp</span> · {label}
+        {date && ` ${ddmm(date)}`}: giữ sàn 30 phút
         Listening mỗi ngày.
       </span>
     </p>

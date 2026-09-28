@@ -145,6 +145,7 @@ type Card = {
   reps: number;
   lapses: number;
   brainDumpId?: string; // set when the card was made from a brain dump's gaps
+  source?: "ielts-listening" | "ielts-vocab" | "writing" | "manager"; // Đợt 3
 };
 
 type ReviewLog = {
@@ -175,7 +176,17 @@ type WeeklyReview = {
   dataInsight: string;
   oneChange: string;
   lastChangeResult?: "yes" | "partly" | "no"; // did LAST week's oneChange happen?
+  note?: string;   // Đợt 3, optional
+  plan?: {         // Đợt 3: plan for NEXT week, chosen on this week's Sunday
+    listening: number; reading: number; // parts (sections / passages)
+    listeningFrom?: { book: number; test: number; part: number };
+    readingFrom?: { book: number; test: number; part: number };
+    light: boolean;
+  };
 };
+
+// A deadline typed in during Sunday planning (Dexie v10). Fixed dates live in schedule.ts.
+type Deadline = { id: string; date: string; title: string };
 
 // Marks a day as belonging to condition A or B of a personal experiment.
 type ExperimentTag = {
@@ -256,8 +267,11 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] **`docs/PRODUCT.md` Đợt 2 (2026-09-28)** — countdown + light-week notice (schedule.ts
       replaces the 12-week protocol), "dời khung" after 10:30, IELTS tab replaces Dự đoán,
       Dự đoán + Thí nghiệm moved to Cài đặt → "Công cụ khác".
-- [ ] **Next: `docs/PRODUCT.md` Đợt 3** (IELTS charts on Thống kê, Sunday planning, cards
-      with a source) — before 2026-11-15.
+- [x] **`docs/PRODUCT.md` Đợt 3 (2026-09-28)** — IELTS charts at the top of Thống kê, Sunday
+      planning (replaces the 3-question weekly review), deadlines, cards with a source,
+      "Sao chép prompt chấm Writing".
+- [ ] **Next:** use it until thi thử 1 (15/11); after the 12/12 gate use the "Khi cần điều
+      chỉnh kế hoạch" prompt in `docs/PROMPTS.md`.
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
@@ -283,7 +297,11 @@ src/
     ConfirmDialog.tsx  # the rule-4 delete confirmation
     CountdownCard.tsx  # countdown card: big days number, stretch bar, "Đường tới 7.5" timeline,
                        # light-week row (Hôm nay + tab IELTS)
-    IeltsStartCard.tsx # "Bắt đầu IELTS" + Khung 9:30 x/7 (Hôm nay + tab IELTS)
+    IeltsStartCard.tsx # "Bắt đầu IELTS" + Khung 9:30 x/7 + this week's plan (Hôm nay + tab IELTS)
+    WeeklyReviewCard.tsx  # Sunday planning form (3 steps) + DeadlineList + ThisWeekChange
+    DeadlinesSoon.tsx  # Hôm nay: deadlines in the next 72 hours
+    QuickCardRow.tsx   # "+ Thẻ ôn từ buổi này" inside the IELTS finish form
+    WritingPromptButton.tsx  # copies the Writing grading prompt (no network)
     AnchorDelayRow.tsx # "dời khung" question / "đã dời" line on Hôm nay
     CheckinForm.tsx
     FocusBlockForm.tsx
@@ -320,6 +338,10 @@ src/
     ielts.ts           # IELTS: band table, overall rounding, next test, 9:30 anchor, form draft,
                        # error totals (tested)
     plan.ts            # countdown, light week, when to ask "dời khung", delays per week (tested)
+    weekPlan.ts        # Sunday planning: look back, suggestions, proposed plan, deadlines (tested)
+    ieltsStats.ts      # Thống kê IELTS: hours, Listening %, mocks, errors per 10, anchor (tested)
+    cardSources.ts     # card sources, filters, quick card builder (tested)
+    writingPrompt.ts   # the Writing grading prompt + clipboard helper
   config/cloud.ts      # Dexie Cloud database URLs (dev + prod; not secret)
   config/backgrounds.ts  # focus-session background presets + source/licence of each
 public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
@@ -736,6 +758,43 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   card): nothing leaves the card, node labels and dates never touch, no text under 12px, no
   page errors; one column on phones, two zones from 768px at 100%.
 
+### IELTS Đợt 3 (2026-09-28) — rules to keep
+
+- **Thống kê top = IELTS, 8 weeks** (`ieltsStats.ts`, charts in `DashboardCharts.tsx`, same
+  lazy Recharts chunk): hours/week bars (left axis, dashed 11.5h line) + Listening % correct
+  of practice sessions (line, right axis) + mock tests as hollow dots ON THE SAME % AXIS
+  (raw /40 → %, label "≈ band"); error trends Listening and Reading as separate stacked bars
+  in "wrong answers per 10 questions" so weeks with more practice compare fairly; anchor days
+  x/7 with a 5/7 line. Weeks < 20 questions are "sơ bộ (n=…)"; a week without tests is null,
+  never 0%. Percentages multiply by 100 BEFORE dividing (23/40*100 = 57.4999…). The old
+  charts and period metrics sit below under "Tổng quan".
+- **Chart colours are tokens** `--chart-1..4` and `--chart-bar` in BOTH theme blocks
+  (>= 3:1 on surface). Chart text measured: min 7.12:1 dark, 7.58:1 light.
+- **Sunday planning replaces the weekly review** (`WeeklyReviewCard.tsx`, logic `weekPlan.ts`).
+  Owner's choices 2026-09-28: the app proposes a WEEK VOLUME (8 sections + 6 passages; light
+  week 7 + 0), shown as "from → to" test ranges; deadlines = schedule.ts dates + typed ones
+  (new table); light week = automatic for school-exam weeks OR toggled by hand; the two old
+  free-text questions are gone (old answers still show read-only, new optional "Ghi chú").
+  The plan is stored on THIS week's WeeklyReview (`plan`) and applies to NEXT week
+  (`planForWeek`). A saved plan beats the automatic light week both ways (CountdownCard,
+  lookBack). Hôm nay shows "Kế hoạch tuần: Listening x/8 · Reading y/6" in IeltsStartCard.
+- **Deadlines** (`deadlines`, Dexie v10, UUID keys, in backup/upload/demo/Settings counts):
+  Hôm nay shows the next 72 hours (PRODUCT.md mục 6 priority 2) including fixed school/AFEP
+  dates, excluding mocks/exam (the countdown already shows them). Delete via ConfirmDialog.
+- **Cards with a source** (`Card.source`): Lỗi nghe / Từ vựng IELTS / Lỗi Writing / Góp ý
+  manager; no source = Brain dump or Tự tạo (`sourceOf`). Kho thẻ filters by source AND area
+  (two scroll rows). The IELTS finish form has "+ Thẻ ôn từ buổi này": saved immediately
+  (cancelling the session keeps it), empty back = draft card.
+- **Writing prompt**: only copies text to the clipboard (fallback: a selectable textarea);
+  nothing is sent anywhere (rule 5). On the IELTS tab and in the form when skill = Writing.
+- **Containers that hold chips/buttons use a border, not `bg-surface-2`** (the controls are
+  surface-2 and vanish) — caught by browser QA on the quick-card box.
+- **Verified (gstack `browse`, localhost, demo data 8 weeks):** Thống kê, IELTS, Hôm nay,
+  planning form × 390 / 768 / 1280 × dark / light × 100 / 150%: no page overflow, no control
+  under 44px, no text under 12px; quick card saved with its source; source filter; the
+  planning form proposes a light week for 5/10 (Midterm EFM). Stitch generation timed out,
+  so no Stitch mockup this round. Not verified on a phone.
+
 ### Part C (Dexie Cloud sync) — rules to keep
 
 - **Three separate stores** (`src/db/store.ts`): `learning-os` (local, default),
@@ -841,7 +900,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
 npm run build:only      # type-check + production build, skipping lint/tests (local only)
-npm test                # unit tests (598: lib/ logic, db upgrade, hooks, components, worker)
+npm test                # unit tests (630: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

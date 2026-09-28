@@ -58,6 +58,14 @@
   --track: #12151c;
   --thumb: #252c3b;
 
+  /* Biểu đồ IELTS (Đợt 3): 4 loại lỗi + cột giờ. Mỗi màu >= 3:1 trên
+     --surface (đồ hoạ cần 3:1; chữ trong biểu đồ luôn dùng ink-2). */
+  --chart-1: #38bdf8;     /* sky-400   8.6:1 */
+  --chart-2: #a78bfa;     /* violet-400 6.4:1 */
+  --chart-3: #fbbf24;     /* amber-400 11:1 */
+  --chart-4: #f472b6;     /* pink-400  6.6:1 */
+  --chart-bar: #64748b;   /* slate-500 3.7:1 — cột giờ, trung tính */
+
   -webkit-text-size-adjust: 100%;
   color-scheme: dark;
 
@@ -99,6 +107,12 @@
 
   --track: #e9eef4;       /* rãnh xám nhạt */
   --thumb: #ffffff;       /* ô chọn trắng, chữ xanh 5.2:1 */
+
+  --chart-1: #0284c7;     /* sky-600    4.1:1 trên trắng */
+  --chart-2: #7c3aed;     /* violet-600 5.7:1 */
+  --chart-3: #b45309;     /* amber-700  5.0:1 */
+  --chart-4: #db2777;     /* pink-600   4.7:1 */
+  --chart-bar: #64748b;   /* slate-500  4.8:1 — cột giờ, trung tính */
 
   color-scheme: light;
   --glass: 94%;

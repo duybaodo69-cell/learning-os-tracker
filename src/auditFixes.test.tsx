@@ -27,7 +27,6 @@ import PredictionForm from "./components/PredictionForm";
 import ReviewQueue from "./components/ReviewQueue";
 import { WeeklyReviewForm } from "./components/WeeklyReviewCard";
 import ReviewScreen from "./screens/ReviewScreen";
-import type { MetricSet } from "./lib/metrics";
 
 // useLiveQuery thật cần vòng đời Dexie đầy đủ; ở đây trả dữ liệu tĩnh do test đặt.
 vi.mock("dexie-react-hooks", () => ({ useLiveQuery: vi.fn(() => []) }));
@@ -276,6 +275,7 @@ describe("F07: 'Để sau' chỉ ẩn đúng bộ dữ liệu đang thấy", () 
         experimentTags: [],
         mockTests: [],
         anchorDelays: [],
+        deadlines: [],
       },
     }) as unknown as UploadPlan;
 
@@ -289,44 +289,36 @@ describe("F07: 'Để sau' chỉ ẩn đúng bộ dữ liệu đang thấy", () 
 
 /* ==================== F08 — tổng kết tuần ==================== */
 
-describe("F08: tổng kết tuần chỉ đóng khi đã lưu, có follow up tuần trước", () => {
-  const metrics = {
-    avgSleepHours: null,
-    wakeTimeSdMinutes: null,
-    deepWorkMinutes: 0,
-    avgDistractionsPerBlock: null,
-    cardsReviewed: 0,
-    retentionRate: null,
-    brier30: null,
-  } as unknown as MetricSet;
-
-  it("lưu thành công: ghi câu trả lời follow up rồi mới đóng", async () => {
+describe("F08: chốt kế hoạch tuần chỉ đóng khi đã lưu, có follow up tuần trước", () => {
+  it("lưu thành công: ghi câu trả lời follow up + kế hoạch rồi mới đóng", async () => {
     const onSave = vi.fn();
     const onClose = vi.fn();
     const { container } = render(
       <WeeklyReviewForm
         weekStart="2026-09-21"
-        metrics={metrics}
         previousChange="Điện thoại để phòng khác"
         onSave={onSave}
         onClose={onClose}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: "Một phần" }));
-    fireEvent.change(container.querySelectorAll("textarea")[2], { target: { value: "Dậy 6h" } });
-    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Một phần" }));
+    fireEvent.change(container.querySelectorAll("textarea")[0], { target: { value: "Dậy 6h" } });
+    fireEvent.click(screen.getByRole("button", { name: "Chốt tuần" }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
-    expect(onSave.mock.calls[0][0]).toMatchObject({ oneChange: "Dậy 6h", lastChangeResult: "partly" });
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      oneChange: "Dậy 6h",
+      lastChangeResult: "partly",
+      plan: { listening: 8, reading: 6, light: false },
+    });
   });
 
   it("lưu thất bại: form không đóng, chữ còn nguyên", async () => {
     const onSave = vi.fn().mockRejectedValue(new Error("x"));
     const onClose = vi.fn();
-    const { container } = render(
-      <WeeklyReviewForm weekStart="2026-09-21" metrics={metrics} onSave={onSave} onClose={onClose} />
-    );
+    const { container } = render(<WeeklyReviewForm weekStart="2026-09-21" onSave={onSave} onClose={onClose} />);
+    await screen.findByRole("button", { name: "Chốt tuần" });
     fireEvent.change(container.querySelectorAll("textarea")[0], { target: { value: "Tự làm lại DCF" } });
-    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+    fireEvent.click(screen.getByRole("button", { name: "Chốt tuần" }));
     await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
     expect(onClose).not.toHaveBeenCalled();
     expect(container.querySelectorAll("textarea")[0].value).toBe("Tự làm lại DCF");

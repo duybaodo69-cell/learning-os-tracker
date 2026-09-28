@@ -166,7 +166,16 @@ export type Card = {
   lapses: number;      // số lần bấm "Quên"
   /** Thẻ tạo từ ô "chỗ hổng" của brain dump nào (không có = tạo tay). */
   brainDumpId?: string;
+  /** Thẻ từ đâu ra (Đợt 3). Không có = tạo tay hoặc từ brain dump. */
+  source?: CardSource;
 };
+
+/**
+ * Nguồn của thẻ (Đợt 3, PRODUCT.md mục 7/7b: "lỗi lặp lại -> thẻ ôn"):
+ * lỗi nghe IELTS, từ vựng IELTS (vd loại Ⓒ), lỗi Writing AI chỉ ra, góp ý của manager.
+ */
+export const CARD_SOURCES = ["ielts-listening", "ielts-vocab", "writing", "manager"] as const;
+export type CardSource = (typeof CARD_SOURCES)[number];
 
 /** Nhật ký mỗi lần ôn — không bao giờ sửa, chỉ ghi thêm. */
 export type ReviewLog = {
@@ -216,6 +225,34 @@ export type WeeklyReview = {
    * tổng kết tuần này. Không có = tuần trước chưa chọn gì, hoặc bỏ qua.
    */
   lastChangeResult?: "yes" | "partly" | "no";
+  /** Ghi chú tự do của buổi chốt kế hoạch Chủ nhật (Đợt 3, tuỳ chọn). */
+  note?: string;
+  /** Kế hoạch cho TUẦN TỚI (bắt đầu weekStart + 7), chốt Chủ nhật (Đợt 3). */
+  plan?: WeekPlan;
+};
+
+/**
+ * Kế hoạch một tuần, chốt ở buổi Chủ nhật của tuần trước đó.
+ * Số lượng là số PHẦN (section / passage). `listeningFrom` / `readingFrom` là
+ * đề tiếp theo lúc chốt — chỉ để hiện "từ … tới …", không ràng buộc gì.
+ */
+export type WeekPlan = {
+  listening: number;
+  reading: number;
+  listeningFrom?: { book: number; test: number; part: number };
+  readingFrom?: { book: number; test: number; part: number };
+  /** Tuần nhẹ nhịp: chỉ giữ sàn 30 phút Listening mỗi ngày. */
+  light: boolean;
+};
+
+/**
+ * Một deadline tự thêm (việc có hạn chót bên ngoài: công ty, nhóm...).
+ * Mốc thi / AFEP cố định nằm ở src/config/schedule.ts, không ở đây. (Dexie v10)
+ */
+export type Deadline = {
+  id: string;     // UUID
+  date: string;   // "YYYY-MM-DD"
+  title: string;
 };
 
 /** Một thí nghiệm cá nhân: so sánh hai cách làm A và B. */
