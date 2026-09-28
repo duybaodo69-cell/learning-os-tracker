@@ -451,3 +451,32 @@ export function isValidIeltsSession(v: unknown): boolean {
     t.errors.every(nonNegInt)
   );
 }
+
+/* ==================== Tổng lỗi theo loại (tab IELTS, Đợt 2) ==================== */
+
+export type ErrorSummary = {
+  /** Số buổi CÓ làm đề của kỹ năng này trong khoảng. */
+  sessions: number;
+  questions: number;
+  correct: number;
+  /** Tổng từng loại lỗi — nghĩa theo kỹ năng (①–④ hoặc Ⓐ–Ⓓ). */
+  errors: [number, number, number, number];
+};
+
+/**
+ * Cộng dồn lỗi của MỘT kỹ năng trong khoảng [from, to] (tính cả hai đầu).
+ * Hai bộ lỗi không bao giờ trộn: chỉ lấy phiên đúng `skill`.
+ * Buổi "không làm đề" không có lỗi nên không tính vào `sessions`.
+ */
+export function errorSummary(blocks: FocusBlock[], skill: ScoredSkill, from: string, to: string): ErrorSummary {
+  const out: ErrorSummary = { sessions: 0, questions: 0, correct: 0, errors: [0, 0, 0, 0] };
+  for (const b of blocks) {
+    const t = b.ielts?.test;
+    if (b.area !== "IELTS" || b.ielts?.skill !== skill || !t || b.date < from || b.date > to) continue;
+    out.sessions += 1;
+    out.questions += t.questions;
+    out.correct += t.correct;
+    t.errors.forEach((n, i) => (out.errors[i] += n));
+  }
+  return out;
+}

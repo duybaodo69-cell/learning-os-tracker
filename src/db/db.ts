@@ -15,6 +15,7 @@ import dexieCloud from "dexie-cloud-addon";
 import { CLOUD_DB_URL } from "../config/cloud";
 import { STORE_DB_NAME, chooseStore, type StoreKind } from "./store";
 import type {
+  AnchorDelay,
   BrainDump,
   Card,
   DailyCheckin,
@@ -69,6 +70,8 @@ export class LearningDB extends Dexie {
   experimentTags!: Table<ExperimentTag, string>;
   // IELTS (Đợt 1)
   mockTests!: Table<MockTest, string>;
+  // Dời khung 9:30 (Đợt 2)
+  anchorDelays!: Table<AnchorDelay, string>;
 
   constructor(databaseName: string, options?: DexieOptions) {
     super(databaseName, options);
@@ -153,6 +156,13 @@ export class LearningDB extends Dexie {
     this.version(8).stores({
       focusBlocks: "id, date, area",
       mockTests: "id, date",
+    });
+
+    // version(9) — Đợt 2: bảng `anchorDelays` (các lần dời khung 9:30).
+    // Khoá "#ngày" (src/db/keys.ts) giống check-in: mỗi ngày một bản ghi,
+    // hai máy dời cùng ngày vẫn là một bản ghi khi đồng bộ.
+    this.version(9).stores({
+      anchorDelays: "id, date",
     });
   }
 }

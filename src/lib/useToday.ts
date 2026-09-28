@@ -18,7 +18,7 @@
  * sang ngày mới.
  */
 import { useEffect, useState } from "react";
-import { todayISO } from "./dates";
+import { nowHHmm, todayISO } from "./dates";
 
 /** Bao lâu kiểm tra lại một lần khi app đang mở liên tục. */
 export const TODAY_POLL_MS = 60_000;
@@ -52,4 +52,34 @@ export function useToday(): string {
   }, []);
 
   return today;
+}
+
+/**
+ * Giờ hiện tại "HH:mm" (giờ Việt Nam), tự cập nhật — cùng ba thời điểm như
+ * useToday (quay lại app, cửa sổ được chọn, mỗi 60 giây). Dùng cho dòng
+ * "dời khung" chỉ hiện sau 10:30 (Đợt 2). Chỉ để HIỂN THỊ; khi lưu thì gọi
+ * nowHHmm() ngay lúc bấm.
+ */
+export function useNowHHmm(): string {
+  const [now, setNow] = useState<string>(nowHHmm);
+
+  useEffect(() => {
+    function sync() {
+      setNow((prev) => {
+        const next = nowHHmm();
+        return next === prev ? prev : next;
+      });
+    }
+    document.addEventListener("visibilitychange", sync);
+    window.addEventListener("focus", sync);
+    const id = setInterval(sync, TODAY_POLL_MS);
+    sync();
+    return () => {
+      document.removeEventListener("visibilitychange", sync);
+      window.removeEventListener("focus", sync);
+      clearInterval(id);
+    };
+  }, []);
+
+  return now;
 }

@@ -52,7 +52,7 @@ describe("planUpload", () => {
 
   it("mỗi bảng đều có một dòng xem trước, cộng đúng", () => {
     const p = planUpload(local, { focusBlocks: ["b1"] });
-    expect(p.rows).toHaveLength(10);
+    expect(p.rows).toHaveLength(11);
     for (const r of p.rows) expect(r.toAdd + r.skipped).toBe(r.incoming);
   });
 });

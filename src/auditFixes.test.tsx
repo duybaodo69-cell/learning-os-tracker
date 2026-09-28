@@ -275,6 +275,7 @@ describe("F07: 'Để sau' chỉ ẩn đúng bộ dữ liệu đang thấy", () 
         experiments: [],
         experimentTags: [],
         mockTests: [],
+        anchorDelays: [],
       },
     }) as unknown as UploadPlan;
 

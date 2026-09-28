@@ -5,6 +5,8 @@
  *   - tab nào đang mở
  *   - mục con nào đang mở trong tab "Ôn tập" (để tab Hôm nay nhảy thẳng
  *     sang brain dump chỉ bằng một lần chạm)
+ *   - màn con nào đang mở trong tab "Cài đặt" (Dự đoán, Thí nghiệm — Đợt 2
+ *     chuyển chúng vào "Công cụ khác", dữ liệu giữ nguyên)
  */
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -16,6 +18,8 @@ import TodayScreen from "./screens/TodayScreen";
 import ReviewScreen from "./screens/ReviewScreen";
 import type { ReviewView } from "./screens/ReviewScreen";
 import PredictionsScreen from "./screens/PredictionsScreen";
+import IeltsScreen from "./screens/IeltsScreen";
+import ExperimentsScreen from "./screens/ExperimentsScreen";
 import DashboardScreen from "./screens/DashboardScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import FocusSession from "./screens/FocusSession";
@@ -26,11 +30,16 @@ import type { Card } from "./db/types";
 import { useToday } from "./lib/useToday";
 import { dueCount as countDue } from "./lib/scheduling";
 import { getTimerStart, startTimer } from "./lib/timer";
+import { setLastArea } from "./lib/prefs";
+
+/** Màn con của tab Cài đặt. */
+type SettingsView = "main" | "predictions" | "experiments";
 
 export default function App() {
   // Mở app lên là vào thẳng tab "Hôm nay" vì đây là tab dùng nhiều nhất.
   const [activeTab, setActiveTab] = useState<TabId>("today");
   const [reviewView, setReviewView] = useState<ReviewView>("queue");
+  const [settingsView, setSettingsView] = useState<SettingsView>("main");
 
   // Mốc bắt đầu của phiên đang chạy (null = không có phiên nào).
   // Đọc từ localStorage lúc mở app, nên đóng app giữa phiên rồi mở lại
@@ -40,6 +49,18 @@ export default function App() {
   function handleStartTimer() {
     startTimer();
     setTimerStart(getTimerStart());
+  }
+
+  /** Lối tắt IELTS (tab IELTS): chọn sẵn area IELTS rồi chạy đồng hồ phiên thường. */
+  function handleStartIelts() {
+    setLastArea("IELTS");
+    handleStartTimer();
+  }
+
+  /** Bấm một tab ở thanh điều hướng. Bấm lại "Cài đặt" thì về màn chính của nó. */
+  function changeTab(tab: TabId) {
+    setActiveTab(tab);
+    if (tab === "settings") setSettingsView("main");
   }
 
   // Số thẻ đến hạn — hiện thành con số nhỏ trên tab "Ôn tập".
@@ -64,12 +85,14 @@ export default function App() {
         return (
           <ReviewScreen view={reviewView} onViewChange={setReviewView} dueCount={dueCount} />
         );
-      case "predictions":
-        return <PredictionsScreen />;
+      case "ielts":
+        return <IeltsScreen onStartIelts={handleStartIelts} />;
       case "dashboard":
         return <DashboardScreen />;
       case "settings":
-        return <SettingsScreen />;
+        if (settingsView === "predictions") return <PredictionsScreen onBack={() => setSettingsView("main")} />;
+        if (settingsView === "experiments") return <ExperimentsScreen onBack={() => setSettingsView("main")} />;
+        return <SettingsScreen onOpen={setSettingsView} />;
     }
   }
 
@@ -109,7 +132,7 @@ export default function App() {
         {/* min-h-0 / min-w-0 để phần màn hình cuộn được thay vì đẩy thanh tab ra ngoài. */}
         <div className="min-h-0 min-w-0 flex-1">{renderScreen()}</div>
 
-        <AppNav activeTab={activeTab} onTabChange={setActiveTab} reviewBadge={dueCount} />
+        <AppNav activeTab={activeTab} onTabChange={changeTab} reviewBadge={dueCount} />
       </div>
 
       {/* Hộp đăng nhập / xác nhận đăng xuất của Dexie Cloud — chỉ ở kho cloud. */}

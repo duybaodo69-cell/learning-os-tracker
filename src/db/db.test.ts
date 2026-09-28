@@ -40,7 +40,7 @@ async function makeVersion5Db() {
   old.close();
 }
 
-describe("nâng cấp version 5 -> 8", () => {
+describe("nâng cấp version 5 -> 9", () => {
   it("chép đủ mọi check-in sang bảng mới với khoá #ngày, giữ nguyên nội dung", async () => {
     await makeVersion5Db();
     const db = new LearningDB(NAME);
@@ -70,11 +70,11 @@ describe("nâng cấp version 5 -> 8", () => {
     expect(names).not.toContain("checkins");
     expect(names).not.toContain("weeklyReviews");
     expect(await db.focusBlocks.count()).toBe(1);
-    expect(db.verno).toBe(8);
+    expect(db.verno).toBe(9);
     db.close();
   });
 
-  it("máy mới cài (chưa có database) mở thẳng version 8", async () => {
+  it("máy mới cài (chưa có database) mở thẳng version 9", async () => {
     const db = new LearningDB(NAME);
     await db.dailyCheckins.put({ id: "#2026-09-26", date: "2026-09-26", bedTime: "23:00", wakeTime: "06:00", sleepHours: 7, energy: 3 });
     expect(await db.dailyCheckins.count()).toBe(1);
@@ -87,7 +87,7 @@ describe("nâng cấp version 5 -> 8", () => {
  * Máy của chủ app đang ở version 7 — nâng lên KHÔNG được mất block nào,
  * và block cũ (không có `ielts`) vẫn đọc được như cũ.
  */
-describe("nâng cấp version 7 -> 8", () => {
+describe("nâng cấp version 7 -> 9", () => {
   async function makeVersion7Db() {
     const old = new Dexie(NAME);
     old.version(1).stores({ checkins: "date", focusBlocks: "id, date, area" });
@@ -113,7 +113,8 @@ describe("nâng cấp version 7 -> 8", () => {
     expect((await db.focusBlocks.get("b1"))?.ielts).toBeUndefined();
     expect(await db.dailyCheckins.count()).toBe(1);
     expect(await db.mockTests.count()).toBe(0);
-    expect(db.verno).toBe(8);
+    expect(await db.anchorDelays.count()).toBe(0);
+    expect(db.verno).toBe(9);
     db.close();
   });
 

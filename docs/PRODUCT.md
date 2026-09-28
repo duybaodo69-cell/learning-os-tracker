@@ -106,9 +106,9 @@ máy chủ nên không tự gửi thông báo được). Khung 9:30 **phải ra 
 | 25/11 | Final EFM + AFEP written reflection |
 | 2/12 | Final BFN |
 | 12–13/12 | **Thi thử 2 — trả tiền, ở trung tâm** · cổng quyết định |
-| giữa T1 | Thi thử 3 — ở nhà |
-| giữa T2 | **Thi thử 4 — trả tiền, ở trung tâm** |
-| T3/2027 | Thi thật (IDP/BC) |
+| 16/1/2027 (tạm) | Thi thử 3 — ở nhà |
+| 20/2/2027 (tạm, sau Tết) | **Thi thử 4 — trả tiền, ở trung tâm** |
+| 20/3/2027 (tạm) | Thi thật (IDP/BC) |
 
 Đề luyện: **Cam 10–14** (80 section, đủ ~10 tuần). Tuỳ chọn mua 1 cuốn Cam 19 cho thi thử 1 và 3.
 

@@ -12,7 +12,7 @@
  */
 import type { DailyCheckin, ExperimentTag, FocusBlock, Prediction, ReviewLog } from "../db/types";
 import { averageBrierLastDays } from "./calibration";
-import { PROTOCOL_PHASES } from "../config/protocolPhases";
+import { BASELINE } from "../config/schedule";
 import { addDays } from "./scheduling";
 
 /* ==================== Ngày và tuần ==================== */
@@ -200,9 +200,9 @@ export function compareMetric(key: MetricKey, current: number | null, previous: 
 
 /* ==================== Baseline ==================== */
 
-/** Giai đoạn baseline = giai đoạn 1 trong protocol (xem config/protocolPhases.ts). */
-export const BASELINE_FROM = PROTOCOL_PHASES[0].from;
-export const BASELINE_TO = PROTOCOL_PHASES[0].to;
+/** Khoảng baseline 14 ngày — sửa ở src/config/schedule.ts. */
+export const BASELINE_FROM: string = BASELINE.from;
+export const BASELINE_TO: string = BASELINE.to;
 
 /** Đã qua giai đoạn baseline chưa? Chưa qua thì chưa có gì để so. */
 export function baselineFinished(today: string): boolean {

@@ -8,8 +8,8 @@
  * Mọi nội dung mẫu đều có chữ "[MẪU]" để không nhầm với dữ liệu thật.
  */
 import { db } from "./db";
-import { checkinId, weekReviewId } from "./keys";
-import type { Area, BrainDump, Card, DailyCheckin, Experiment, ExperimentTag, FocusBlock, Grade, IeltsSession, MockTest, Prediction, PredictionCategory, ReviewLog, Rating, WeeklyReview } from "./types";
+import { anchorDelayId, checkinId, weekReviewId } from "./keys";
+import type { AnchorDelay, Area, BrainDump, Card, DailyCheckin, Experiment, ExperimentTag, FocusBlock, Grade, IeltsSession, MockTest, Prediction, PredictionCategory, ReviewLog, Rating, WeeklyReview } from "./types";
 import { newId } from "../lib/dates";
 import { START_EASE, addDays } from "../lib/scheduling";
 import { experimentTagKey, mondayOf } from "../lib/metrics";
@@ -366,6 +366,13 @@ export async function loadDemoData(today: string): Promise<void> {
   await db.experimentTags.bulkPut(experimentTags);
   await db.weekReviews.bulkPut(weeklyReviews);
   await db.mockTests.bulkPut(mockTests);
+
+  /* Dời khung (Đợt 2): hai lần trong 14 ngày, lý do khác nhau. */
+  const delays: AnchorDelay[] = [
+    { id: anchorDelayId(minusDays(today, 3)), date: minusDays(today, 3), target: "evening", reason: "school", at: "10:40" },
+    { id: anchorDelayId(minusDays(today, 9)), date: minusDays(today, 9), target: "after-class", reason: "work", at: "11:05" },
+  ];
+  await db.anchorDelays.bulkPut(delays);
 }
 
 /** Xoá sạch database demo. Chỉ ảnh hưởng chế độ demo. */
@@ -380,4 +387,5 @@ export async function clearDemoData(): Promise<void> {
   await db.experimentTags.clear();
   await db.weekReviews.clear();
   await db.mockTests.clear();
+  await db.anchorDelays.clear();
 }

@@ -2,10 +2,11 @@
  * Màn hình "Hôm nay" — màn hình bạn mở nhiều nhất trong ngày.
  *
  * Thứ tự từ trên xuống, theo mức độ cần nhìn:
- *   1. Banner giai đoạn protocol
+ *   1. Banner đếm ngược tới thi thử kế tiếp + tuần nhẹ nhịp (Đợt 2)
  *   2. Form check-in sáng — chỉ khi CHƯA check-in (hoặc đang sửa)
  *   2b. IELTS: nút chính "Bắt đầu IELTS · <đề tiếp theo>" + "Khung 9:30: x/7"
- *       (docs/PRODUCT.md Đợt 1 — "mở app là thấy bước tiếp theo")
+ *       (docs/PRODUCT.md Đợt 1 — "mở app là thấy bước tiếp theo"), và sau 10:30
+ *       nếu chưa có phiên IELTS: "dời sang lúc nào?" (Đợt 2)
  *   3. "Bắt đầu phiên deep work": area (một hàng vuốt ngang) + nút đếm
  *   4. Check-in đã có: một dòng tóm tắt
  *   5. Tổng deep work hôm nay + thanh chia theo area
@@ -17,21 +18,24 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { db, isDemoMode } from "../db/db";
-import { checkinId, weekReviewId } from "../db/keys";
-import type { DailyCheckin, Experiment, ExperimentTag, FocusBlock, Prediction, ReviewLog, WeeklyReview } from "../db/types";
+import { anchorDelayId, checkinId, weekReviewId } from "../db/keys";
+import type { AnchorDelay, DailyCheckin, Experiment, ExperimentTag, FocusBlock, Prediction, ReviewLog, WeeklyReview } from "../db/types";
 import { formatDayLabel, formatMinutes, todayISO, yesterdayISO } from "../lib/dates";
-import { useToday } from "../lib/useToday";
+import { useNowHHmm, useToday } from "../lib/useToday";
 import { computeMetrics, isSunday, mondayOf } from "../lib/metrics";
 import { EXPORT_REMINDER_DAYS, daysSinceLastExport } from "../lib/backup";
 import { getLastArea, setLastArea } from "../lib/prefs";
 import { addDays } from "../lib/scheduling";
 import { areaColor } from "../lib/areaColors";
-import { ANCHOR_MIN_MINUTES, anchorWeek, formatTestRef, nextTest, partShort, sessionSummary } from "../lib/ielts";
+import { sessionSummary } from "../lib/ielts";
+import { delaysInWeek, shouldAskDelay } from "../lib/plan";
 import { AREAS } from "../db/types";
 import type { Area } from "../db/types";
 
 import ScreenShell from "../components/ScreenShell";
-import ProtocolBanner from "../components/ProtocolBanner";
+import PlanBanner from "../components/PlanBanner";
+import IeltsStartCard from "../components/IeltsStartCard";
+import AnchorDelayRow from "../components/AnchorDelayRow";
 import CheckinForm from "../components/CheckinForm";
 import FocusBlockForm from "../components/FocusBlockForm";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -52,6 +56,7 @@ export default function TodayScreen({
 }) {
   // Hook tự tính lại ngày khi qua nửa đêm — xem lib/useToday.ts.
   const today = useToday();
+  const now = useNowHHmm();
 
   /* ----- Dữ liệu từ database -----
      useLiveQuery tự chạy lại và vẽ lại màn hình mỗi khi dữ liệu đổi.
@@ -132,11 +137,16 @@ export default function TodayScreen({
     onStartTimer();
   }
 
-  /* ----- IELTS: đề tiếp theo + khung 9:30 tuần này ----- */
-  const nextListening = nextTest(allBlocks, "Listening");
-  const nextReading = nextTest(allBlocks, "Reading");
-  const week = anchorWeek(allBlocks, today);
-  const anchorHeld = week.filter((d) => d.held).length;
+  /* ----- Dời khung 9:30 (Đợt 2) ----- */
+  const hasIeltsToday = blocks.some((b) => b.area === "IELTS");
+  // undefined = đang đọc; null = hôm nay chưa dời.
+  const delayToday = useLiveQuery(async () => (await db.anchorDelays.get(anchorDelayId(today))) ?? null, [today]);
+  const allDelays = useLiveQuery(() => db.anchorDelays.toArray(), [], [] as AnchorDelay[]);
+  const weekDelays = delaysInWeek(allDelays, today);
+  // Hỏi "dời sang lúc nào?": sau 10:30, chưa có phiên IELTS, chưa dời (src/lib/plan.ts).
+  const askDelay = delayToday !== undefined && shouldAskDelay(now, blocks, delayToday);
+  // Dòng dời khung (câu hỏi, hoặc "đã dời sang...") chỉ khi hôm nay CHƯA có phiên IELTS.
+  const showDelayRow = !hasIeltsToday && (askDelay || Boolean(delayToday));
 
   /* ----- Lưu / xoá ----- */
   async function saveCheckin(value: DailyCheckin) {
@@ -198,7 +208,7 @@ export default function TodayScreen({
         </Notice>
       )}
 
-      <ProtocolBanner date={today} />
+      <PlanBanner date={today} />
 
       {/* Tổng kết tuần — chỉ Chủ Nhật. */}
       {showWeeklyReview && weeklyReview !== undefined && (
@@ -242,55 +252,17 @@ export default function TodayScreen({
 
       {/* ---------- 2a. IELTS — hành động chính của buổi sáng ---------- */}
       {!blockFormOpen && (
-        <Card className="mb-3">
-          <Button onClick={startIelts} className="flex w-full items-center justify-center gap-2 py-3 text-base">
-            <span aria-hidden="true">▶</span>
-            <span>
-              Bắt đầu IELTS
-              {nextListening && (
-                <>
-                  {" · "}
-                  <span className="font-num">
-                    {formatTestRef("Listening", { ...nextListening, parts: [nextListening.part] })}
-                  </span>
-                </>
-              )}
-            </span>
-          </Button>
-          {nextReading && (
-            <p className="mt-2 text-center text-xs text-ink-3">
-              Reading tiếp theo: Cam {nextReading.book} · Test {nextReading.test} ·{" "}
-              {partShort("Reading", nextReading.part)}
+        <IeltsStartCard blocks={allBlocks} today={today} onStart={startIelts}>
+          {showDelayRow && delayToday !== undefined && (
+            <AnchorDelayRow ask={askDelay} delayToday={delayToday} weekCount={weekDelays} />
+          )}
+          {/* Không có dòng dời khung: chỉ một dòng đếm nhỏ, không lời trách. */}
+          {!showDelayRow && weekDelays > 0 && (
+            <p className="mt-2 text-xs text-ink-3">
+              Dời khung <span className="font-num">{weekDelays}</span> lần tuần này
             </p>
           )}
-
-          {/* Khung 9:30 — đếm NGÀY, không đếm chuỗi (PRODUCT.md mục 3 và 6). */}
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-line/70 pt-3">
-            <p className="text-sm text-ink">
-              Khung 9:30: <span className="font-num font-semibold">{anchorHeld}/7</span> tuần này
-              <span className="block text-xs text-ink-3">
-                IELTS bắt đầu 9:00–10:30, từ {ANCHOR_MIN_MINUTES} phút · đích ≥ 5
-              </span>
-            </p>
-            <ol className="flex gap-1" aria-label="Các ngày giữ khung 9:30 tuần này">
-              {week.map((d, i) => (
-                <li
-                  key={d.date}
-                  className={
-                    "grid h-7 w-7 place-items-center rounded-full text-xs " +
-                    (d.held ? "bg-good text-canvas font-semibold" : "bg-surface-2 text-ink-3") +
-                    (d.date === today ? " ring-2 ring-accent" : "")
-                  }
-                >
-                  <span aria-hidden="true">{WEEKDAY_SHORT[i]}</span>
-                  <span className="sr-only">
-                    {WEEKDAY_LONG[i]}: {d.held ? "giữ khung" : "chưa"}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </Card>
+        </IeltsStartCard>
       )}
 
       {/* ---------- 2. Bắt đầu phiên deep work (mọi area) ---------- */}
@@ -518,6 +490,3 @@ export default function TodayScreen({
   );
 }
 
-/** Nhãn 7 chấm khung 9:30, Thứ Hai trước. */
-const WEEKDAY_SHORT = ["2", "3", "4", "5", "6", "7", "CN"];
-const WEEKDAY_LONG = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];

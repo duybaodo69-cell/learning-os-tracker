@@ -1,7 +1,7 @@
 /**
  * Ghi kết quả thi thử IELTS (docs/PRODUCT.md mục 5 và 8, Đợt 1).
  *
- * Tạm nằm trong tab Ôn tập → "Thi thử"; Đợt 2 chuyển sang tab IELTS.
+ * Nằm ở tab IELTS → "Thi thử" (Đợt 2; Đợt 1 tạm đặt trong Ôn tập).
  *
  *   - Listening / Reading: nhập ĐIỂM THÔ /40, app tự quy ra band ≈
  *   - Writing / Speaking: chọn band

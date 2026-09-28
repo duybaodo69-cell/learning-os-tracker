@@ -9,12 +9,13 @@
  * mười năm nữa mở ra vẫn hiểu được, không cần app này.
  */
 import { db, isDemoMode, type LearningDB } from "../db/db";
-import { checkinId, weekReviewId } from "../db/keys";
-import { AREAS, MOCK_SOURCES, PREDICTION_CATEGORIES } from "../db/types";
+import { anchorDelayId, checkinId, weekReviewId } from "../db/keys";
+import { AREAS, DELAY_REASONS, DELAY_TARGETS, MOCK_SOURCES, PREDICTION_CATEGORIES } from "../db/types";
 import { isBand, isValidIeltsSession } from "./ielts";
 import { computeSleepHours } from "./dates";
 import { isIntIn, isNumberIn, isValidDate, isValidTime } from "./validation";
 import type {
+  AnchorDelay,
   BrainDump,
   Card,
   DailyCheckin,
@@ -50,6 +51,8 @@ export type BackupData = {
   experimentTags: ExperimentTag[];
   /** IELTS Đợt 1. File cũ không có bảng này vẫn nhập được (coi như rỗng). */
   mockTests: MockTest[];
+  /** Dời khung 9:30 (Đợt 2). File cũ không có bảng này vẫn nhập được. */
+  anchorDelays: AnchorDelay[];
 };
 
 export type BackupFile = {
@@ -71,6 +74,7 @@ export const TABLE_NAMES = [
   "experiments",
   "experimentTags",
   "mockTests",
+  "anchorDelays",
 ] as const;
 
 /** Tên tiếng Việt để hiện cho người dùng xem. */
@@ -85,6 +89,7 @@ export const TABLE_LABELS: Record<string, string> = {
   experiments: "Thí nghiệm",
   experimentTags: "Nhãn thí nghiệm",
   mockTests: "Thi thử IELTS",
+  anchorDelays: "Dời khung 9:30",
 };
 
 /* ==================== Kiểm tra từng bản ghi ==================== */
@@ -213,6 +218,13 @@ const ROW_RULES: Record<(typeof TABLE_NAMES)[number], Record<string, Check>> = {
     speakingBand: optional(isBand),
     note: optional(str),
   },
+  anchorDelays: {
+    id: optional(str), // luôn tính lại từ ngày, như check-in
+    date,
+    target: oneOf(DELAY_TARGETS),
+    reason: oneOf(DELAY_REASONS),
+    at: timeOrEmpty,
+  },
 };
 
 /** Trường nào làm khoá duy nhất của từng bảng — hai dòng trùng khoá là file hỏng. */
@@ -227,6 +239,7 @@ const UNIQUE_FIELD: Record<(typeof TABLE_NAMES)[number], string> = {
   experiments: "id",
   experimentTags: "key",
   mockTests: "id",
+  anchorDelays: "date",
 };
 
 /**
@@ -302,6 +315,7 @@ export function normaliseBackupData(d: Partial<BackupData>): BackupData {
     experiments: clean(d.experiments),
     experimentTags: clean(d.experimentTags),
     mockTests: clean(d.mockTests),
+    anchorDelays: clean(d.anchorDelays).map((r) => ({ ...r, id: anchorDelayId(r.date) })),
   };
 }
 
@@ -373,6 +387,7 @@ export async function collectBackupFrom(db: LearningDB): Promise<BackupFile> {
     experiments,
     experimentTags,
     mockTests,
+    anchorDelays,
   ] = await Promise.all([
     db.dailyCheckins.toArray(),
     db.focusBlocks.toArray(),
@@ -384,6 +399,7 @@ export async function collectBackupFrom(db: LearningDB): Promise<BackupFile> {
     db.experiments.toArray(),
     db.experimentTags.toArray(),
     db.mockTests.toArray(),
+    db.anchorDelays.toArray(),
   ]);
 
   return {
@@ -401,6 +417,7 @@ export async function collectBackupFrom(db: LearningDB): Promise<BackupFile> {
       experiments,
       experimentTags,
       mockTests,
+      anchorDelays,
     }),
   };
 }
@@ -541,7 +558,7 @@ export function parseBackup(text: string): ParsedBackup {
 
 /** Đếm số bản ghi đang có trong database — để so với file trước khi ghi đè. */
 export async function currentCounts(): Promise<Record<string, number>> {
-  const [a, b, c, d, e, f, g, h, i, j] = await Promise.all([
+  const [a, b, c, d, e, f, g, h, i, j, k] = await Promise.all([
     db.dailyCheckins.count(),
     db.focusBlocks.count(),
     db.brainDumps.count(),
@@ -552,6 +569,7 @@ export async function currentCounts(): Promise<Record<string, number>> {
     db.experiments.count(),
     db.experimentTags.count(),
     db.mockTests.count(),
+    db.anchorDelays.count(),
   ]);
   return {
     checkins: a,
@@ -564,6 +582,7 @@ export async function currentCounts(): Promise<Record<string, number>> {
     experiments: h,
     experimentTags: i,
     mockTests: j,
+    anchorDelays: k,
   };
 }
 
@@ -595,6 +614,7 @@ export async function importBackup(file: BackupFile): Promise<void> {
       db.experiments,
       db.experimentTags,
       db.mockTests,
+      db.anchorDelays,
     ],
     async () => {
       await Promise.all([
@@ -608,6 +628,7 @@ export async function importBackup(file: BackupFile): Promise<void> {
         db.experiments.clear(),
         db.experimentTags.clear(),
         db.mockTests.clear(),
+        db.anchorDelays.clear(),
       ]);
       await Promise.all([
         db.dailyCheckins.bulkAdd(d.checkins),
@@ -620,6 +641,7 @@ export async function importBackup(file: BackupFile): Promise<void> {
         db.experiments.bulkAdd(d.experiments),
         db.experimentTags.bulkAdd(d.experimentTags),
         db.mockTests.bulkAdd(d.mockTests),
+        db.anchorDelays.bulkAdd(d.anchorDelays),
       ]);
     }
   );

@@ -115,6 +115,28 @@ export type MockTest = {
   note?: string;
 };
 
+/* ===================== Dời khung 9:30 (Đợt 2) ===================== */
+
+/** Dời sang lúc nào (PRODUCT.md mục 6: dời, không xoá). */
+export const DELAY_TARGETS = ["after-class", "evening", "tomorrow"] as const;
+export type DelayTarget = (typeof DELAY_TARGETS)[number];
+
+/** Lý do dời — chỉ để tự nhìn lại, không bao giờ dùng để trách. */
+export const DELAY_REASONS = ["school", "work", "personal", "other"] as const;
+export type DelayReason = (typeof DELAY_REASONS)[number];
+
+/**
+ * Một lần dời khung 9:30. Mỗi ngày tối đa MỘT bản ghi: khoá = "#" + ngày
+ * (src/db/keys.ts), nên dời trên hai máy cùng ngày vẫn chỉ đếm một lần.
+ */
+export type AnchorDelay = {
+  id: string;          // "#YYYY-MM-DD"
+  date: string;        // ngày có khung bị dời
+  target: DelayTarget;
+  reason: DelayReason;
+  at: string;          // "HH:mm" lúc bấm dời
+};
+
 /* ===================== Phase 2 ===================== */
 
 /** Brain dump: viết lại những gì nhớ được, rồi đối chiếu tìm chỗ hổng. */

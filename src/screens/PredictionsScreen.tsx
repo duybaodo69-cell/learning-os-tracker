@@ -1,6 +1,9 @@
 /**
  * Màn hình "Dự đoán".
  *
+ * Từ Đợt 2 (2026-09-28) không còn là tab riêng: mở từ Cài đặt → "Công cụ khác"
+ * (`onBack` hiện nút quay lại). Dữ liệu và cách dùng giữ nguyên.
+ *
  * Hai mục con:
  *   Dự đoán  — danh sách: đến hạn chấm / đang mở / đã chấm
  *   Điểm số  — Brier score và biểu đồ calibration
@@ -38,7 +41,8 @@ import { Button, Card, EmptyState, SectionLabel, Segmented, Tag } from "../compo
 
 type View = "list" | "score";
 
-export default function PredictionsScreen() {
+export default function PredictionsScreen({ onBack }: { onBack?: () => void }) {
+  const back = onBack ? { label: "Cài đặt", onClick: onBack } : undefined;
   const today = useToday();
 
   const [view, setView] = useState<View>("list");
@@ -104,7 +108,7 @@ export default function PredictionsScreen() {
 
   if (formOpen) {
     return (
-      <ScreenShell title="Dự đoán" subtitle={editing ? "Sửa dự đoán" : "Dự đoán mới"}>
+      <ScreenShell title="Dự đoán" subtitle={editing ? "Sửa dự đoán" : "Dự đoán mới"} back={back}>
         <Card className="mb-4">
           <PredictionForm
             existing={editing ?? undefined}
@@ -131,6 +135,7 @@ export default function PredictionsScreen() {
   return (
     <ScreenShell
       title="Dự đoán"
+      back={back}
       subtitle={
         all.length === 0
           ? "Dự đoán có xác suất"

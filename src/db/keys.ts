@@ -18,6 +18,11 @@ export function checkinId(date: string): string {
   return `#${date}`;
 }
 
+/** Khoá của lần dời khung 9:30 ngày `date` — mỗi ngày một bản ghi (Đợt 2). */
+export function anchorDelayId(date: string): string {
+  return `#${date}`;
+}
+
 /** Khoá của tổng kết tuần bắt đầu Thứ Hai `weekStart` ("YYYY-MM-DD"). */
 export function weekReviewId(weekStart: string): string {
   return `#${weekStart}`;

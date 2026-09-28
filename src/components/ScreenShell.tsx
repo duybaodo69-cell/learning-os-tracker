@@ -22,10 +22,15 @@ type ScreenShellProps = {
   right?: ReactNode;
   /** Cho phép nội dung rộng hơn để chia hai cột trên máy tính. */
   wide?: boolean;
+  /**
+   * Màn con (vd Dự đoán mở từ Cài đặt → Công cụ khác): hiện nút "‹ <tên>"
+   * phía trên tiêu đề để quay lại. Không có = màn chính của một tab.
+   */
+  back?: { label: string; onClick: () => void };
   children: ReactNode; // nội dung của màn hình
 };
 
-export default function ScreenShell({ title, subtitle, right, wide = false, children }: ScreenShellProps) {
+export default function ScreenShell({ title, subtitle, right, wide = false, back, children }: ScreenShellProps) {
   // Tiêu đề và nội dung dùng CÙNG bề rộng để thẳng mép trái trên máy tính.
   const width = `mx-auto w-full px-4 @2xl/app:px-6 ${wide ? "max-w-6xl" : "max-w-2xl"}`;
 
@@ -37,7 +42,16 @@ export default function ScreenShell({ title, subtitle, right, wide = false, chil
           Màn thấp (điện thoại xoay ngang, cỡ chữ 150%): tiêu đề cuộn đi
           cùng nội dung (`short:static`) để nhường chỗ cho nội dung. */}
       <header className="sticky top-0 z-10 bg-canvas/95 backdrop-blur short:static">
-        <div className={`${width} pt-5 pb-3`}>
+        <div className={`${width} ${back ? "pt-1" : "pt-5"} pb-3`}>
+          {back && (
+            <button
+              type="button"
+              onClick={back.onClick}
+              className="tap-target -ml-2 flex items-center gap-1 rounded-xl px-2 text-sm font-semibold text-accent active:bg-surface-2"
+            >
+              <span aria-hidden="true">‹</span> {back.label}
+            </button>
+          )}
           {/* flex-wrap: nếu phần bên phải quá rộng thì xuống dòng, KHÔNG đè lên
               tiêu đề ở màn hình 390px. */}
           <div className="flex flex-wrap items-center justify-between gap-2">

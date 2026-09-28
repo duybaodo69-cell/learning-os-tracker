@@ -101,6 +101,15 @@ type MockTest = {
   note?: string;
 };
 
+// One postponement of the 9:30 IELTS frame (Dexie v9, Đợt 2). One row per day.
+type AnchorDelay = {
+  id: string;     // "#" + date (src/db/keys.ts anchorDelayId), like check-ins
+  date: string;
+  target: "after-class" | "evening" | "tomorrow";
+  reason: "school" | "work" | "personal" | "other";
+  at: string;     // "HH:mm" when it was tapped
+};
+
 type Area =
   | "Internship VC"
   | "IM/Memo"
@@ -244,7 +253,11 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] **`docs/PRODUCT.md` Đợt 1 (2026-09-27)** — IELTS start shortcut + "Khung 9:30: x/7",
       IELTS finish step (skill, next test, correct, 4 error types per skill, dictation),
       mock-test results in Ôn tập → Thi thử.
-- [ ] **Next: `docs/PRODUCT.md` Đợt 2** (countdown, "dời khung", IELTS tab) — before 2026-10-12.
+- [x] **`docs/PRODUCT.md` Đợt 2 (2026-09-28)** — countdown + light-week notice (schedule.ts
+      replaces the 12-week protocol), "dời khung" after 10:30, IELTS tab replaces Dự đoán,
+      Dự đoán + Thí nghiệm moved to Cài đặt → "Công cụ khác".
+- [ ] **Next: `docs/PRODUCT.md` Đợt 3** (IELTS charts on Thống kê, Sunday planning, cards
+      with a source) — before 2026-11-15.
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
 - [x] Out-of-order: deployed early (see section 9) so the app is usable on the phone
       without the laptop. PWA/offline/icons stay in Phase 5 as planned.
@@ -255,7 +268,7 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 | --- | ---------- | -------- | -------------------------------------------- |
 | 1   | Hôm nay    | Today    | Daily check-in + focus blocks of today       |
 | 2   | Ôn tập     | Review   | Brain dump + due cards (Phase 2)             |
-| 3   | Dự đoán    | Predictions | Make and resolve predictions (Phase 3)    |
+| 3   | IELTS      | IELTS    | Next test + start, sessions, mock tests, errors (Đợt 2; replaced Dự đoán, now in Cài đặt → Công cụ khác) |
 | 4   | Thống kê   | Dashboard   | Charts and trends (Phase 4)               |
 | 5   | Cài đặt    | Settings | Export/import, experiments, reset (Phase 4)  |
 
@@ -268,14 +281,17 @@ src/
     AppNav.tsx         # the 5-tab bar: bottom on phones, left rail / sidebar on wide screens
     ScreenShell.tsx    # sticky header + scrollable body, used by every screen
     ConfirmDialog.tsx  # the rule-4 delete confirmation
-    ProtocolBanner.tsx
+    PlanBanner.tsx     # countdown to the next mock test + light-week notice (Đợt 2)
+    IeltsStartCard.tsx # "Bắt đầu IELTS" + Khung 9:30 x/7 (Hôm nay + tab IELTS)
+    AnchorDelayRow.tsx # "dời khung" question / "đã dời" line on Hôm nay
     CheckinForm.tsx
     FocusBlockForm.tsx
     IeltsSessionFields.tsx  # IELTS part of the block/finish form (area IELTS only)
-    MockTestView.tsx   # Ôn tập → Thi thử: mock-test form + history
-  screens/             # one file per tab, plus FocusSession.tsx (full-screen timer)
+    MockTestView.tsx   # IELTS tab → Thi thử: mock-test form + history
+  screens/             # one file per tab (IeltsScreen = tab 3), FocusSession.tsx (timer),
+                       # PredictionsScreen / ExperimentsScreen (Cài đặt sub-screens)
   config/
-    protocolPhases.ts  # EDIT HERE to change the 12-week schedule
+    schedule.ts        # EDIT HERE to change mock-test / exam dates and the baseline window
   db/
     types.ts           # Area, Rating, DailyCheckin, FocusBlock
     db.ts              # Dexie; opens one of three stores (local / cloud / demo)
@@ -300,7 +316,9 @@ src/
     sync.ts            # Vietnamese sync status + login messages (tested)
     upload.ts          # planUpload: which local rows are new to the account (tested)
     cloudUpload.ts     # reads the local store, adds only new rows to the account
-    ielts.ts           # IELTS: band table, overall rounding, next test, 9:30 anchor, form draft (tested)
+    ielts.ts           # IELTS: band table, overall rounding, next test, 9:30 anchor, form draft,
+                       # error totals (tested)
+    plan.ts            # countdown, light week, when to ask "dời khung", delays per week (tested)
   config/cloud.ts      # Dexie Cloud database URLs (dev + prod; not secret)
   config/backgrounds.ts  # focus-session background presets + source/licence of each
 public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
@@ -329,8 +347,9 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   `undefined` = loading, `null` = absent, object = found.
 - **New tables need a new `this.version(n).stores({...})`** in `db.ts`. Never edit version 1 in
   place — that breaks existing installs. Phase 2 adds `brainDumps`, `cards`, `reviewLogs` this way.
-- **The protocol schedule starts 2026-09-28.** Before that date `findProtocolPhase` returns null
-  and the banner is intentionally hidden.
+- **The 12-week protocol schedule was replaced in Đợt 2** by `src/config/schedule.ts`
+  (PRODUCT.md mục 5 milestones). `BASELINE` there keeps the old phase-1 window 2026-09-28 →
+  2026-10-11 so the Thống kê baseline comparison did not move.
 
 ### Phase 2 decisions worth knowing
 
@@ -651,6 +670,41 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 - **Not built (Đợt 2/3):** IELTS tab, countdown, "dời khung", error-trend charts, IELTS
   hours/week chart, cards from IELTS errors.
 
+### IELTS Đợt 2 (2026-09-28) — rules to keep
+
+- **One file for the calendar:** `src/config/schedule.ts` — `MILESTONES` (kind `mock` / `exam`
+  / `school-exam` / `deadline`) and `BASELINE`. Thi thử 3 = 2027-01-16, thi thử 4 =
+  2027-02-20, thi thật = 2027-03-20 are PLACEHOLDERS the owner chose on 2026-09-28 (PRODUCT.md
+  only said "giữa T1 / giữa T2 / T3"); change them there when real dates exist.
+  `protocolPhases.ts` and `ProtocolBanner.tsx` are gone; `metrics.ts` reads `BASELINE`.
+- **Countdown** (`nextTestMilestone`, `PlanBanner` on Hôm nay + IELTS tab): next `mock`, then
+  the `exam`; a multi-day mock counts as "Hôm nay: …" on every day of it; after the exam: none.
+- **Light week** (`lightWeekExam`): the Monday–Sunday week containing a `school-exam` (11/10,
+  25/11, 2/12) shows "Tuần nhẹ nhịp …: giữ sàn 30 phút Listening". AFEP deadlines do not.
+- **Dời khung** (`AnchorDelayRow`, `shouldAskDelay`): asked only when now > 10:30 (strictly;
+  10:30 itself does not ask), today has NO IELTS block at any time, and today has no delay yet.
+  Two taps: target chip, then reason chip saves. One row per day (`anchorDelays`, key
+  `"#" + date`, Dexie v9) so two devices never double-count; "Sửa" edits it (keeps its date
+  and time), there is no delete. The app only records and counts (no server → no reminder at
+  the new time — owner's choice). Wording is neutral; a test checks there is no blame text.
+  Once an IELTS block exists today the row disappears; the week count stays as a small line.
+- **Tab IELTS** (`IeltsScreen`, wide): Tổng quan (PlanBanner + IeltsStartCard + delays this
+  week | error totals of the last 28 days, Listening and Reading in separate cards, "nhiều
+  nhất" on the largest type), Buổi luyện (IELTS blocks newest first, 15 per page, tap → the
+  same FocusBlockForm, delete inside the form via ConfirmDialog), Thi thử (MockTestView, moved
+  out of Ôn tập). `IeltsStartCard` is shared with Hôm nay — never duplicate it.
+- **Công cụ khác** (Cài đặt): rows open `PredictionsScreen` / `ExperimentsScreen` as sub-screens
+  (`settingsView` in App.tsx; `ScreenShell back` shows "‹ Cài đặt"; tapping the Cài đặt tab
+  returns to the main settings). Nothing was deleted or migrated: predictions, experiments and
+  tags stay in the database, the backup and the cloud upload. The Hôm nay A/B chip still shows
+  while an experiment is active. Dashboard metrics that use predictions are unchanged.
+- **Verified (headless Chromium, localhost, fake data):** faked 10:45 Tuesday → question shown,
+  10:30 → not shown; Tối nay + reason → "Đã dời sang Tối nay · 1 lần tuần này", IELTS tab
+  counts 1; 6/10 shows the light-week line; demo predictions (29) and the demo experiment open
+  from Công cụ khác. Layout: 5 tabs + 3 IELTS views + Dự đoán (list, score) + Thí nghiệm ×
+  390 / 768 / 1280 × dark / light × 100 / 150% — no control under 44px, no overflow, no page
+  errors. Not verified on a phone. Dexie Cloud sync of the new table not tested while signed in.
+
 ### Part C (Dexie Cloud sync) — rules to keep
 
 - **Three separate stores** (`src/db/store.ts`): `learning-os` (local, default),
@@ -756,7 +810,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
 npm run build:only      # type-check + production build, skipping lint/tests (local only)
-npm test                # unit tests (555: lib/ logic, db upgrade, hooks, components, worker)
+npm test                # unit tests (584: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

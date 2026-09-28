@@ -19,7 +19,8 @@
 
 // `TabId` liệt kê đúng 5 tên tab hợp lệ.
 // Nhờ vậy nếu gõ sai tên tab, TypeScript sẽ báo lỗi ngay khi viết code.
-export type TabId = "today" | "review" | "predictions" | "dashboard" | "settings";
+// Đợt 2: tab "ielts" thay tab Dự đoán (Dự đoán chuyển vào Cài đặt → Công cụ khác).
+export type TabId = "today" | "review" | "ielts" | "dashboard" | "settings";
 
 // Kiểu của 1 icon: nhận `active` (đang chọn hay không) và trả về hình vẽ SVG.
 type IconProps = { active: boolean };
@@ -51,12 +52,13 @@ function ReviewIcon({ active }: IconProps) {
   );
 }
 
-function PredictionsIcon({ active }: IconProps) {
+/** Tai nghe — IELTS (Listening là đòn bẩy lớn nhất). */
+function IeltsIcon({ active }: IconProps) {
   return (
     <svg className={iconClass(active)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.4 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="8.5" />
-      <circle cx="12" cy="12" r="3.5" />
-      <path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3" />
+      <path d="M4 15v-3a8 8 0 0 1 16 0v3" />
+      <rect x="3" y="14" width="4.5" height="6.5" rx="1.5" />
+      <rect x="16.5" y="14" width="4.5" height="6.5" rx="1.5" />
     </svg>
   );
 }
@@ -83,7 +85,7 @@ function SettingsIcon({ active }: IconProps) {
 const TABS: { id: TabId; label: string; Icon: (p: IconProps) => React.ReactElement }[] = [
   { id: "today",       label: "Hôm nay",  Icon: TodayIcon },
   { id: "review",      label: "Ôn tập",   Icon: ReviewIcon },
-  { id: "predictions", label: "Dự đoán",  Icon: PredictionsIcon },
+  { id: "ielts",       label: "IELTS",    Icon: IeltsIcon },
   { id: "dashboard",   label: "Thống kê", Icon: DashboardIcon },
   { id: "settings",    label: "Cài đặt",  Icon: SettingsIcon },
 ];

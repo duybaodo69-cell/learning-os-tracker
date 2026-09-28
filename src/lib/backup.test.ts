@@ -150,6 +150,9 @@ describe("parseBackup — kiểm tra TỪNG bản ghi (audit F01)", () => {
       ["mockTests", { id: "m", date: "2026-10-03", source: "online" }],
       ["mockTests", { id: "m", date: "2026-10-03", source: "home", listeningRaw: 41 }],
       ["mockTests", { id: "m", date: "2026-10-03", source: "home", writingBand: 6.3 }],
+      // Dời khung (Đợt 2)
+      ["anchorDelays", { date: "2026-10-01", target: "next-week", reason: "school", at: "10:45" }],
+      ["anchorDelays", { date: "2026-10-01", target: "evening", reason: "lazy", at: "10:45" }],
     ];
     for (const [table, row] of bad) {
       expect(() => parseBackup(fileWith({ [table]: [row] })), `${table} ${JSON.stringify(row)}`).toThrow("hỏng");
@@ -267,5 +270,21 @@ describe("IELTS (Đợt 1) trong file sao lưu", () => {
   it("làm sạch trường Dexie Cloud trên bản ghi thi thử", () => {
     const d = normaliseBackupData({ mockTests: [{ ...MOCK, owner: "u", realmId: "r", $ts: 1 } as never] });
     expect(d.mockTests[0]).toEqual(MOCK);
+  });
+});
+
+describe("Dời khung 9:30 (Đợt 2) trong file sao lưu", () => {
+  const DELAY = { id: "#2026-10-01", date: "2026-10-01", target: "evening", reason: "school", at: "10:45" };
+
+  it("nhận bảng dời khung; khoá luôn tính lại thành #ngày", () => {
+    const { counts } = parseBackup(fileWith({ anchorDelays: [DELAY] }));
+    expect(counts.anchorDelays).toBe(1);
+    expect(normaliseBackupData({ anchorDelays: [{ ...DELAY, id: "sai" } as never] }).anchorDelays[0].id).toBe("#2026-10-01");
+  });
+  it("hai lần dời cùng ngày trong file bị từ chối (mỗi ngày một bản ghi)", () => {
+    expect(() => parseBackup(fileWith({ anchorDelays: [DELAY, { ...DELAY, id: "x" }] }))).toThrow("trùng khoá");
+  });
+  it("file cũ không có bảng này: rỗng", () => {
+    expect(normaliseBackupData({}).anchorDelays).toEqual([]);
   });
 });

@@ -5,6 +5,7 @@ import {
   checkMockTest,
   defaultQuestions,
   draftError,
+  errorSummary,
   draftFromSession,
   draftToSession,
   formatTestRef,
@@ -365,5 +366,43 @@ describe("isValidIeltsSession (file sao lưu)", () => {
     expect(isValidIeltsSession({ skill: "Grammar" })).toBe(false);
     expect(isValidIeltsSession({ skill: "Listening", test: { book: 10, test: 1, parts: [1], questions: 10, correct: 7, errors: [1, 1] } })).toBe(false);
     expect(isValidIeltsSession({ skill: "Writing", aiBand: 6.3 })).toBe(false);
+  });
+});
+
+describe("errorSummary — tổng lỗi theo loại, Listening và Reading riêng", () => {
+  const L = (date: string, errors: [number, number, number, number], correct = 6) =>
+    block({ date, ielts: { skill: "Listening", test: { book: 10, test: 1, parts: [1], questions: 10, correct, errors } } });
+  const blocks = [
+    L("2026-09-01", [1, 1, 1, 1]),
+    L("2026-09-10", [2, 1, 1, 0]),
+    L("2026-10-07", [3, 0, 1, 0]),
+    L("2026-10-08", [0, 0, 0, 0], 10),
+    block({ date: "2026-10-01", ielts: { skill: "Reading", test: { book: 10, test: 1, parts: [1], questions: 13, correct: 9, errors: [0, 2, 1, 1] } } }),
+    block({ date: "2026-10-02", ielts: { skill: "Listening", dictationMinutes: 10 } }), // không làm đề
+    block({ date: "2026-10-03", area: "Other", ielts: { skill: "Listening", test: { book: 10, test: 1, parts: [1], questions: 10, correct: 0, errors: [10, 0, 0, 0] } } }),
+  ];
+  it("chỉ cộng trong khoảng, tính cả hai đầu", () => {
+    expect(errorSummary(blocks, "Listening", "2026-09-10", "2026-10-07")).toEqual({
+      sessions: 2,
+      questions: 20,
+      correct: 12,
+      errors: [5, 1, 2, 0],
+    });
+  });
+  it("Reading tách riêng, không lẫn lỗi Listening", () => {
+    expect(errorSummary(blocks, "Reading", "2026-09-01", "2026-10-31")).toEqual({
+      sessions: 1,
+      questions: 13,
+      correct: 9,
+      errors: [0, 2, 1, 1],
+    });
+  });
+  it("bỏ qua buổi không làm đề và area khác; buổi 10/10 vẫn đếm là 1 buổi", () => {
+    const s = errorSummary(blocks, "Listening", "2026-10-01", "2026-10-31");
+    expect(s.sessions).toBe(2);
+    expect(s.errors).toEqual([3, 0, 1, 0]);
+  });
+  it("không có gì: 0 buổi, 0 lỗi", () => {
+    expect(errorSummary([], "Reading", "2026-01-01", "2026-12-31")).toEqual({ sessions: 0, questions: 0, correct: 0, errors: [0, 0, 0, 0] });
   });
 });

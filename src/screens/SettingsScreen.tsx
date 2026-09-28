@@ -26,10 +26,14 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { Button, ListGroup, ListRow, Segmented } from "../components/ui";
 import type { ReactNode } from "react";
 import BackupSection from "../components/BackupSection";
-import ExperimentsManager from "../components/ExperimentsManager";
 import SyncSection from "../components/SyncSection";
 
-export default function SettingsScreen() {
+export default function SettingsScreen({
+  onOpen,
+}: {
+  /** Mở một màn con trong "Công cụ khác" (Đợt 2: Dự đoán, Thí nghiệm). */
+  onOpen: (view: "predictions" | "experiments") => void;
+}) {
   const demo = isDemoMode();
 
   // Đếm số bản ghi để bạn biết đang có bao nhiêu dữ liệu.
@@ -41,10 +45,23 @@ export default function SettingsScreen() {
   const predictionCount = useLiveQuery(() => db.predictions.count(), [], 0);
   const reviewCount = useLiveQuery(() => db.weekReviews.count(), [], 0);
   const tagCount = useLiveQuery(() => db.experimentTags.count(), [], 0);
+  const experimentCount = useLiveQuery(() => db.experiments.count(), [], 0);
+  const mockCount = useLiveQuery(() => db.mockTests.count(), [], 0);
+  const delayCount = useLiveQuery(() => db.anchorDelays.count(), [], 0);
 
   // Tổng mọi bản ghi — dùng để biết kho có trống hay không.
   const totalCount =
-    checkinCount + blockCount + dumpCount + cardCount + logCount + predictionCount + reviewCount + tagCount;
+    checkinCount +
+    blockCount +
+    dumpCount +
+    cardCount +
+    logCount +
+    predictionCount +
+    reviewCount +
+    tagCount +
+    experimentCount +
+    mockCount +
+    delayCount;
 
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -131,7 +148,9 @@ export default function SettingsScreen() {
             <Count n={checkinCount} /> check-in · <Count n={blockCount} /> block ·{" "}
             <Count n={dumpCount} /> brain dump · <Count n={cardCount} /> thẻ ·{" "}
             <Count n={logCount} /> lượt ôn · <Count n={predictionCount} /> dự đoán ·{" "}
-            <Count n={reviewCount} /> tổng kết tuần · <Count n={tagCount} /> nhãn thí nghiệm
+            <Count n={reviewCount} /> tổng kết tuần · <Count n={experimentCount} /> thí nghiệm ·{" "}
+            <Count n={tagCount} /> nhãn thí nghiệm · <Count n={mockCount} /> thi thử ·{" "}
+            <Count n={delayCount} /> lần dời khung
           </p>
         )}
       </ListGroup>
@@ -163,9 +182,33 @@ export default function SettingsScreen() {
         </div>
       </ListGroup>
 
-      {/* ================= Thử nghiệm cá nhân ================= */}
-      <GroupHeading>Thử nghiệm cá nhân</GroupHeading>
-      <ExperimentsManager />
+      {/* ================= Công cụ khác (Đợt 2) =================
+          Dự đoán và Thí nghiệm không còn là trọng tâm (PRODUCT.md mục 8) nhưng
+          dữ liệu giữ nguyên, vẫn mở và dùng được, vẫn nằm trong sao lưu. */}
+      <ListGroup label="Công cụ khác">
+        <ListRow
+          label="Dự đoán"
+          description="Dự đoán có xác suất, Brier score"
+          value={
+            <>
+              <span className="font-num">{predictionCount}</span> dự đoán
+            </>
+          }
+          onClick={() => onOpen("predictions")}
+          chevron
+        />
+        <ListRow
+          label="Thí nghiệm"
+          description="So sánh hai cách làm A và B"
+          value={
+            <>
+              <span className="font-num">{experimentCount}</span> thí nghiệm
+            </>
+          }
+          onClick={() => onOpen("experiments")}
+          chevron
+        />
+      </ListGroup>
 
       {/* ================= Dữ liệu mẫu ================= */}
       <ListGroup label="Dữ liệu mẫu">
@@ -209,7 +252,8 @@ export default function SettingsScreen() {
             <strong>
               {checkinCount} check-in, {blockCount} focus block, {dumpCount} brain dump,{" "}
               {cardCount} thẻ, {logCount} lượt ôn, {predictionCount} dự đoán, {reviewCount} tổng kết
-              tuần và {tagCount} nhãn thí nghiệm
+              tuần, {experimentCount} thí nghiệm, {tagCount} nhãn thí nghiệm, {mockCount} thi thử và{" "}
+              {delayCount} lần dời khung
             </strong>{" "}
             trong kho dữ liệu mẫu sẽ bị xoá.
             <br />
