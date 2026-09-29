@@ -640,6 +640,14 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   app button, Back/Esc (fullscreenchange), save, cancel or unmount always unlocks orientation.
   While fullscreen, the button always shows the word "Thoát". The clock is re-read on
   `visibilitychange`. Nothing here touches the timer keys.
+- **"Hoàn thành phiên" leaves fullscreen and unlocks landscape first** (`openFinishForm`,
+  2026-09-29): the finish form is ~1,600px tall and was unusable stuck in a ~390px-high
+  landscape screen. Closing the form keeps the session running; fullscreen is one tap away.
+- **Focus-session sheets scroll the WHOLE overlay** (`fixed inset-0 overflow-y-auto` + an
+  inner `flex min-h-full items-end` wrapper), never a `max-h-full overflow-y-auto` panel inside
+  a fixed flex overlay — the owner could not swipe down to "Lưu" on the phone. Note for
+  testing: CDP `Input.synthesizeScrollGesture` does NOT scroll ANY fixed overlay (even a plain
+  control page), so it reports false failures; use `Input.dispatchTouchEvent` sequences.
 - **Manifest stays `display: standalone`, `orientation: any`.** Only the focus session asks for
   landscape, and only after the user taps; the 5 tabs are never forced into fullscreen or
   landscape.
@@ -900,7 +908,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
 npm run build:only      # type-check + production build, skipping lint/tests (local only)
-npm test                # unit tests (630: lib/ logic, db upgrade, hooks, components, worker)
+npm test                # unit tests (631: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

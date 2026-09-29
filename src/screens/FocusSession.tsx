@@ -253,6 +253,19 @@ export default function FocusSession({
     setCaptureText("");
   }
 
+  /**
+   * Mở form kết thúc: thoát toàn màn hình và nhả khoá hướng ngang TRƯỚC.
+   * Form dài (area, IELTS, 4 bộ lỗi...) — kẹt ở màn nằm ngang cao ~390px thì
+   * gần như không điền được (lỗi chủ app báo 2026-09-29). Đóng form thì phiên
+   * vẫn chạy; muốn toàn màn hình lại thì bấm nút như thường.
+   */
+  function openFinishForm(snap: Snapshot) {
+    setFsResult(null);
+    if (isFullscreen()) void exitFullscreen();
+    else unlockOrientation();
+    setFinishing(snap);
+  }
+
   /** Bấm "Hoàn thành phiên": chốt số liệu tại thời điểm này. */
   function handleFinish() {
     const snap: Snapshot = {
@@ -266,7 +279,7 @@ export default function FocusSession({
       setLongSession(snap);
       return;
     }
-    setFinishing(snap);
+    openFinishForm(snap);
   }
 
   async function handleSave(block: FocusBlock) {
@@ -481,13 +494,14 @@ export default function FocusSession({
       {/* ---------- Phân tâm & việc chen ngang ---------- */}
       {captureOpen && (
         // Đệm: tránh tai thỏ hai bên khi nằm ngang, và nằm TRÊN bàn phím khi gõ.
+        // Lớp phủ tự cuộn (giống sheet kết thúc phiên) — xem ghi chú ở đó.
         <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/60"
-          style={overlayPadding(keyboard, "0px")}
+          className="fixed inset-0 z-40 overflow-y-auto overscroll-contain bg-black/60"
           onClick={() => setCaptureOpen(false)}
         >
+          <div className="flex min-h-full items-end justify-center" style={overlayPadding(keyboard, "0px")}>
           <div
-            className="max-h-full w-full max-w-xl overflow-y-auto rounded-t-2xl border-t border-accent/60 bg-surface p-4 text-ink"
+            className="w-full max-w-xl rounded-t-2xl border-t border-accent/60 bg-surface p-4 text-ink"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -539,17 +553,22 @@ export default function FocusSession({
             </Button>
           </div>
         </div>
+        </div>
       )}
 
       {/* ---------- Bottom sheet: chỉ hiện SAU khi bấm "Hoàn thành phiên" ---------- */}
       {finishing && (
+        // CẢ LỚP PHỦ cuộn (như một trang), không phải khung max-h-full cuộn bên
+        // trong: Safari iOS hay tính sai chiều cao khung đó trên màn thấp (nằm
+        // ngang) nên không vuốt xuống được tới nút Lưu. `min-h-full` + `items-end`
+        // giữ sheet dính đáy khi form ngắn.
         <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/70"
-          style={overlayPadding(keyboard, "0px")}
+          className="fixed inset-0 z-40 overflow-y-auto overscroll-contain bg-black/70"
           onClick={() => setFinishing(null)}
         >
+          <div className="flex min-h-full items-end justify-center" style={overlayPadding(keyboard, "0px")}>
           <div
-            className="max-h-full w-full max-w-xl overflow-y-auto rounded-t-2xl border-t border-accent/60 bg-surface p-4 text-ink shadow-[0_-8px_32px_rgba(0,0,0,0.65)]"
+            className="w-full max-w-xl rounded-t-2xl border-t border-accent/60 bg-surface p-4 text-ink shadow-[0_-8px_32px_rgba(0,0,0,0.65)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -566,6 +585,7 @@ export default function FocusSession({
               // Đóng sheet thì phiên VẪN CHẠY — chưa lưu gì, chưa mất gì.
               onCancel={() => setFinishing(null)}
             />
+          </div>
           </div>
         </div>
       )}
@@ -609,7 +629,7 @@ export default function FocusSession({
         confirmLabel="Tiếp tục"
         destructive={false}
         onConfirm={() => {
-          if (longSession) setFinishing(longSession);
+          if (longSession) openFinishForm(longSession);
           setLongSession(null);
         }}
         onCancel={() => setLongSession(null)}

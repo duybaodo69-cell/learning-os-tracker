@@ -153,6 +153,24 @@ describe("FocusSession — toàn màn hình và xoay ngang", () => {
     expect(screen.queryByText(/Xoay ngang máy/)).toBeNull();
   });
 
+  it("bấm Hoàn thành phiên khi đang toàn màn hình: thoát + nhả khoá ngang, form mở, phiên vẫn chạy", async () => {
+    const b = fakeBrowser();
+    const onExit = vi.fn();
+    render(<FocusSession startedAt={startSession(50 * 60)} onExit={onExit} />);
+    await tapFullscreen();
+    b.orientation.unlock.mockClear();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Hoàn thành phiên/ }));
+    });
+    expect(b.exit).toHaveBeenCalled();
+    expect(b.orientation.unlock).toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    // Chỉ mở form, chưa lưu, chưa rời phiên.
+    expect(onExit).not.toHaveBeenCalled();
+    expect(localStorage.getItem(TIMER_KEY)).not.toBeNull();
+  });
+
   it("huỷ phiên khi đang toàn màn hình: thoát toàn màn hình + nhả khoá, không kẹt ngang", async () => {
     const b = fakeBrowser();
     const onExit = vi.fn();
