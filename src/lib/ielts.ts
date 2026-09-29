@@ -480,3 +480,41 @@ export function errorSummary(blocks: FocusBlock[], skill: ScoredSkill, from: str
   }
   return out;
 }
+
+/* ==================== Trạng thái IELTS của một ngày (vì sao chưa có tick) ==================== */
+
+/** Sàn IELTS mỗi ngày (PRODUCT.md mục 3: "Đạt sàn" = tổng IELTS >= 30 phút, bất kể giờ). */
+export const FLOOR_MINUTES = 30;
+
+export type DayIelts = {
+  /** Có giữ khung 9:30 (tick xanh). */
+  held: boolean;
+  /** Tổng phút IELTS trong ngày. */
+  minutes: number;
+  /** Đạt sàn 30 phút. */
+  floor: boolean;
+  /**
+   * Có IELTS mà chưa giữ khung: vì sao (để app nói rõ thay vì im lặng).
+   * "outside" = bắt đầu ngoài 9:00–10:30; "short" = trong khung nhưng < 45 phút.
+   */
+  miss: { cause: "outside" | "short"; startTime: string; minutes: number } | null;
+};
+
+/**
+ * Tóm tắt IELTS của ngày `date`. Khi chưa giữ khung, `miss` lấy phiên "gần
+ * đạt" nhất: phiên TRONG khung dài nhất (thiếu phút), nếu không có thì phiên
+ * dài nhất ngoài khung.
+ */
+export function dayIelts(blocks: FocusBlock[], date: string): DayIelts {
+  const today = blocks.filter((b) => b.area === "IELTS" && b.date === date);
+  const minutes = today.reduce((s, b) => s + b.minutes, 0);
+  const held = today.some(holdsAnchor);
+  let miss: DayIelts["miss"] = null;
+  if (!held && today.length > 0) {
+    const inWindow = today.filter((b) => b.startTime >= ANCHOR_FROM && b.startTime <= ANCHOR_TO);
+    const pick = (list: FocusBlock[]) => list.reduce((a, b) => (b.minutes > a.minutes ? b : a));
+    const b = inWindow.length > 0 ? pick(inWindow) : pick(today);
+    miss = { cause: inWindow.length > 0 ? "short" : "outside", startTime: b.startTime, minutes: b.minutes };
+  }
+  return { held, minutes, floor: minutes >= FLOOR_MINUTES, miss };
+}

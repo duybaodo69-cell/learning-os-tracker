@@ -165,9 +165,15 @@ describe("FocusSession — toàn màn hình và xoay ngang", () => {
     });
     expect(b.exit).toHaveBeenCalled();
     expect(b.orientation.unlock).toHaveBeenCalled();
-    expect(screen.getByRole("dialog")).toBeTruthy();
+    // Form là một trang cuộn thường (không phải lớp phủ) — xem FocusSession.tsx.
+    expect(screen.getByText("Ghi nhận kết thúc phiên")).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
     // Chỉ mở form, chưa lưu, chưa rời phiên.
     expect(onExit).not.toHaveBeenCalled();
+    expect(localStorage.getItem(TIMER_KEY)).not.toBeNull();
+    // "‹ Về đồng hồ": quay lại màn phiên, đồng hồ còn nguyên.
+    fireEvent.click(screen.getByRole("button", { name: /Về đồng hồ/ }));
+    expect(screen.getByRole("button", { name: /Hoàn thành phiên/ })).toBeTruthy();
     expect(localStorage.getItem(TIMER_KEY)).not.toBeNull();
   });
 

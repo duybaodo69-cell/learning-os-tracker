@@ -13,7 +13,7 @@ import type { ReactNode } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db/db";
 import type { FocusBlock } from "../db/types";
-import { ANCHOR_MIN_MINUTES, anchorWeek, formatTestRef, nextTest, partShort } from "../lib/ielts";
+import { ANCHOR_MIN_MINUTES, FLOOR_MINUTES, anchorWeek, dayIelts, formatTestRef, nextTest, partShort } from "../lib/ielts";
 import { mondayOf } from "../lib/metrics";
 import { addDays } from "../lib/scheduling";
 import { partsDone, planForWeek } from "../lib/weekPlan";
@@ -43,6 +43,8 @@ export default function IeltsStartCard({
   const monday = mondayOf(today);
   const plan = reviews ? planForWeek(monday, reviews) : null;
   const sunday = addDays(monday, 6);
+  // Hôm nay có IELTS mà chưa có tick: nói rõ vì sao (chủ app hỏi 2026-09-29).
+  const todayIelts = dayIelts(blocks, today);
 
   return (
     <Card className="mb-3">
@@ -94,23 +96,41 @@ export default function IeltsStartCard({
           </span>
         </p>
         <ol className="flex gap-1" aria-label="Các ngày giữ khung 9:30 tuần này">
-          {week.map((d, i) => (
-            <li
-              key={d.date}
-              className={
-                "grid h-7 w-7 place-items-center rounded-full text-xs " +
-                (d.held ? "bg-good font-semibold text-canvas" : "bg-surface-2 text-ink-3") +
-                (d.date === today ? " ring-2 ring-accent" : "")
-              }
-            >
-              <span aria-hidden="true">{WEEKDAY_SHORT[i]}</span>
-              <span className="sr-only">
-                {WEEKDAY_LONG[i]}: {d.held ? "giữ khung" : "chưa"}
-              </span>
-            </li>
-          ))}
+          {week.map((d, i) => {
+            // Chấm đặc = giữ khung 9:30. Viền xanh = có IELTS >= 30 phút (đạt sàn)
+            // nhưng ngoài khung — vẫn là ngày "đạt", chỉ chưa phải ngày "tốt".
+            const floor = !d.held && dayIelts(blocks, d.date).floor;
+            return (
+              <li
+                key={d.date}
+                className={
+                  "grid h-7 w-7 place-items-center rounded-full text-xs " +
+                  (d.held
+                    ? "bg-good font-semibold text-canvas"
+                    : floor
+                      ? "border-2 border-good font-semibold text-good"
+                      : "bg-surface-2 text-ink-3") +
+                  (d.date === today ? " ring-2 ring-accent ring-offset-1 ring-offset-surface" : "")
+                }
+              >
+                <span aria-hidden="true">{WEEKDAY_SHORT[i]}</span>
+                <span className="sr-only">
+                  {WEEKDAY_LONG[i]}: {d.held ? "giữ khung" : floor ? "đạt sàn, ngoài khung" : "chưa"}
+                </span>
+              </li>
+            );
+          })}
         </ol>
       </div>
+      {todayIelts.miss && (
+        <p className="mt-2 text-xs text-ink-2" role="status">
+          Hôm nay đã có <span className="font-num font-semibold text-ink">{todayIelts.minutes}p</span> IELTS
+          {todayIelts.floor ? " (đạt sàn)" : ` (sàn ${FLOOR_MINUTES}p)`} nhưng chưa tính khung 9:30:{" "}
+          {todayIelts.miss.cause === "outside"
+            ? `phiên bắt đầu ${todayIelts.miss.startTime}, ngoài 9:00–10:30.`
+            : `phiên ${todayIelts.miss.startTime} mới ${todayIelts.miss.minutes}p, cần từ ${ANCHOR_MIN_MINUTES}p.`}
+        </p>
+      )}
 
       {children}
     </Card>

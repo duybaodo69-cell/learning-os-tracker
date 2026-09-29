@@ -462,7 +462,8 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   origin dead: all five tabs render and the lazy chart chunk still loads.
 - **The service worker only runs in a production build** (`devOptions.enabled: false`). Test PWA
   behaviour with `npm run build && npx vite preview`, never with `npm run dev`.
-- **`__BUILD_DATE__` is injected by `define` in `vite.config.ts`** and shown in Settings, so the
+- **`__BUILD_DATE__` is injected by `define` in `vite.config.ts`** (date + time, Vietnam time,
+  since 2026-09-29 so two deploys on one day differ) and shown in Settings, so the
   owner can tell whether an update actually landed. It must be `JSON.stringify`-ed or Vite pastes
   it in as a bare identifier.
 - **`autoUpdate` means a new deploy is picked up on the next cold start.** If the version line
@@ -643,11 +644,16 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 - **"Hoàn thành phiên" leaves fullscreen and unlocks landscape first** (`openFinishForm`,
   2026-09-29): the finish form is ~1,600px tall and was unusable stuck in a ~390px-high
   landscape screen. Closing the form keeps the session running; fullscreen is one tap away.
-- **Focus-session sheets scroll the WHOLE overlay** (`fixed inset-0 overflow-y-auto` + an
-  inner `flex min-h-full items-end` wrapper), never a `max-h-full overflow-y-auto` panel inside
-  a fixed flex overlay — the owner could not swipe down to "Lưu" on the phone. Note for
-  testing: CDP `Input.synthesizeScrollGesture` does NOT scroll ANY fixed overlay (even a plain
-  control page), so it reports false failures; use `Input.dispatchTouchEvent` sequences.
+- **The finish form is a normal scrolling PAGE, not an overlay** (2026-09-29): `if (finishing)`
+  FocusSession returns an `h-full overflow-y-auto` page ("‹ Về đồng hồ" goes back, the timer
+  keeps running). The "Chen ngang" sheet stays an overlay that scrolls as a whole.
+- **ROOT CAUSE of "cannot swipe down to Lưu":** `ChipGroup scroll` called `scrollIntoView` from
+  a ref callback on EVERY render, which scrolled the whole page back to the area chips; the
+  focus session re-renders every second, so the form jumped back to the top each second.
+  It now scrolls only the chip row horizontally, only when the value changes
+  (`ChipGroup.test.tsx`). Never use `scrollIntoView` for in-row positioning. Testing note:
+  CDP `Input.synthesizeScrollGesture` does not scroll fixed overlays at all (false failures);
+  use `Input.dispatchTouchEvent` sequences and wait > 1 s between swipes.
 - **Manifest stays `display: standalone`, `orientation: any`.** Only the focus session asks for
   landscape, and only after the user taps; the 5 tabs are never forced into fullscreen or
   landscape.
@@ -675,6 +681,9 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   session (date, then start time) of that skill — not the furthest test. Listening has 4
   sections × 10, Reading 3 passages 13/13/14 (the total is editable). After Cam 19 → null.
   The form preselects ONE part (owner's choice). Editing a block excludes itself from history.
+- **Why no tick today** (`dayIelts`, 2026-09-29): a day with IELTS >= 30 min but outside the
+  frame gets an OUTLINED green dot ("đạt sàn"), and IeltsStartCard says why today has no tick
+  (started outside 9:00–10:30, or in the frame but < 45 min).
 - **Khung 9:30** = IELTS block starting 09:00–10:30 inclusive, >= 45 min. `anchorWeek` counts
   DAYS Monday–Sunday (two sessions on one day = 1). Shown as "x/7" + 7 dots, never a streak.
 - **Bands:** raw → band only for a full 40 questions (`practiceBand`); fewer shows raw and %.
@@ -908,7 +917,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
 npm run build:only      # type-check + production build, skipping lint/tests (local only)
-npm test                # unit tests (631: lib/ logic, db upgrade, hooks, components, worker)
+npm test                # unit tests (638: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

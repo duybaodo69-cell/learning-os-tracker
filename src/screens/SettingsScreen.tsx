@@ -239,7 +239,7 @@ export default function SettingsScreen({
 
       {/* ================= Phiên bản ================= */}
       <p className="mt-2 text-center text-sm text-ink-2">
-        Phiên bản · ngày build <span className="font-num font-semibold text-ink">{__BUILD_DATE__}</span>
+        Phiên bản · build <span className="font-num font-semibold text-ink">{__BUILD_DATE__}</span>
       </p>
       <p className="mx-auto mt-1 mb-4 max-w-xs text-center text-xs text-ink-3">
         App tự cập nhật khi có bản mới. Nếu ngày này cũ hơn lần deploy gần nhất, đóng hẳn app rồi mở lại.

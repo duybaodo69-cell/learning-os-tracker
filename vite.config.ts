@@ -4,8 +4,14 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-/** Ngày build, hiện ở dòng "Phiên bản" trong Cài đặt. */
-const BUILD_DATE = new Date().toISOString().slice(0, 10);
+/**
+ * Ngày + giờ build (giờ Việt Nam), hiện ở dòng "Phiên bản" trong Cài đặt.
+ * Có giờ để phân biệt hai lần deploy trong cùng một ngày — chỉ ngày thì
+ * không biết điện thoại đã lên bản mới chưa. Dạng "2026-09-29 10:42".
+ */
+const BUILD_DATE = new Date()
+  .toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh", hour12: false })
+  .slice(0, 16);
 
 // Cấu hình Vite — công cụ chạy dev server và đóng gói app.
 // https://vite.dev/config/

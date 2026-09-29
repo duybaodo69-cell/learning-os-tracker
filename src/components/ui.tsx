@@ -4,7 +4,7 @@
  * Tất cả đều tuân quy tắc tap target tối thiểu 44px.
  * Gom vào một file để bạn dễ tìm và dễ sửa màu sắc / kích thước một chỗ.
  */
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /* ---------------------------------------------------------- Card */
 
@@ -228,8 +228,26 @@ export function ChipGroup<T extends string | number>({
   format?: (v: T) => string;
   scroll?: boolean;
 }) {
+  // Hàng chip cuộn ngang: đưa chip đang chọn vào tầm nhìn — CHỈ cuộn NGANG
+  // bên trong hàng, và CHỈ khi lựa chọn đổi. Trước đây dùng scrollIntoView
+  // trong ref (chạy lại mỗi lần vẽ): nó kéo cả TRANG về hàng chip. Màn phiên
+  // vẽ lại mỗi giây (đồng hồ) nên form kết thúc phiên bị giật về đầu liên tục,
+  // không vuốt xuống được tới nút Lưu (chủ app báo 2026-09-29).
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!scroll || !row) return;
+    const chip = row.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!chip) return;
+    const left = chip.offsetLeft - row.offsetLeft;
+    const right = left + chip.offsetWidth;
+    if (left < row.scrollLeft) row.scrollLeft = left - 16;
+    else if (right > row.scrollLeft + row.clientWidth) row.scrollLeft = right - row.clientWidth + 16;
+  }, [scroll, value]);
+
   return (
     <div
+      ref={rowRef}
       className={
         scroll
           ? // -mx-4 px-4: hàng chip chạy sát mép thẻ, gợi ý "vuốt được".
@@ -242,11 +260,6 @@ export function ChipGroup<T extends string | number>({
           key={String(opt)}
           type="button"
           onClick={() => onChange(opt)}
-          ref={
-            scroll && value === opt
-              ? (el) => el?.scrollIntoView?.({ block: "nearest", inline: "nearest" })
-              : undefined
-          }
           aria-pressed={value === opt}
           className={
             "tap-target shrink-0 rounded-full px-4 text-sm font-medium whitespace-nowrap " +

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { FocusBlock, IeltsSession } from "../db/types";
 import {
+  dayIelts,
   anchorWeek,
   checkMockTest,
   defaultQuestions,
@@ -404,5 +405,42 @@ describe("errorSummary — tổng lỗi theo loại, Listening và Reading riên
   });
   it("không có gì: 0 buổi, 0 lỗi", () => {
     expect(errorSummary([], "Reading", "2026-01-01", "2026-12-31")).toEqual({ sessions: 0, questions: 0, correct: 0, errors: [0, 0, 0, 0] });
+  });
+});
+
+describe("dayIelts — vì sao hôm nay chưa có tick", () => {
+  const b = (startTime: string, minutes: number, over: Partial<FocusBlock> = {}): FocusBlock => ({
+    id: Math.random().toString(),
+    date: "2026-09-29",
+    startTime,
+    minutes,
+    area: "IELTS",
+    focusRating: 4,
+    distractions: 0,
+    phoneAway: true,
+    ...over,
+  });
+  it("chưa có phiên: không tick, không lý do", () => {
+    expect(dayIelts([], "2026-09-29")).toEqual({ held: false, minutes: 0, floor: false, miss: null });
+  });
+  it("9:30 · 50 phút: tick", () => {
+    expect(dayIelts([b("09:30", 50)], "2026-09-29")).toMatchObject({ held: true, floor: true, miss: null });
+  });
+  it("14:00 · 50 phút: đạt sàn, chưa tick vì ngoài khung", () => {
+    expect(dayIelts([b("14:00", 50)], "2026-09-29")).toMatchObject({
+      held: false,
+      floor: true,
+      miss: { cause: "outside", startTime: "14:00", minutes: 50 },
+    });
+  });
+  it("9:40 · 35 phút: trong khung nhưng thiếu phút — ưu tiên lý do này", () => {
+    expect(dayIelts([b("15:00", 60), b("09:40", 35)], "2026-09-29").miss).toEqual({ cause: "short", startTime: "09:40", minutes: 35 });
+  });
+  it("10:31 là ngoài khung; 10:30 vẫn trong khung", () => {
+    expect(dayIelts([b("10:31", 60)], "2026-09-29").miss?.cause).toBe("outside");
+    expect(dayIelts([b("10:30", 60)], "2026-09-29").held).toBe(true);
+  });
+  it("chỉ tính area IELTS và đúng ngày", () => {
+    expect(dayIelts([b("09:30", 60, { area: "EFM" }), b("09:30", 60, { date: "2026-09-28" })], "2026-09-29").minutes).toBe(0);
   });
 });

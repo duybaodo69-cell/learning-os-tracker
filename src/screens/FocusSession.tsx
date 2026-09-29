@@ -300,6 +300,50 @@ export default function FocusSession({
 
   const hasScene = savedBg.kind !== "none";
 
+  /*
+   * Form kết thúc phiên = một TRANG cuộn bình thường (như Hôm nay), không phải
+   * lớp phủ `fixed`. Trên iPhone, hai kiểu lớp phủ trước (khung max-h tự cuộn,
+   * rồi cả lớp phủ cuộn) đều không vuốt xuống được tới nút Lưu (chủ app báo
+   * 2026-09-29), trong khi trang Hôm nay — cùng kiểu `h-full overflow-y-auto`
+   * này — vuốt bình thường. Đồng hồ vẫn chạy (tính từ mốc bắt đầu đã lưu);
+   * "‹ Về đồng hồ" hay "Huỷ" trong form chỉ quay lại màn phiên.
+   */
+  if (finishing) {
+    return (
+      <div
+        className="h-full overflow-y-auto overscroll-contain bg-canvas text-ink"
+        style={{
+          paddingTop: "env(safe-area-inset-top)",
+          paddingLeft: "env(safe-area-inset-left)",
+          paddingRight: "env(safe-area-inset-right)",
+        }}
+      >
+        <div className="mx-auto w-full max-w-xl px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <button
+            type="button"
+            onClick={() => setFinishing(null)}
+            className="tap-target -ml-2 rounded-lg px-2 text-sm font-semibold text-accent active:bg-surface-2"
+          >
+            ‹ Về đồng hồ
+          </button>
+          <div className="mt-2 rounded-2xl border border-line/70 bg-surface p-4">
+            <SectionLabel right={formatMinutes(finishing.minutes)}>Ghi nhận kết thúc phiên</SectionLabel>
+            <FocusBlockForm
+              date={todayISO()}
+              initialMinutes={finishing.minutes}
+              initialStartTime={finishing.startTime}
+              initialDistractions={finishing.distractions}
+              initialCapturedNotes={finishing.capturedNotes}
+              onSave={handleSave}
+              // Huỷ ở đây = quay lại đồng hồ; phiên VẪN CHẠY, chưa mất gì.
+              onCancel={() => setFinishing(null)}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     // `@container/focus`: chữ trên nút hiện/ẩn theo bề rộng thật (tính bằng
     // rem, nên cỡ hiển thị 150% tự gọn lại thành chỉ icon).
@@ -553,40 +597,6 @@ export default function FocusSession({
             </Button>
           </div>
         </div>
-        </div>
-      )}
-
-      {/* ---------- Bottom sheet: chỉ hiện SAU khi bấm "Hoàn thành phiên" ---------- */}
-      {finishing && (
-        // CẢ LỚP PHỦ cuộn (như một trang), không phải khung max-h-full cuộn bên
-        // trong: Safari iOS hay tính sai chiều cao khung đó trên màn thấp (nằm
-        // ngang) nên không vuốt xuống được tới nút Lưu. `min-h-full` + `items-end`
-        // giữ sheet dính đáy khi form ngắn.
-        <div
-          className="fixed inset-0 z-40 overflow-y-auto overscroll-contain bg-black/70"
-          onClick={() => setFinishing(null)}
-        >
-          <div className="flex min-h-full items-end justify-center" style={overlayPadding(keyboard, "0px")}>
-          <div
-            className="w-full max-w-xl rounded-t-2xl border-t border-accent/60 bg-surface p-4 text-ink shadow-[0_-8px_32px_rgba(0,0,0,0.65)]"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" aria-hidden="true" />
-            <SectionLabel right={formatMinutes(finishing.minutes)}>Ghi nhận kết thúc phiên</SectionLabel>
-            <FocusBlockForm
-              date={todayISO()}
-              initialMinutes={finishing.minutes}
-              initialStartTime={finishing.startTime}
-              initialDistractions={finishing.distractions}
-              initialCapturedNotes={finishing.capturedNotes}
-              onSave={handleSave}
-              // Đóng sheet thì phiên VẪN CHẠY — chưa lưu gì, chưa mất gì.
-              onCancel={() => setFinishing(null)}
-            />
-          </div>
-          </div>
         </div>
       )}
 
