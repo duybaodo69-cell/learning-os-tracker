@@ -10,14 +10,22 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /**
  * Khung thẻ — đơn vị bố cục cơ bản của app.
- * Bản "Calm" (Stitch 2026-09): bo tròn 16px, viền rất mờ, KHÔNG đổ bóng —
- * các tầng phân biệt bằng màu nền. Viền vẫn giữ một chút để nền sáng
- * (thẻ trắng trên nền xám rất nhạt) không bị nhoè vào nhau.
+ * Bo tròn 16px, viền rất mờ, KHÔNG đổ bóng — các tầng phân biệt bằng màu nền.
+ *
+ * `water` = "thẻ mặt nước" (Mặt hồ đêm): nền gradient sâu, bo 20px.
+ * Luật: MỖI MÀN CHỈ MỘT thẻ water, cho thứ quan trọng nhất của màn đó.
  */
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-2xl border border-line/70 bg-surface p-4 ${className}`}>{children}</div>
-  );
+export function Card({
+  children,
+  className = "",
+  water = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  water?: boolean;
+}) {
+  const look = water ? "rounded-[1.25rem] border-line bg-water" : "rounded-2xl border-line/70 bg-surface";
+  return <div className={`border p-4 ${look} ${className}`}>{children}</div>;
 }
 
 /* ---------------------------------------------------------- SectionLabel */
@@ -90,13 +98,14 @@ type ButtonProps = {
 
 /**
  * Kiểu nút theo DESIGN.md:
- *   primary   — nền cyan, chữ tối: hành động chính (MỘT nút mỗi màn hình)
+ *   primary   — gradient "dòng chảy" sapphire -> ngọc lam, chữ trắng:
+ *               hành động chính (MỘT nút mỗi màn hình). Chữ trắng >= 4.59:1.
  *   secondary — nền tầng 2, không viền, chữ đậm
  *   danger    — nền đỏ rất nhạt, chữ đỏ (không tô đỏ cả nút)
  *   ghost     — trong suốt, cho thao tác phụ
  */
 const BUTTON_STYLES = {
-  primary: "bg-accent font-bold text-on-accent active:brightness-110",
+  primary: "bg-flow font-bold text-on-flow active:brightness-110",
   secondary: "bg-surface-2 text-ink active:bg-line",
   danger: "bg-bad/10 text-bad-ink active:bg-bad/20",
   ghost: "bg-transparent text-ink-2 active:bg-surface-2",

@@ -59,7 +59,7 @@ export default function CountdownCard({ date }: { date: string }) {
   return (
     <section
       aria-label="Đếm ngược tới kỳ thi kế tiếp"
-      className="@container/count mb-3 rounded-2xl border border-line/70 bg-surface p-4"
+      className="@container/count mb-3 rounded-[1.25rem] border border-line bg-water p-4"
     >
       <div className="grid @[34rem]/count:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         {/* ---------- Vùng 1: con số ---------- */}

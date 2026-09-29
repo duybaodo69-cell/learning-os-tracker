@@ -140,7 +140,7 @@ export default function AppNav({ activeTab, onTabChange, reviewBadge = 0 }: AppN
                 <span className="relative shrink-0">
                   <Icon active={active} />
                   {id === "review" && reviewBadge > 0 && (
-                    <span className="absolute -top-1.5 -right-2.5 min-w-[1.125rem] rounded-full bg-bad px-1 text-center text-xs leading-[1.125rem] font-bold text-canvas">
+                    <span className="absolute -top-1.5 -right-2.5 min-w-[1.125rem] rounded-full bg-bad px-1 text-center text-xs leading-[1.125rem] font-bold text-on-accent">
                       {reviewBadge}
                     </span>
                   )}

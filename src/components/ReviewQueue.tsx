@@ -184,7 +184,7 @@ export default function ReviewQueue({ onOpenCards }: { onOpenCards?: () => void 
     return (
       // Máy tính: thẻ "Hôm nay" bên trái, thẻ nháp + sắp tới bên phải.
       <div className="grid items-start gap-x-4 pb-4 @3xl/content:grid-cols-2">
-        <CardBox className="mb-3 min-w-0">
+        <CardBox water className="mb-3 min-w-0">
           <p className="text-sm text-ink-2">Hôm nay</p>
           <p className="mt-1 flex items-baseline gap-2">
             <span className="font-num text-5xl font-semibold text-accent">{totalDue}</span>

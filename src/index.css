@@ -22,97 +22,134 @@
 @import "@fontsource/geist/latin-600.css";
 
 /* ---------------------------------------------------------------
-   BẢNG MÀU — "Quantitative Protocol" (design/quantitative_protocol/DESIGN.md)
+   BẢNG MÀU — "Mặt hồ đêm" (Deep Water), DESIGN.md ở gốc dự án.
+   Chủ app mệnh Thủy: đen / navy / xanh là màu chính, bạc / trắng (Kim sinh
+   Thủy) là màu phụ, tránh vàng đất / nâu làm màu chủ đạo.
 
    Màu khai báo thành BIẾN CSS ở :root, rồi @theme bên dưới nối chúng vào
-   Tailwind. Nhờ vậy muốn thêm theme sáng sau này chỉ cần ghi đè các biến
-   dưới một selector khác (vd :root[data-theme="light"]) — không phải sửa
-   class nào trong code.
+   Tailwind — đổi theme chỉ là ghi đè biến, không sửa class nào trong code.
+   Mọi màu chữ đã đo: >= 4.5:1 trên mọi nền nó đứng (kể cả surface-2).
 
-   Chữ mờ (--ink-3) KHÔNG dùng #475569 của bản thiết kế: nó chỉ đạt tương
-   phản 2.2-2.55 trên nền tối, dưới mức tối thiểu 4.5. #8792a5 đạt >= 5.3
-   trên cả ba nền. Chữ đỏ và chữ tím cũng dùng bản sáng hơn vì lý do đó.
+   Gradient chỉ là ĐIỂM NHẤN (chủ app chọn 2026-09-29):
+     - vầng sáng rất nhẹ ở đầu trang (body, --glow)
+     - MỘT "thẻ mặt nước" mỗi màn (.bg-water)
+     - nút chính (.bg-flow)
    --------------------------------------------------------------- */
 :root {
-  --canvas: #0c0e12;      /* nền sàn */
-  --surface: #12151c;     /* thẻ, panel (tầng 1) */
-  --surface-2: #1a1e28;   /* ô được chọn, hộp thoại (tầng 2) */
-  --line: #262c3a;        /* viền mảnh 1px */
+  --canvas: #060c18;      /* nền sàn — "vực sâu" */
+  --surface: #0c1628;     /* thẻ, panel (tầng 1) */
+  --surface-2: #13213a;   /* ô được chọn, chip, nút phụ (tầng 2) */
+  --line: #1d2c48;        /* viền mảnh 1px */
 
-  --ink: #f1f5f9;         /* chữ chính */
-  --ink-2: #94a3b8;       /* chữ phụ */
-  --ink-3: #8792a5;       /* chữ mờ — vẫn >= 4.5:1 */
+  --ink: #e8eef9;         /* chữ chính */
+  --ink-2: #a3b3ce;       /* chữ phụ   — 7.6:1 trên surface-2 */
+  --ink-3: #8c9dba;       /* chữ mờ    — 5.9:1 trên surface-2 */
 
-  --accent: #38bdf8;      /* cyan: hành động chính, số liệu chính */
-  --on-accent: #0c0e12;   /* chữ đặt trên nền cyan */
-  --indigo: #6366f1;      /* nền nhãn phân loại */
-  --indigo-ink: #a5b4fc;  /* chữ nhãn phân loại */
+  --accent: #22c7e8;      /* ngọc lam: số liệu chính, mục đang chọn */
+  --on-accent: #04121f;   /* chữ đặt trên nền ngọc lam */
+  --indigo: #7c8cff;      /* nền nhãn phân loại (lam dừa cạn) */
+  --indigo-ink: #aab6ff;  /* chữ nhãn phân loại */
 
-  --good: #10b981;        /* tốt lên */
-  --warn: #f59e0b;        /* cảnh báo */
-  --bad: #f43f5e;         /* xấu đi / xoá — dùng cho nền, viền */
-  --bad-ink: #fb7185;     /* chữ đỏ (bản sáng hơn cho đủ tương phản) */
+  --good: #34d399;        /* tốt lên — xanh ngọc biển */
+  --warn: #f6a56b;        /* cảnh báo — cam đào (không dùng vàng đất) */
+  --bad: #fb7185;         /* xấu đi / xoá — san hô */
+  --bad-ink: #fb8a9b;     /* chữ đỏ */
 
-  /* Thanh chọn mục con (Segmented): rãnh + ô đang chọn. Ô chọn sáng hơn
-     rãnh một bậc, chữ cyan trên nó vẫn >= 6:1. */
-  --track: #12151c;
-  --thumb: #252c3b;
+  /* Thanh chọn mục con (Segmented): rãnh + ô đang chọn. */
+  --track: #0c1628;
+  --thumb: #1c2b47;
 
-  /* Biểu đồ IELTS (Đợt 3): 4 loại lỗi + cột giờ. Mỗi màu >= 3:1 trên
-     --surface (đồ hoạ cần 3:1; chữ trong biểu đồ luôn dùng ink-2). */
-  --chart-1: #38bdf8;     /* sky-400   8.6:1 */
-  --chart-2: #a78bfa;     /* violet-400 6.4:1 */
-  --chart-3: #fbbf24;     /* amber-400 11:1 */
-  --chart-4: #f472b6;     /* pink-400  6.6:1 */
-  --chart-bar: #64748b;   /* slate-500 3.7:1 — cột giờ, trung tính */
+  /* Biểu đồ: họ màu nước. Mỗi màu >= 3:1 trên --surface. */
+  --chart-1: #5b8cff;     /* sapphire */
+  --chart-2: #22c7e8;     /* ngọc lam */
+  --chart-3: #c9d4e8;     /* bạc trăng */
+  --chart-4: #9aa8ff;     /* lam dừa cạn */
+  --chart-bar: #6f82a6;   /* cột giờ, trung tính */
+
+  /* Màu area (src/lib/areaColors.ts) — họ màu nước; >= 5.7:1 trên --surface. */
+  --area-ielts: #22c7e8;
+  --area-vc: #5b8cff;
+  --area-memo: #9aa8ff;
+  --area-model: #34d399;
+  --area-efm: #f6a56b;
+  --area-afep: #2dd4bf;
+  --area-bfn: #f9a8d4;
+  --area-stock: #7dd3fc;
+  --area-ma: #c9d4e8;
+  --area-other: #8ea3c2;
+
+  /* Gradient. Nút: chữ trắng >= 4.59:1 trên MỌI điểm của dải (đã đo;
+     ngọc lam sáng #22c7e8 của bản Stitch chỉ đạt 2:1 nên đầu dải được
+     lùi về #0b7fa3). Thẻ mặt nước: sapphire sâu -> biển sâu -> nền thẻ. */
+  --flow-from: #2a5ff5;
+  --flow-to: #0b7fa3;
+  --water-1: #10357f;
+  --water-2: #0e4d6a;
+  --water-3: #0c1628;
+  --glow: rgba(47, 107, 255, 0.16);
 
   -webkit-text-size-adjust: 100%;
   color-scheme: dark;
 
   /* Độ đậm của thẻ khi màn Phiên tập trung có hình nền. Tính cho trường hợp
      xấu nhất (video trắng xoá / đen kịt ngay sau thẻ): chữ mờ ink-3 vẫn
-     >= 4.5:1 — tối 90% cho 5.09, sáng cần 94% (90% chỉ 4.43). */
+     >= 4.5:1 — tối 90% cho 5.02 (nền trắng) / 6.72 (nền đen), sáng 94% cho
+     5.61 / 4.91 (đo lại 2026-09-29 với bảng màu Mặt hồ đêm). */
   --glass: 90%;
 }
 
 /* ---------------------------------------------------------------
-   THEME SÁNG — bảng màu của thiết kế trước (nền trắng, nhấn xanh dương).
-   Bật bằng công tắc "Chế độ tối" trong Cài đặt (src/lib/theme.ts).
-
-   Giữ đúng tông cũ, NHƯNG các màu chữ đã được đo lại và lùi xuống một bậc
-   cho đạt tương phản >= 4.5:1. Bản cũ dùng slate-400 cho chữ mờ (chỉ 2.3-2.6)
-   và green-600 / amber-600 cho chữ (khoảng 3:1) — đều không đạt.
+   THEME SÁNG — "Nước trong buổi sáng". Bật bằng công tắc "Chế độ tối"
+   trong Cài đặt (src/lib/theme.ts). Cùng tên biến, chỉ đổi giá trị.
    --------------------------------------------------------------- */
 :root[data-theme="light"] {
-  --canvas: #f8fafc;      /* slate-50 */
+  --canvas: #f3f7fc;
   --surface: #ffffff;
-  --surface-2: #f1f5f9;   /* slate-100 */
-  --line: #e2e8f0;        /* slate-200 */
+  --surface-2: #eaf1f9;
+  --line: #d8e2ee;
 
-  --ink: #0f172a;         /* slate-900 */
-  --ink-2: #475569;       /* slate-600 — 6.9:1 */
-  --ink-3: #5b6678;       /* thay slate-400 — >= 5.3:1 */
+  --ink: #0b1b33;
+  --ink-2: #3e5170;       /* 7.1:1 trên surface-2 */
+  --ink-3: #56688a;       /* 4.9:1 trên surface-2 */
 
-  --accent: #2563eb;      /* blue-600 — 4.7:1 */
-  --on-accent: #ffffff;   /* chữ trắng trên xanh — 5.2:1 */
-  --indigo: #6366f1;
-  --indigo-ink: #4338ca;  /* indigo-700 */
+  --accent: #1d4ed8;      /* 5.9:1 trên surface-2 */
+  --on-accent: #ffffff;
+  --indigo: #4f5bd5;
+  --indigo-ink: #3441b8;
 
-  /* green-800 / amber-800: chữ nằm cả trên nền tô nhạt (vd nhãn "Đúng"
-     bg-good/12) vẫn >= 4.5:1. green-700 / amber-700 chỉ còn 4.2 trên nền tô. */
-  --good: #166534;        /* green-800 */
-  --warn: #92400e;        /* amber-800 */
-  --bad: #dc2626;         /* red-600 */
-  --bad-ink: #b91c1c;     /* red-700 */
+  /* Chữ nằm cả trên nền tô nhạt (vd nhãn bg-good/12) vẫn >= 4.5:1. */
+  --good: #166534;
+  --warn: #9a3412;        /* cam đậm (orange-800) thay vì vàng đất */
+  --bad: #dc2626;
+  --bad-ink: #b91c1c;
 
-  --track: #e9eef4;       /* rãnh xám nhạt */
-  --thumb: #ffffff;       /* ô chọn trắng, chữ xanh 5.2:1 */
+  --track: #e3ebf5;
+  --thumb: #ffffff;
 
-  --chart-1: #0284c7;     /* sky-600    4.1:1 trên trắng */
-  --chart-2: #7c3aed;     /* violet-600 5.7:1 */
-  --chart-3: #b45309;     /* amber-700  5.0:1 */
-  --chart-4: #db2777;     /* pink-600   4.7:1 */
-  --chart-bar: #64748b;   /* slate-500  4.8:1 — cột giờ, trung tính */
+  --chart-1: #2f5fe0;
+  --chart-2: #0e7490;
+  --chart-3: #64748b;
+  --chart-4: #6d5fd8;
+  --chart-bar: #7b8ba6;
+
+  /* Màu area (src/lib/areaColors.ts) — họ màu nước; >= 4.7:1 trên trắng. */
+  --area-ielts: #0e7490;
+  --area-vc: #2f5fe0;
+  --area-memo: #5b5fd6;
+  --area-model: #15803d;
+  --area-efm: #c2410c;
+  --area-afep: #0f766e;
+  --area-bfn: #be185d;
+  --area-stock: #0369a1;
+  --area-ma: #475569;
+  --area-other: #64748b;
+
+  --flow-from: #1d4ed8;
+  --flow-to: #0e7490;
+  --water-1: #dce8ff;
+  --water-2: #d4f3f8;
+  --water-3: #ffffff;
+  --glow: rgba(8, 145, 178, 0.14);
 
   color-scheme: light;
   --glass: 94%;
@@ -128,6 +165,7 @@
   --color-ink-3: var(--ink-3);
   --color-accent: var(--accent);
   --color-on-accent: var(--on-accent);
+  --color-on-flow: #ffffff; /* chữ trên nút gradient, cả hai theme */
   --color-indigo: var(--indigo);
   --color-indigo-ink: var(--indigo-ink);
   --color-good: var(--good);
@@ -177,6 +215,12 @@ body,
 body {
   margin: 0;
   background-color: var(--canvas);
+  /* Vầng sáng rất nhẹ ở đầu trang — "ánh trăng trên mặt nước". Cố định theo
+     cửa sổ để khi cuộn nó không trôi đi, và không làm chữ nào kém tương phản
+     (độ phủ tối đa 16%, chỉ ở mép trên). */
+  background-image: radial-gradient(120% 55% at 50% -12%, var(--glow), transparent 70%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--ink);
   font-family: var(--font-sans);
 
@@ -230,4 +274,46 @@ input,
 select,
 textarea {
   font-size: max(16px, 1em);
+}
+
+/* ---------------------------------------------------------------
+   THẺ MẶT NƯỚC — MỘT thẻ mỗi màn (đếm ngược, hàng ôn hôm nay, biểu đồ
+   giờ IELTS). Bên trong thẻ, chữ phụ / màu nhấn được ghi đè sang bản sáng
+   hơn vì nền giữa dải tối hơn --surface; đã đo >= 5.3:1 trên cả dải.
+   --------------------------------------------------------------- */
+@utility bg-water {
+  background-image: linear-gradient(150deg, var(--water-1) 0%, var(--water-2) 48%, var(--water-3) 100%);
+  --ink-2: #c9d4e8;
+  --ink-3: #b8c6de;
+  --accent: #67e3f9;
+  --line: rgba(201, 212, 232, 0.22);
+  --surface: #0b2544;
+  --surface-2: rgba(201, 212, 232, 0.12);
+  --chart-bar: #9fb0cf;
+}
+:root[data-theme="light"] .bg-water {
+  --ink-2: #33466a;
+  --ink-3: #455879;
+  --accent: #1d4ed8;
+  --line: rgba(11, 27, 51, 0.12);
+  --surface: #ffffff;
+  --surface-2: rgba(29, 78, 216, 0.08);
+  --chart-bar: #5a6b8a;
+}
+
+/* ---------------------------------------------------------------
+   NÚT CHÍNH — gradient "dòng chảy". Dải rộng gấp đôi và trôi rất chậm
+   (14 s) cho cảm giác nước chảy; tắt hẳn khi máy bật "giảm chuyển động".
+   --------------------------------------------------------------- */
+@utility bg-flow {
+  background-image: linear-gradient(120deg, var(--flow-from), var(--flow-to), var(--flow-from));
+  background-size: 200% 100%;
+  animation: flow-drift 14s ease-in-out infinite alternate;
+}
+@keyframes flow-drift {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-flow { animation: none; }
 }

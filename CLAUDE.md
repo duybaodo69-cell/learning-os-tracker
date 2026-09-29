@@ -270,6 +270,7 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
 - [x] **`docs/PRODUCT.md` Đợt 3 (2026-09-28)** — IELTS charts at the top of Thống kê, Sunday
       planning (replaces the 3-question weekly review), deadlines, cards with a source,
       "Sao chép prompt chấm Writing".
+- [x] **"Mặt hồ đêm" redesign (2026-09-29)** — navy + water gradients (DESIGN.md), both themes.
 - [ ] **Next:** use it until thi thử 1 (15/11); after the 12/12 gate use the "Khi cần điều
       chỉnh kế hoạch" prompt in `docs/PROMPTS.md`.
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
@@ -347,7 +348,8 @@ src/
 public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   App.tsx              # holds which tab is active
   main.tsx             # React entry point
-  index.css            # theme tokens, fonts, .tap-target, font-num, 16px input floor
+  index.css            # theme tokens (DESIGN.md), fonts, .tap-target, font-num, 16px input
+                       # floor, .bg-water / .bg-flow gradients
 ```
 
 ### Phase 1 decisions worth knowing
@@ -495,6 +497,32 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 - **Manual "+ Block" start time defaults to now minus the selected minutes**, following the
   minute chips until the user edits the time field.
 - **Component tests use happy-dom** via `// @vitest-environment happy-dom` at the top of the file.
+
+### "Mặt hồ đêm" (Deep Water, 2026-09-29) — rules to keep
+
+- **`DESIGN.md` (repo root) is the design source of truth.** Read it before any visual change.
+  Its colour values SUPERSEDE the hex values quoted in the older redesign sections below; the
+  structural rules there (tokens only, contrast measured, 12px minimum, one filled button per
+  screen, sentence case, Segmented/ListGroup patterns) still apply.
+- **Gradient only in 3 places:** body top glow (`--glow`), ONE `Card water` per screen
+  (`.bg-water`: CountdownCard on Hôm nay + IELTS, today's review card, the "Giờ IELTS và
+  điểm Listening" chart), and the primary `Button` (`.bg-flow`, text `on-flow` white). Never
+  add a second water card to a screen; Cài đặt has none on purpose.
+- **`.bg-water` re-scopes tokens** (`--ink-2/-3`, `--accent`, `--line`, `--surface(-2)`,
+  `--chart-bar`) so text/charts inside stay >= 4.5:1 / 3:1 on the gradient. Add any new token a
+  water card needs there too, in BOTH theme variants.
+- **White text on the button gradient is measured at every stop** (>= 4.59:1): the Stitch
+  mockup's `#22C7E8` end was 2:1, so the stop is `#0B7FA3` (light `#0E7490`).
+- **Area colours are CSS variables** (`--area-*`, both theme blocks); `areaColor()` returns
+  `var(--area-x)`, which works in `style` and in Recharts `fill`. Never go back to one hex for
+  both themes (the old set was < 3:1 on white).
+- **Status-bar colour** `#060c18` / `#f3f7fc` lives in `index.html`, `lib/theme.ts` and the
+  `vite.config.ts` manifest — keep the three in sync.
+- The focus-session screen keeps its own explicit colours (text over video) — not themed.
+- **Verified (gstack browse, localhost, demo data):** text contrast scan of the 5 tabs, min
+  4.59:1 dark / 4.83:1 light (the tab badge moved from `text-canvas` to `text-on-accent`,
+  4.49 → 4.83); 5 tabs × 390 / 768 / 1280 × dark / light × 100 / 150% = 60 views with no page
+  overflow, no control under 44px, no console errors. Not verified on a phone.
 
 ### Redesign (Quantitative Protocol) — rules to keep
 

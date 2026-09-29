@@ -87,7 +87,7 @@ const IeltsCharts = lazy(() =>
       return (
         <div className="grid items-start gap-x-4 @3xl/content:grid-cols-2">
           <div className="min-w-0">
-            <ChartCard title="Giờ IELTS và điểm Listening" hint="mỗi tuần">
+            <ChartCard water title="Giờ IELTS và điểm Listening" hint="mỗi tuần">
               <m.IeltsHoursChart points={props.weeks} targetHours={WEEK_TARGET_MINUTES / 60} />
               <p className="mt-2 text-xs text-ink-2">
                 Đường: % đúng các buổi luyện Listening. Chấm tròn: thi thử (điểm thô /40, nhãn là band ≈).
@@ -451,14 +451,17 @@ function DeltaTag({ delta, spec }: { delta: Delta; spec: MetricSpec }) {
 function ChartCard({
   title,
   hint,
+  water = false,
   children,
 }: {
   title: string;
   hint?: string;
+  /** Thẻ mặt nước — chỉ MỘT biểu đồ trên màn Thống kê được dùng. */
+  water?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <Card className="mb-3">
+    <Card water={water} className="mb-3">
       <SectionLabel right={hint}>{title}</SectionLabel>
       {children}
     </Card>

@@ -22,8 +22,8 @@ export const THEME_KEY = "learning-os:theme";
 
 /** Màu thanh trạng thái điện thoại cho từng theme (trùng màu nền app). */
 export const THEME_STATUS_COLOR: Record<Theme, string> = {
-  dark: "#0c0e12",
-  light: "#f8fafc",
+  dark: "#060c18",
+  light: "#f3f7fc",
 };
 
 /** Theme đã lưu. Không có hoặc giá trị lạ thì dùng tối. */
