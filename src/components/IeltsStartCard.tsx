@@ -7,13 +7,27 @@
  *   - "Kế hoạch tuần: Listening x/8 · Reading y/6" nếu Chủ nhật trước đã chốt (Đợt 3)
  *   - `children`: phần thêm ở cuối thẻ (Hôm nay đặt dòng "dời khung" ở đây)
  *
+ * Đang luyện YouPass (buổi gần nhất của kỹ năng đó là đề YouPass) thì nhãn ghi
+ * "YouPass · S3" thay cho đề Cambridge (2026-10-04).
+ *
  * Bấm nút KHÔNG tạo đồng hồ riêng: màn cha chọn area IELTS rồi chạy đồng hồ phiên thường.
  */
 import type { ReactNode } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db/db";
 import type { FocusBlock } from "../db/types";
-import { ANCHOR_MIN_MINUTES, FLOOR_MINUTES, anchorWeek, dayIelts, formatTestRef, nextTest, partShort } from "../lib/ielts";
+import {
+  ANCHOR_MIN_MINUTES,
+  FLOOR_MINUTES,
+  anchorWeek,
+  dayIelts,
+  formatTestRef,
+  latestTest,
+  nextTest,
+  nextYouPassPart,
+  partShort,
+  type ScoredSkill,
+} from "../lib/ielts";
 import { mondayOf } from "../lib/metrics";
 import { addDays } from "../lib/scheduling";
 import { partsDone, planForWeek } from "../lib/weekPlan";
@@ -22,6 +36,18 @@ import { Button, Card } from "./ui";
 /** Nhãn 7 chấm khung 9:30, Thứ Hai trước. */
 const WEEKDAY_SHORT = ["2", "3", "4", "5", "6", "7", "CN"];
 const WEEKDAY_LONG = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
+
+/**
+ * Phần tiếp theo của một kỹ năng, theo nguồn đang luyện:
+ * "YouPass · S3" hoặc "Cam 10 · Test 1 · S2". Hết đề Cambridge: null.
+ */
+function nextLabel(blocks: FocusBlock[], skill: ScoredSkill): string | null {
+  if (latestTest(blocks, skill)?.source === "youpass") {
+    return `YouPass · ${partShort(skill, nextYouPassPart(blocks, skill))}`;
+  }
+  const next = nextTest(blocks, skill);
+  return next ? formatTestRef(skill, { ...next, parts: [next.part] }) : null;
+}
 
 export default function IeltsStartCard({
   blocks,
@@ -35,8 +61,8 @@ export default function IeltsStartCard({
   onStart: () => void;
   children?: ReactNode;
 }) {
-  const nextListening = nextTest(blocks, "Listening");
-  const nextReading = nextTest(blocks, "Reading");
+  const nextListening = nextLabel(blocks, "Listening");
+  const nextReading = nextLabel(blocks, "Reading");
   const week = anchorWeek(blocks, today);
   const held = week.filter((d) => d.held).length;
   const reviews = useLiveQuery(() => db.weekReviews.toArray(), []);
@@ -55,16 +81,14 @@ export default function IeltsStartCard({
           {nextListening && (
             <>
               {" · "}
-              <span className="font-num">
-                {formatTestRef("Listening", { ...nextListening, parts: [nextListening.part] })}
-              </span>
+              <span className="font-num">{nextListening}</span>
             </>
           )}
         </span>
       </Button>
       {nextReading && (
         <p className="mt-2 text-center text-xs text-ink-3">
-          Reading tiếp theo: Cam {nextReading.book} · Test {nextReading.test} · {partShort("Reading", nextReading.part)}
+          Reading tiếp theo: {nextReading}
         </p>
       )}
 

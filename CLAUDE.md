@@ -78,8 +78,9 @@ type FocusBlock = {
 type IeltsSession = {
   skill: "Listening" | "Reading" | "Writing" | "Speaking";
   test?: {
-    book: number;       // Cam 10-19
-    test: number;       // 1-4
+    source?: "youpass"; // absent = Cambridge (2026-10-04); YouPass has no book/test
+    book: number;       // Cam 10-19 (Cambridge only)
+    test: number;       // 1-4 (Cambridge only)
     parts: number[];    // Listening section 1-4 / Reading passage 1-3
     questions: number;  // default 10 per section, 13/13/14 per passage, editable
     correct: number;
@@ -738,6 +739,23 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 - **Not built (Đợt 2/3):** IELTS tab, countdown, "dời khung", error-trend charts, IELTS
   hours/week chart, cards from IELTS errors.
 
+### YouPass tests (2026-10-04) — rules to keep
+
+- **Why:** the owner practises on YouPass (tests collected from real exams), not Cambridge.
+  Logging those as "Không làm đề" lost the score and the 4 error types.
+- **Type:** `IeltsTestResult = CambridgeTest | YouPassTest` (`src/db/types.ts`). YouPass =
+  `{ source: "youpass", parts, questions, correct, errors }`, no book/test. Cambridge rows have
+  no `source`, so every old row and old backup is unchanged. No Dexie version bump (the field
+  is not indexed). `isValidIeltsSession` accepts `source` absent or `"youpass"` only.
+- **Form:** Segmented "Cambridge | YouPass" above the test fields; YouPass hides the book/test
+  selects and keeps part chips, score and the error counters (same "must match" rule).
+  `newDraft` reuses the source of the most recent session of that skill; YouPass preselects
+  the part after the last YouPass session's highest part, wrapping to 1 (`nextYouPassPart`).
+- **Effects:** YouPass sessions count in error totals, Listening %, Thống kê and the weekly plan
+  volume (`partsDone`), but NEVER move "đề Cambridge tiếp theo" (`nextTest` reads Cambridge
+  only, via `latestTest(..., "cambridge")`). IeltsStartCard says "YouPass · S3" when the last
+  session of that skill was YouPass. Sunday planning ranges stay Cambridge.
+
 ### IELTS Đợt 2 (2026-09-28) — rules to keep
 
 - **One file for the calendar:** `src/config/schedule.ts` — `MILESTONES` (kind `mock` / `exam`
@@ -945,7 +963,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
 npm run build:only      # type-check + production build, skipping lint/tests (local only)
-npm test                # unit tests (638: lib/ logic, db upgrade, hooks, components, worker)
+npm test                # unit tests (647: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

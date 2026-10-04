@@ -13,8 +13,11 @@
  *
  * Component "có điều khiển": dữ liệu nằm ở FocusBlockForm (`draft`), ở đây chỉ
  * vẽ và báo thay đổi. Đổi kỹ năng thì điền lại đề tiếp theo CỦA KỸ NĂNG MỚI.
+ *
+ * Nguồn đề (2026-10-04): Cambridge (cuốn + test) hoặc YouPass (đề sưu tầm từ
+ * thi thật, chỉ chọn phần). Form nhớ nguồn của buổi gần nhất cùng kỹ năng.
  */
-import type { FocusBlock, IeltsSkill } from "../db/types";
+import type { FocusBlock, IeltsSkill, TestSource } from "../db/types";
 import { IELTS_SKILLS } from "../db/types";
 import {
   BAND_CHOICES,
@@ -32,13 +35,19 @@ import {
   partName,
   partShort,
   rawToBand,
+  sourceDraft,
   toggleDraftPart,
   wrongCount,
   type IeltsDraft,
 } from "../lib/ielts";
 import QuickCardRow from "./QuickCardRow";
 import WritingPromptButton from "./WritingPromptButton";
-import { ChipGroup, Counter, Field } from "./ui";
+import { ChipGroup, Counter, Field, Segmented } from "./ui";
+
+const SOURCE_OPTIONS: { id: TestSource; label: string }[] = [
+  { id: "cambridge", label: "Cambridge" },
+  { id: "youpass", label: "YouPass" },
+];
 
 const SELECT =
   "tap-target w-full rounded-xl border border-line bg-surface-2 px-3 text-base font-medium text-ink focus:border-accent focus:outline focus:outline-1 focus:outline-accent";
@@ -93,7 +102,7 @@ export default function IeltsSessionFields({
               Buổi này không làm đề — vẫn tính vào giờ IELTS và khung 9:30.
             </p>
           ) : (
-            <TestFields draft={draft} onChange={onChange} skill={skill} />
+            <TestFields draft={draft} onChange={onChange} skill={skill} history={history} />
           )}
 
           {skill === "Listening" && (
@@ -130,10 +139,12 @@ function TestFields({
   draft,
   onChange,
   skill,
+  history,
 }: {
   draft: IeltsDraft;
   onChange: (d: IeltsDraft) => void;
   skill: "Listening" | "Reading";
+  history: FocusBlock[];
 }) {
   const set = (patch: Partial<IeltsDraft>) => onChange({ ...draft, ...patch });
   const wrong = wrongCount(draft);
@@ -151,32 +162,43 @@ function TestFields({
 
   return (
     <>
-      <div className="mb-2 grid grid-cols-2 gap-2">
-        <select
-          aria-label="Cuốn Cambridge"
-          value={draft.book}
-          onChange={(e) => set({ book: Number(e.target.value) })}
-          className={SELECT}
-        >
-          {BOOKS.map((b) => (
-            <option key={b} value={b}>
-              Cam {b}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Test"
-          value={draft.test}
-          onChange={(e) => set({ test: Number(e.target.value) })}
-          className={SELECT}
-        >
-          {TESTS.map((t) => (
-            <option key={t} value={t}>
-              Test {t}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Segmented
+        label="Nguồn đề"
+        className="mb-2"
+        options={SOURCE_OPTIONS}
+        value={draft.source}
+        onChange={(src) => src !== draft.source && onChange(sourceDraft(draft, src, history))}
+      />
+
+      {/* YouPass không có cuốn/test — chỉ chọn phần bên dưới. */}
+      {draft.source === "cambridge" && (
+        <div className="mb-2 grid grid-cols-2 gap-2">
+          <select
+            aria-label="Cuốn Cambridge"
+            value={draft.book}
+            onChange={(e) => set({ book: Number(e.target.value) })}
+            className={SELECT}
+          >
+            {BOOKS.map((b) => (
+              <option key={b} value={b}>
+                Cam {b}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Test"
+            value={draft.test}
+            onChange={(e) => set({ test: Number(e.target.value) })}
+            className={SELECT}
+          >
+            {TESTS.map((t) => (
+              <option key={t} value={t}>
+                Test {t}
+              </option>
+            ))}
+          </select>
+        </div>
+        )}
 
       {/* Chọn được nhiều phần: chạm để bật/tắt. */}
       <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label={`${partName(skill)} đã làm`}>

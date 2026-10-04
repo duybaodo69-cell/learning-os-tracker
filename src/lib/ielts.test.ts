@@ -444,3 +444,65 @@ describe("dayIelts — vì sao hôm nay chưa có tick", () => {
     expect(dayIelts([b("09:30", 60, { area: "EFM" }), b("09:30", 60, { date: "2026-09-28" })], "2026-09-29").minutes).toBe(0);
   });
 });
+
+/* ==================== Đề YouPass (2026-10-04) ==================== */
+
+describe("Đề YouPass — điểm + lỗi, không có cuốn/test Cambridge", () => {
+  it("lưu: nguồn youpass, phần, số câu, điểm, lỗi — không có book/test", () => {
+    const d = { ...newDraft("Listening", []), source: "youpass" as const, parts: [1, 2], questions: 20, correct: 15, errors: [2, 1, 2, 0] as [number, number, number, number] };
+    expect(draftToSession(d)).toEqual({
+      skill: "Listening",
+      test: { source: "youpass", parts: [1, 2], questions: 20, correct: 15, errors: [2, 1, 2, 0] },
+    });
+  });
+  const yp = (parts: number[], over: Partial<FocusBlock> = {}) =>
+    block({ ielts: { skill: "Listening", test: { source: "youpass", parts, questions: parts.length * 10, correct: 5, errors: [5 * parts.length - 5, 0, 0, 0].map((n) => Math.max(0, n)) as [number, number, number, number] } }, ...over });
+
+  it("mở lại để sửa rồi lưu: vẫn là YouPass, không đổi gì", () => {
+    const s: IeltsSession = { skill: "Reading", test: { source: "youpass", parts: [2], questions: 13, correct: 9, errors: [1, 2, 1, 0] } };
+    expect(draftFromSession(s).source).toBe("youpass");
+    expect(draftToSession(draftFromSession(s))).toEqual(s);
+  });
+  it("buổi YouPass không làm thay đổi đề Cambridge tiếp theo", () => {
+    const blocks = [
+      withTest("Listening", 10, 2, [1], { date: "2026-09-29" }),
+      yp([1, 2, 3, 4], { date: "2026-10-01" }),
+    ];
+    expect(nextTest(blocks, "Listening")).toEqual({ book: 10, test: 2, part: 2 });
+  });
+  it("form mới nhớ nguồn của buổi gần nhất CÙNG kỹ năng", () => {
+    const blocks = [withTest("Listening", 10, 1, [1], { date: "2026-09-29" }), yp([1], { date: "2026-10-01" })];
+    expect(newDraft("Listening", blocks).source).toBe("youpass");
+    expect(newDraft("Reading", blocks).source).toBe("cambridge");
+    expect(newDraft("Listening", []).source).toBe("cambridge");
+  });
+  it("YouPass: chọn sẵn phần sau phần cuối của buổi YouPass trước, hết thì quay về 1", () => {
+    expect(newDraft("Listening", [yp([1, 2])])).toMatchObject({ source: "youpass", parts: [3], questions: 10 });
+    expect(newDraft("Listening", [yp([4])]).parts).toEqual([1]);
+  });
+  it("dòng tóm tắt: YouPass thay cho Cam · Test; đủ 40 câu vẫn có band ≈", () => {
+    expect(sessionSummary({ skill: "Listening", test: { source: "youpass", parts: [1, 2], questions: 20, correct: 15, errors: [2, 1, 2, 0] } })).toBe(
+      "Listening · YouPass · S1+S2 · 15/20"
+    );
+    expect(
+      sessionSummary({ skill: "Reading", test: { source: "youpass", parts: [1, 2, 3], questions: 40, correct: 30, errors: [2, 4, 3, 1] } })
+    ).toBe("Reading · YouPass · P1+P2+P3 · 30/40 · ≈ 7.0");
+  });
+  it("file sao lưu: nhận YouPass không có book/test, từ chối nguồn lạ", () => {
+    const score = { parts: [1], questions: 10, correct: 7, errors: [1, 1, 1, 0] };
+    expect(isValidIeltsSession({ skill: "Listening", test: { source: "youpass", ...score } })).toBe(true);
+    expect(isValidIeltsSession({ skill: "Listening", test: { source: "ielts-online", ...score } })).toBe(false);
+    expect(isValidIeltsSession({ skill: "Listening", test: score })).toBe(false); // Cambridge thì phải có book/test
+  });
+  it("chưa chọn phần nào: chặn như Cambridge", () => {
+    const d = { ...newDraft("Listening", []), source: "youpass" as const, parts: [], correct: 0 };
+    expect(draftError(d)).toMatch(/section/);
+  });
+  it("thống kê lỗi cộng cả buổi YouPass lẫn Cambridge (cùng kỹ năng)", () => {
+    const blocks = [
+      block({ date: "2026-10-01", ielts: { skill: "Listening", test: { source: "youpass", parts: [1], questions: 10, correct: 6, errors: [2, 1, 1, 0] } } }),
+      withTest("Listening", 10, 1, [1], { date: "2026-10-02" }),
+    ];
+    expect(errorSummary(blocks, "Listening", "2026-10-01", "2026-10-07")).toEqual({ sessions: 2, questions: 20, correct: 16, errors: [2, 1, 1, 0] });
+  });
+});

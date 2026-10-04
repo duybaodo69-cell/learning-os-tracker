@@ -76,14 +76,32 @@ export type IeltsSkill = (typeof IELTS_SKILLS)[number];
  * Hai bộ KHÔNG trộn: luôn đọc kèm `skill` của phiên.
  * Luôn đúng: errors cộng lại = questions − correct.
  */
-export type IeltsTestResult = {
-  book: number;       // Cam 10-19
-  test: number;       // Test 1-4
+type TestScore = {
   parts: number[];    // Listening: section 1-4 · Reading: passage 1-3 (tăng dần)
   questions: number;  // số câu đã làm (mặc định tự cộng từ các phần, sửa được)
   correct: number;    // số câu đúng
   errors: [number, number, number, number];
 };
+
+/** Đề Cambridge: có cuốn + test, quyết định "đề tiếp theo". `source` không có. */
+export type CambridgeTest = TestScore & {
+  source?: undefined;
+  book: number;       // Cam 10-19
+  test: number;       // Test 1-4
+};
+
+/**
+ * Đề YouPass (2026-10-04): đề sưu tầm từ thi thật trên youpass, không có
+ * cuốn/test. Vẫn có điểm + 4 loại lỗi nên vào thống kê như đề Cambridge,
+ * nhưng KHÔNG làm thay đổi "đề Cambridge tiếp theo".
+ */
+export type YouPassTest = TestScore & { source: "youpass" };
+
+export type IeltsTestResult = CambridgeTest | YouPassTest;
+
+/** Nguồn đề trong form: "cambridge" = không có `source` khi lưu. */
+export const TEST_SOURCES = ["cambridge", "youpass"] as const;
+export type TestSource = (typeof TEST_SOURCES)[number];
 
 export type IeltsSession = {
   skill: IeltsSkill;

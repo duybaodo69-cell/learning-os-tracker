@@ -8,7 +8,7 @@
  *   mục 7b — 4 loại lỗi Reading Ⓐ–Ⓓ
  * Sửa định nghĩa thì sửa Ở ĐÂY, mọi màn hình đổi theo.
  */
-import type { FocusBlock, IeltsSession, IeltsSkill, IeltsTestResult, MockTest } from "../db/types";
+import type { FocusBlock, IeltsSession, IeltsSkill, IeltsTestResult, MockTest, TestSource } from "../db/types";
 import { IELTS_SKILLS } from "../db/types";
 import { addDays } from "./scheduling";
 import { mondayOf } from "./metrics";
@@ -64,6 +64,12 @@ export function formatTestRef(skill: ScoredSkill, t: { book: number; test: numbe
   return `Cam ${t.book} · Test ${t.test} · ${parts}`;
 }
 
+/** Đề đã lưu, mọi nguồn: "Cam 10 · Test 1 · S1" hoặc "YouPass · S1+S2". */
+export function formatSavedTest(skill: ScoredSkill, t: IeltsTestResult): string {
+  if (t.source === "youpass") return `YouPass · ${t.parts.map((p) => partShort(skill, p)).join("+")}`;
+  return formatTestRef(skill, t);
+}
+
 /** Một vị trí trong chuỗi đề: sách, test, phần. */
 export type TestPosition = { book: number; test: number; part: number };
 
@@ -92,10 +98,28 @@ export function positionAfter(skill: ScoredSkill, pos: TestPosition): TestPositi
  * Chưa ghi gì: Cam 10 · Test 1 · phần 1. Hết đề: null.
  */
 export function nextTest(blocks: FocusBlock[], skill: ScoredSkill): TestPosition | null {
+  // Buổi YouPass không có cuốn/test nên không làm thay đổi đề Cambridge tiếp theo.
+  const last = latestTest(blocks, skill, "cambridge");
+  if (last === null || last.source === "youpass") return FIRST_POSITION;
+  const { book, test, parts } = last;
+  return positionAfter(skill, { book, test, part: Math.max(...parts) });
+}
+
+/** Nguồn của một đề đã lưu: không có `source` = Cambridge. */
+export function testSource(t: IeltsTestResult): TestSource {
+  return t.source === "youpass" ? "youpass" : "cambridge";
+}
+
+/**
+ * Đề của phiên GẦN NHẤT (ngày rồi giờ bắt đầu) của một kỹ năng, chỉ tính phiên
+ * có làm đề và có chọn phần. `source` = chỉ xét đề của nguồn đó; bỏ trống = mọi nguồn.
+ */
+export function latestTest(blocks: FocusBlock[], skill: ScoredSkill, source?: TestSource): IeltsTestResult | null {
   let last: { block: FocusBlock; test: IeltsTestResult } | null = null;
   for (const b of blocks) {
     const t = b.ielts?.test;
     if (b.area !== "IELTS" || b.ielts?.skill !== skill || !t || t.parts.length === 0) continue;
+    if (source !== undefined && testSource(t) !== source) continue;
     if (
       last === null ||
       b.date > last.block.date ||
@@ -104,9 +128,18 @@ export function nextTest(blocks: FocusBlock[], skill: ScoredSkill): TestPosition
       last = { block: b, test: t };
     }
   }
-  if (last === null) return FIRST_POSITION;
-  const { book, test, parts } = last.test;
-  return positionAfter(skill, { book, test, part: Math.max(...parts) });
+  return last?.test ?? null;
+}
+
+/**
+ * Phần YouPass gợi ý: ngay sau phần lớn nhất của buổi YouPass gần nhất;
+ * qua phần cuối (S4 / P3) thì quay về phần 1. Chưa có buổi YouPass nào: phần 1.
+ */
+export function nextYouPassPart(blocks: FocusBlock[], skill: ScoredSkill): number {
+  const last = latestTest(blocks, skill, "youpass");
+  if (last === null) return 1;
+  const after = Math.max(...last.parts) + 1;
+  return after > partCount(skill) ? 1 : after;
 }
 
 /* ==================== Loại lỗi ==================== */
@@ -296,6 +329,8 @@ export function anchorWeek(blocks: FocusBlock[], today: string): AnchorDay[] {
 export type IeltsDraft = {
   skill: IeltsSkill;
   noTest: boolean;
+  /** Cambridge (cuốn + test) hay YouPass (chỉ phần + điểm). */
+  source: TestSource;
   book: number;
   test: number;
   parts: number[];
@@ -318,6 +353,7 @@ export function newDraft(skill: IeltsSkill, blocks: FocusBlock[]): IeltsDraft {
   const base: IeltsDraft = {
     skill,
     noTest: false,
+    source: "cambridge",
     book: FIRST_BOOK,
     test: 1,
     parts: [],
@@ -328,18 +364,38 @@ export function newDraft(skill: IeltsSkill, blocks: FocusBlock[]): IeltsDraft {
     aiBand: null,
   };
   if (!isScoredSkill(skill)) return base;
+  // Nhớ nguồn đề của buổi gần nhất cùng kỹ năng: đang luyện YouPass thì mở sẵn YouPass.
+  const last = latestTest(blocks, skill);
+  if (last !== null && testSource(last) === "youpass") return sourceDraft(base, "youpass", blocks);
   const next = nextTest(blocks, skill);
   if (next === null) return { ...base, book: LAST_BOOK, test: TESTS_PER_BOOK };
   return { ...base, book: next.book, test: next.test, parts: [next.part], questions: defaultQuestions(skill, [next.part]) };
 }
 
+/**
+ * Đổi nguồn đề trong form. Chọn lại phần gợi ý của nguồn mới (Cambridge: đề
+ * tiếp theo; YouPass: phần sau buổi YouPass trước). Số đúng và lỗi giữ nguyên.
+ */
+export function sourceDraft(d: IeltsDraft, source: TestSource, blocks: FocusBlock[]): IeltsDraft {
+  if (!isScoredSkill(d.skill)) return d;
+  if (source === "youpass") {
+    const part = nextYouPassPart(blocks, d.skill);
+    return { ...d, source, parts: [part], questions: defaultQuestions(d.skill, [part]) };
+  }
+  const next = nextTest(blocks, d.skill);
+  if (next === null) return { ...d, source, book: LAST_BOOK, test: TESTS_PER_BOOK, parts: [], questions: 0 };
+  return { ...d, source, book: next.book, test: next.test, parts: [next.part], questions: defaultQuestions(d.skill, [next.part]) };
+}
+
 /** Mở lại một phiên đã lưu để sửa. */
 export function draftFromSession(s: IeltsSession): IeltsDraft {
+  const cam = s.test && s.test.source !== "youpass" ? s.test : undefined;
   return {
     skill: s.skill,
     noTest: isScoredSkill(s.skill) && s.test === undefined,
-    book: s.test?.book ?? FIRST_BOOK,
-    test: s.test?.test ?? 1,
+    source: s.test ? testSource(s.test) : "cambridge",
+    book: cam?.book ?? FIRST_BOOK,
+    test: cam?.test ?? 1,
     parts: s.test?.parts ?? [],
     questions: s.test?.questions ?? 0,
     correct: s.test?.correct ?? null,
@@ -392,14 +448,13 @@ export function draftToSession(d: IeltsDraft): IeltsSession {
   }
   const session: IeltsSession = { skill: d.skill };
   if (!d.noTest && d.correct !== null) {
-    session.test = {
-      book: d.book,
-      test: d.test,
+    const score = {
       parts: [...d.parts],
       questions: d.questions,
       correct: d.correct,
       errors: [...d.errors] as IeltsTestResult["errors"],
     };
+    session.test = d.source === "youpass" ? { source: "youpass", ...score } : { book: d.book, test: d.test, ...score };
   }
   if (d.skill === "Listening" && d.dictationMinutes > 0) session.dictationMinutes = d.dictationMinutes;
   return session;
@@ -409,7 +464,7 @@ export function draftToSession(d: IeltsDraft): IeltsSession {
 export function sessionSummary(s: IeltsSession): string {
   const bits: string[] = [s.skill];
   if (isScoredSkill(s.skill) && s.test) {
-    bits.push(formatTestRef(s.skill, s.test), `${s.test.correct}/${s.test.questions}`);
+    bits.push(formatSavedTest(s.skill, s.test), `${s.test.correct}/${s.test.questions}`);
     const band = practiceBand(s.skill, s.test);
     if (band !== null) bits.push(`≈ ${formatBand(band)}`);
   } else if (isScoredSkill(s.skill)) {
@@ -439,9 +494,11 @@ export function isValidIeltsSession(v: unknown): boolean {
   if (s.test === undefined) return true;
   if (typeof s.test !== "object" || s.test === null) return false;
   const t = s.test as Record<string, unknown>;
+  // Đề YouPass không có cuốn/test; đề Cambridge (không có `source`) thì bắt buộc có.
+  if (t.source !== undefined && t.source !== "youpass") return false;
+  const ref = t.source === "youpass" || (isIntIn(t.book, 1, 99) && isIntIn(t.test, 1, TESTS_PER_BOOK));
   return (
-    isIntIn(t.book, 1, 99) &&
-    isIntIn(t.test, 1, TESTS_PER_BOOK) &&
+    ref &&
     Array.isArray(t.parts) &&
     t.parts.every((p) => isIntIn(p, 1, 4)) &&
     nonNegInt(t.questions) &&
