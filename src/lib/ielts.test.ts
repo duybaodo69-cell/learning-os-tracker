@@ -21,6 +21,7 @@ import {
   rawToBand,
   sessionSummary,
   toggleDraftPart,
+  bandMixup,
 } from "./ielts";
 
 /** Block IELTS tối thiểu cho test. */
@@ -504,5 +505,29 @@ describe("Đề YouPass — điểm + lỗi, không có cuốn/test Cambridge", 
       withTest("Listening", 10, 1, [1], { date: "2026-10-02" }),
     ];
     expect(errorSummary(blocks, "Listening", "2026-10-01", "2026-10-07")).toEqual({ sessions: 2, questions: 20, correct: 16, errors: [2, 1, 1, 0] });
+  });
+});
+
+/* ==================== Nhắc nhầm band trong ô điểm thô (2026-10-05) ==================== */
+
+describe("bandMixup — ô điểm thô /40 nhưng gõ số giống band", () => {
+  it("6 ở Listening: có thể là band 6.0 ≈ 23–25 câu", () => {
+    expect(bandMixup("Listening", 6)).toEqual({ band: 6, min: 23, max: 25 });
+  });
+  it("Reading dùng bảng Reading: band 6.0 ≈ 23–26, 7.5 ≈ 33–34", () => {
+    expect(bandMixup("Reading", 6)).toEqual({ band: 6, min: 23, max: 26 });
+    expect(bandMixup("Reading", 7.5)).toEqual({ band: 7.5, min: 33, max: 34 });
+  });
+  it("9 = 39–40 câu", () => {
+    expect(bandMixup("Listening", 9)).toEqual({ band: 9, min: 39, max: 40 });
+  });
+  it("không nhắc khi điểm từ 10 trở lên, bằng 0, hoặc không phải bước 0.5", () => {
+    expect(bandMixup("Listening", 10)).toBeNull();
+    expect(bandMixup("Listening", 23)).toBeNull();
+    expect(bandMixup("Listening", 0)).toBeNull();
+    expect(bandMixup("Listening", 6.3)).toBeNull();
+  });
+  it("band dưới bảng (1–3.5): vẫn nhắc nhưng không có số câu", () => {
+    expect(bandMixup("Listening", 3)).toEqual({ band: 3, min: null, max: null });
   });
 });

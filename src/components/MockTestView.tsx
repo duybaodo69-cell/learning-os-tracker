@@ -20,6 +20,7 @@ import { MOCK_SOURCES } from "../db/types";
 import {
   BAND_CHOICES,
   MOCK_SOURCE_LABELS,
+  bandMixup,
   checkMockTest,
   formatBand,
   mockBands,
@@ -31,7 +32,7 @@ import { useToday } from "../lib/useToday";
 import { useSubmit } from "../lib/useSubmit";
 import { checkDate } from "../lib/validation";
 import ConfirmDialog from "./ConfirmDialog";
-import { Button, Card, ChipGroup, DateInput, EmptyState, Field, FieldError, SectionLabel, Tag, TextInput } from "./ui";
+import { Button, Card, ChipGroup, DateInput, EmptyState, Field, FieldError, Notice, SectionLabel, Tag, TextInput } from "./ui";
 
 const NO_BAND = "—";
 
@@ -225,7 +226,11 @@ function MockTestForm({
   );
 }
 
-/** Ô điểm thô /40 kèm band ≈ tự quy đổi. */
+/**
+ * Ô điểm thô /40 kèm band ≈ tự quy đổi.
+ * Gõ số giống band (1–9) thì nhắc: có thể bạn nhập band thay vì số câu đúng
+ * (`bandMixup`). Chỉ nhắc, không chặn lưu.
+ */
 function RawField({
   skill,
   value,
@@ -237,6 +242,7 @@ function RawField({
 }) {
   const raw = parseOptional(value);
   const band = raw === undefined ? null : rawToBand(skill, raw);
+  const mixup = raw === undefined ? null : bandMixup(skill, raw);
   return (
     <Field label={skill} hint="điểm thô /40">
       <div className="flex items-center gap-3">
@@ -265,6 +271,22 @@ function RawField({
           )}
         </span>
       </div>
+      {mixup && (
+        <Notice className="mt-2 mb-0">
+          Đây là band? Ô này là <strong className="text-ink">số câu đúng /40</strong>
+          {mixup.min !== null && (
+            <>
+              {" "}
+              — band {formatBand(mixup.band)} ≈{" "}
+              <span className="font-num font-semibold text-ink">
+                {mixup.min}–{mixup.max}
+              </span>{" "}
+              câu
+            </>
+          )}
+          .
+        </Notice>
+      )}
     </Field>
   );
 }

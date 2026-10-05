@@ -206,6 +206,26 @@ export function practiceBand(skill: ScoredSkill, t: IeltsTestResult): number | n
   return t.questions === FULL_TEST_QUESTIONS ? rawToBand(skill, t.correct) : null;
 }
 
+/**
+ * Ô điểm thô /40 mà gõ một số giống band (1–9, bước 0.5): có thể bạn đã nhập
+ * band thay vì số câu đúng (chủ app nhập "6" cho thi thử YouPass 4/10).
+ * Trả về band đó và khoảng số câu tương ứng theo bảng của kỹ năng, để form
+ * nhắc "band 6.0 ≈ 23–25 câu". Band dưới bảng (< 4.0): min/max = null.
+ * Chỉ để NHẮC, không chặn lưu — 6/40 vẫn có thể là điểm thật.
+ */
+export function bandMixup(
+  skill: ScoredSkill,
+  raw: number
+): { band: number; min: number | null; max: number | null } | null {
+  if (!isNumberIn(raw, 1, 9) || !Number.isInteger(raw * 2)) return null;
+  const table = skill === "Listening" ? LISTENING_TABLE : READING_TABLE;
+  const i = table.findIndex(([, band]) => band === raw);
+  if (i === -1) return { band: raw, min: null, max: null };
+  // Bảng xếp từ band cao xuống: số câu tối đa = (điểm thấp nhất của band trên) − 1.
+  const max = i === 0 ? FULL_TEST_QUESTIONS : table[i - 1][0] - 1;
+  return { band: raw, min: table[i][0], max };
+}
+
 /** Band hợp lệ: 0 → 9, bước 0.5. */
 export function isBand(v: unknown): v is number {
   return isNumberIn(v, 0, 9) && Number.isInteger(v * 2);

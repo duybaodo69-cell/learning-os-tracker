@@ -755,6 +755,10 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   volume (`partsDone`), but NEVER move "đề Cambridge tiếp theo" (`nextTest` reads Cambridge
   only, via `latestTest(..., "cambridge")`). IeltsStartCard says "YouPass · S3" when the last
   session of that skill was YouPass. Sunday planning ranges stay Cambridge.
+- **Band mix-up nudge (2026-10-05):** the owner typed YouPass BANDS (6, 6) into the mock-test
+  raw /40 fields. `bandMixup(skill, raw)` returns the band + raw range when the raw value is
+  1–9 in 0.5 steps; `RawField` then shows a `Notice` "Đây là band? … band 6.0 ≈ 23–25 câu".
+  It only nudges, never blocks saving (6/40 can be a real score).
 
 ### IELTS Đợt 2 (2026-09-28) — rules to keep
 
@@ -963,7 +967,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
 npm run build:only      # type-check + production build, skipping lint/tests (local only)
-npm test                # unit tests (647: lib/ logic, db upgrade, hooks, components, worker)
+npm test                # unit tests (652: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```
