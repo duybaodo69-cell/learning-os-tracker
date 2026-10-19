@@ -189,6 +189,27 @@ type WeeklyReview = {
 // A deadline typed in during Sunday planning (Dexie v10). Fixed dates live in schedule.ts.
 type Deadline = { id: string; date: string; title: string };
 
+// Glow-up (PRODUCT.md mục 10, Dexie v11). Sleep comes from DailyCheckin and
+// "trained today" from workouts, so neither is stored on GlowDay.
+type GlowDay = {
+  id: string;   // "#" + date (keys.ts glowDayId), one per day
+  date: string;
+  waterL?: number; proteinG?: number; fiberG?: number; steps?: number;
+  noSugaryDrinks?: boolean; skincareAm?: boolean; skincarePm?: boolean;
+  weightKg?: number; // optional morning weigh-in, NOT a checklist item (Sunday check-in averages it)
+};
+type Workout = {
+  id: string; date: string; startTime: string;
+  session: "gym_A" | "gym_B" | "gym_C" | "run_easy" | "run_interval" | "run_long" | "other";
+  minutes: number;
+  sets?: { exercise: string; kg: number | null; reps: number }[]; // gym; exercise = config id
+  km?: number; effort?: 1 | 2 | 3 | 4 | 5; note?: string;
+};
+type BodyCheckin = { // Sunday check-in (G3, BodyCheckinCard)
+  id: string;   // "#" + weekStart (keys.ts bodyCheckinId)
+  weekStart: string; avgWeightKg?: number; waistCm?: number; photoTaken?: boolean; note?: string;
+};
+
 // Marks a day as belonging to condition A or B of a personal experiment.
 type ExperimentTag = {
   date: string;
@@ -272,6 +293,10 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
       planning (replaces the 3-question weekly review), deadlines, cards with a source,
       "Sao chép prompt chấm Writing".
 - [x] **"Mặt hồ đêm" redesign (2026-09-29)** — navy + water gradients (DESIGN.md), both themes.
+- [x] **Glow-up G0–G3 (2026-10-19)** — `docs/PRODUCT.md` mục 10, Dexie v11 (3 tables), daily
+      checklist card on Hôm nay, workout log with prefilled sets + load suggestion, morning
+      weigh-in + Sunday check-in (average, waist, photo tick, vs week 1, adjust hints).
+- [ ] **Glow-up next:** G4 12-week schedule screen + weight/waist chart (before week 4, 9/11).
 - [ ] **Next:** use it until thi thử 1 (15/11); after the 12/12 gate use the "Khi cần điều
       chỉnh kế hoạch" prompt in `docs/PROMPTS.md`.
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
@@ -300,6 +325,9 @@ src/
     CountdownCard.tsx  # countdown card: big days number, stretch bar, "Đường tới 7.5" timeline,
                        # light-week row (Hôm nay + tab IELTS)
     IeltsStartCard.tsx # "Bắt đầu IELTS" + Khung 9:30 x/7 + this week's plan (Hôm nay + tab IELTS)
+    GlowUpCard.tsx     # Hôm nay: Glow-up week, today's workout, one-tap checklist, x/7 days
+    WorkoutForm.tsx    # log a gym/run session (sets prefilled from the last session)
+    BodyCheckinCard.tsx  # Glow-up Sunday check-in (Hôm nay; Monday catch-up)
     WeeklyReviewCard.tsx  # Sunday planning form (3 steps) + DeadlineList + ThisWeekChange
     DeadlinesSoon.tsx  # Hôm nay: deadlines in the next 72 hours
     QuickCardRow.tsx   # "+ Thẻ ôn từ buổi này" inside the IELTS finish form
@@ -313,6 +341,7 @@ src/
                        # PredictionsScreen / ExperimentsScreen (Cài đặt sub-screens)
   config/
     schedule.ts        # EDIT HERE to change mock-test / exam dates and the baseline window
+    glowUp.ts          # EDIT HERE: Glow-up 12 weeks, sleep ramp, targets, gym exercises (no body data)
   db/
     types.ts           # Area, Rating, DailyCheckin, FocusBlock
     db.ts              # Dexie; opens one of three stores (local / cloud / demo)
@@ -344,6 +373,9 @@ src/
     ieltsStats.ts      # Thống kê IELTS: hours, Listening %, mocks, errors per 10, anchor (tested)
     cardSources.ts     # card sources, filters, quick card builder (tested)
     writingPrompt.ts   # the Writing grading prompt + clipboard helper
+    glowUp.ts          # Glow-up: program week, day plan, sleep check, checklist, x/7, load
+                       # suggestion, set prefill, weekly average, adjust hints, vs week 1 (tested)
+    glowUpDb.ts        # patchGlowDay: read-modify-write one day's checklist in a transaction
   config/cloud.ts      # Dexie Cloud database URLs (dev + prod; not secret)
   config/backgrounds.ts  # focus-session background presets + source/licence of each
 public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
@@ -739,6 +771,63 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 - **Not built (Đợt 2/3):** IELTS tab, countdown, "dời khung", error-trend charts, IELTS
   hours/week chart, cards from IELTS errors.
 
+### Glow-up G0–G3 (2026-10-19) — rules to keep
+
+- **Source of truth is `docs/PRODUCT.md` mục 10** (owner's answers 2026-10-19). The owner's
+  plan file (`glow-up.json`) is NOT in the repo: it holds age/weight/waist and the built app is
+  public. `src/config/glowUp.ts` is a copy WITHOUT body data; milestones are relative to the
+  week-1 check-in (-2/-4/-5.5 kg, -2/-4/-6 cm). Never put body numbers in source code.
+- **Glow-up never takes the 9:30 frame:** every planned session starts before 08:30 (gym 07:15
+  instead of the plan's 08:00, tested). Wake time 07:00 and the bedtime ramp replace PRODUCT.md
+  mục 4's 8:00 / "trước 00:00".
+- **Checklist = 9 items, Sunday 8** (rest day has no training item). Day met = >= 7 items
+  (`DAY_MET_MIN`). Week shows "x/7" + 7 dots like Khung 9:30. Days, never streaks.
+- **Sleep is not typed twice:** `sleepCheck` reads the check-in dated D (= the night of D-1) and
+  compares `bedTime` with `lightsOutFor(D-1)`; times before 12:00 count as after midnight, so
+  00:30 is later than 00:00. Day 1 uses the first ramp entry. No check-in = not done.
+- **Water target grows with running:** 2.7 L + 0.5 L per logged run hour (`waterTarget`).
+- **Every checklist tap saves at once** through `patchGlowDay` (transaction: read latest, merge,
+  put), so two fast "+" taps never overwrite each other. Steps save on blur/Enter; the steps
+  input is re-keyed by date + saved value instead of syncing state in an effect.
+- **Adapalene** is every other night in weeks 1–2 starting the first evening, then nightly; the
+  "Skincare tối" hint says which.
+- **Workout form:** the session chip defaults to today's plan ("Buổi khác" on Sunday); start time
+  follows "now minus minutes" until edited; new sessions are stamped `todayISO()` at save, edits
+  keep their date. Gym sets prefill from the most recent session containing that exercise
+  (`lastSetsFor`, excluding the one being edited). If every set of the last session hit the top
+  of the rep range at one weight, the form suggests +2.5 kg (upper) / +5 kg (lower) and prefills
+  it with reps back at the bottom of the range (`suggestLoad`, `prefillSets`). Bodyweight and
+  non-numeric reps ("tối đa", "30-45 giây") never get a suggestion. Deload week 8 = 2 sets.
+  Reps 0 = set skipped (not saved). kg/km accept "42,5" or "42.5"; anything else blocks Save.
+  Exercise `id`s in the config are the history key: renaming `name` is safe, changing `id` is not.
+- **While the workout form is open** Hôm nay hides the IELTS card and the deep-work card, like
+  the block form, so the form's Save is the only filled button. Delete is inside the edit form,
+  through ConfirmDialog.
+- **G3 morning weigh-in** ("Cân sáng", in GlowUpCard below the checklist): optional, never one
+  of the 9 items, saved on blur; outside 30–250 kg it is not saved and an error shows under it;
+  clearing the box removes that day's weight.
+- **G3 Sunday check-in** (`BodyCheckinCard`, shown above the Glow-up card): `checkinWeekToAsk` =
+  this week on a programme Sunday, or LAST week on a Monday when that week has no check-in yet
+  (the week-1 baseline must not be lost to one missed Sunday). Collapsed by default with a
+  secondary "Bắt đầu" like the Sunday planning card. Average weight prefills from that week's
+  weigh-ins (`averageWeight`, rounded 0.1 multiplying first; none → null and "gõ tay"); empty
+  fields are omitted, never saved as 0; waist 40–200 cm. Gym/run counts are computed, not asked.
+  The photo toggle shows only in weeks 1/4/8/12. Week 1 says it is the baseline; later weeks
+  show the change vs week 1 and that week's relative milestone (`startComparison`). Adjust
+  hints (`adjustHints`, live while typing): (1) loss < 0.2 kg in BOTH of the last two weeks,
+  needs three consecutive weekly numbers; (2) from week 3, loss > 1 kg vs last week. Missing
+  numbers → no hint. Differences are rounded to 0.1 before comparing.
+- **Backup / sync:** `glowDays`, `workouts`, `bodyCheckins` are backup tables (TABLE_NAMES,
+  ROW_RULES, UNIQUE_FIELD by date / id / weekStart, PRIMARY_KEY) and seeded in demo data. Old
+  files import with the three tables empty.
+- **Verified (headless Chromium, localhost, demo data, real date 19/10/2026):** Hôm nay with the
+  card and the open workout form × 390 / 768 / 1280 × dark / light × 100 / 150% — no page
+  overflow, no control under 44px, no text under 12px, no page errors; taps save, a saved
+  workout appears in the card. The kg box was 26px wide at 390 × 150% → set rows now wrap.
+  G3 at a faked Sunday 25/10 (Playwright clock): weigh-in → check-in prefilled with the week's
+  average → saved → collapsed row shows "kg · cm · bấm để sửa", same 24-view matrix clean.
+  Not verified on a phone.
+
 ### YouPass tests (2026-10-04) — rules to keep
 
 - **Why:** the owner practises on YouPass (tests collected from real exams), not Cambridge.
@@ -967,7 +1056,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
 npm run build:only      # type-check + production build, skipping lint/tests (local only)
-npm test                # unit tests (652: lib/ logic, db upgrade, hooks, components, worker)
+npm test                # unit tests (716: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

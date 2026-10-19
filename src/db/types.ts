@@ -273,6 +273,58 @@ export type Deadline = {
   title: string;
 };
 
+/* ===================== Glow-up (PRODUCT.md mục 10, Dexie v11) ===================== */
+
+/**
+ * Checklist Glow-up của một ngày. Mỗi ngày MỘT bản ghi, khoá "#" + ngày
+ * (src/db/keys.ts) như check-in, nên hai máy cùng ngày vẫn là một bản ghi.
+ * Mục "ngủ" lấy từ DailyCheckin, mục "buổi tập" từ bảng workouts — không lưu ở đây.
+ * Mọi trường tuỳ chọn: chưa bấm gì = chưa có trường.
+ */
+export type GlowDay = {
+  id: string;            // "#YYYY-MM-DD"
+  date: string;
+  waterL?: number;
+  proteinG?: number;
+  fiberG?: number;
+  steps?: number;
+  noSugaryDrinks?: boolean;
+  skincareAm?: boolean;
+  skincarePm?: boolean;
+  /** Cân sáng (kg), tuỳ chọn — check-in Chủ nhật lấy trung bình các ngày có cân. */
+  weightKg?: number;
+};
+
+/** Loại buổi tập: 6 buổi theo lịch (src/config/glowUp.ts) + "other" (ngoài lịch). */
+export const WORKOUT_SESSIONS = ["gym_A", "gym_B", "gym_C", "run_easy", "run_interval", "run_long", "other"] as const;
+export type WorkoutSession = (typeof WORKOUT_SESSIONS)[number];
+
+/** Một hiệp gym. `exercise` là id bài trong config; kg null = tạ người / không ghi. */
+export type WorkoutSet = { exercise: string; kg: number | null; reps: number };
+
+/** Một buổi tập (gym hoặc chạy), khoá UUID. */
+export type Workout = {
+  id: string;
+  date: string;          // "YYYY-MM-DD"
+  startTime: string;     // "HH:mm"
+  session: WorkoutSession;
+  minutes: number;
+  sets?: WorkoutSet[];   // chỉ gym
+  km?: number;           // chỉ chạy
+  effort?: Rating;       // mức mệt 1-5
+  note?: string;
+};
+
+/** Check-in Glow-up Chủ nhật — mỗi tuần một bản ghi, khoá "#" + Thứ Hai. */
+export type BodyCheckin = {
+  id: string;            // "#YYYY-MM-DD" (Thứ Hai)
+  weekStart: string;
+  avgWeightKg?: number;
+  waistCm?: number;
+  photoTaken?: boolean;
+  note?: string;
+};
+
 /** Một thí nghiệm cá nhân: so sánh hai cách làm A và B. */
 export type Experiment = {
   id: string;

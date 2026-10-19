@@ -49,6 +49,9 @@ export default function SettingsScreen({
   const mockCount = useLiveQuery(() => db.mockTests.count(), [], 0);
   const delayCount = useLiveQuery(() => db.anchorDelays.count(), [], 0);
   const deadlineCount = useLiveQuery(() => db.deadlines.count(), [], 0);
+  const glowDayCount = useLiveQuery(() => db.glowDays.count(), [], 0);
+  const workoutCount = useLiveQuery(() => db.workouts.count(), [], 0);
+  const bodyCheckinCount = useLiveQuery(() => db.bodyCheckins.count(), [], 0);
 
   // Tổng mọi bản ghi — dùng để biết kho có trống hay không.
   const totalCount =
@@ -63,7 +66,10 @@ export default function SettingsScreen({
     experimentCount +
     mockCount +
     delayCount +
-    deadlineCount;
+    deadlineCount +
+    glowDayCount +
+    workoutCount +
+    bodyCheckinCount;
 
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -152,7 +158,9 @@ export default function SettingsScreen({
             <Count n={logCount} /> lượt ôn · <Count n={predictionCount} /> dự đoán ·{" "}
             <Count n={reviewCount} /> kế hoạch tuần · <Count n={experimentCount} /> thí nghiệm ·{" "}
             <Count n={tagCount} /> nhãn thí nghiệm · <Count n={mockCount} /> thi thử ·{" "}
-            <Count n={delayCount} /> lần dời khung · <Count n={deadlineCount} /> deadline
+            <Count n={delayCount} /> lần dời khung · <Count n={deadlineCount} /> deadline ·{" "}
+            <Count n={glowDayCount} /> ngày Glow-up · <Count n={workoutCount} /> buổi tập ·{" "}
+            <Count n={bodyCheckinCount} /> check-in Glow-up
           </p>
         )}
       </ListGroup>
@@ -255,7 +263,8 @@ export default function SettingsScreen({
               {checkinCount} check-in, {blockCount} focus block, {dumpCount} brain dump,{" "}
               {cardCount} thẻ, {logCount} lượt ôn, {predictionCount} dự đoán, {reviewCount} kế hoạch
               tuần, {experimentCount} thí nghiệm, {tagCount} nhãn thí nghiệm, {mockCount} thi thử,{" "}
-              {delayCount} lần dời khung và {deadlineCount} deadline
+              {delayCount} lần dời khung, {deadlineCount} deadline, {glowDayCount} ngày Glow-up,{" "}
+              {workoutCount} buổi tập và {bodyCheckinCount} check-in Glow-up
             </strong>{" "}
             trong kho dữ liệu mẫu sẽ bị xoá.
             <br />

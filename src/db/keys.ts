@@ -27,3 +27,13 @@ export function anchorDelayId(date: string): string {
 export function weekReviewId(weekStart: string): string {
   return `#${weekStart}`;
 }
+
+/** Khoá checklist Glow-up ngày `date` — mỗi ngày một bản ghi. */
+export function glowDayId(date: string): string {
+  return `#${date}`;
+}
+
+/** Khoá check-in Glow-up của tuần bắt đầu Thứ Hai `weekStart`. */
+export function bodyCheckinId(weekStart: string): string {
+  return `#${weekStart}`;
+}
