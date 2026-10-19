@@ -1,6 +1,6 @@
 # Learning OS — Vision, mission, scope
 
-Chốt qua buổi phỏng vấn ngày 27/09/2026. Đây là **nguồn sự thật về việc app nên làm gì**.
+Chốt qua buổi phỏng vấn ngày 27/09/2026 (mục 10 Glow-up thêm ngày 19/10/2026). Đây là **nguồn sự thật về việc app nên làm gì**.
 Mọi tính năng mới phải trả lời được: *nó giúp phần nào trong "Vấn đề" bên dưới?*
 Không trả lời được thì không build.
 
@@ -41,7 +41,7 @@ Nguyên tắc thiết kế số 1: **"Không cần nhớ quy trình — mở app
 | **Lock-in (dẫn dắt)** | **Số ngày giữ khung 9:30 / 7 mỗi tuần** | ≥ 5/7 |
 | Khối lượng | Giờ IELTS mỗi tuần | ~11.5 (tuần thi môn: sàn 30 phút Listening/ngày) |
 | Chất lượng luyện | Số câu sai theo loại lỗi (Listening mục 7, Reading mục 7b) | loại lớn nhất giảm dần |
-| Giấc ngủ | Lên giường trước 00:00 (check-in) | ≥ 5/7 |
+| Giấc ngủ | Tắt đèn đúng giờ theo lộ trình mục 10 (00:00 → 23:30 → **23:00** từ 25/10), giờ lên giường trong check-in | ≥ 5/7 |
 | Phụ | Tài liệu thương vụ bao bì được manager chấp nhận | mỗi vòng góp ý ít lỗi lặp lại hơn |
 
 Hiện trạng IELTS: **R 7.0 · L 5.5 · W 6.0 · S 6.0** (overall 6.0). 7.5 cần tổng ≥ 29.5, ví dụ
@@ -91,7 +91,8 @@ Buổi sáng cả 7 ngày đều trống (lớp: T3 15:00 EFM, T4 12:00 AFEP, T6
 | T7 | 9:00 → Altec | 9:30–11:00 | Listening + Reading |
 | CN | 9:00 → Altec | 9:30–12:00, rồi **12:00 chốt kế hoạch tuần (10 phút)** | Writing hoặc trọn một đề |
 
-Thức dậy 8:00 (bỏ mục tiêu 6:30). Tín hiệu bắt đầu đến từ **lịch + báo thức iPhone** (app không có
+Thức dậy **07:00** (từ 19/10/2026, theo Glow-up mục 10; trước đó 8:00). Buổi tập sáng lúc 07:15,
+xong trước 8:30 để vẫn ra khỏi nhà đúng giờ cho khung 9:30. Tín hiệu bắt đầu đến từ **lịch + báo thức iPhone** (app không có
 máy chủ nên không tự gửi thông báo được). Khung 9:30 **phải ra cafe** — ở nhà không tính.
 
 ## 5. Mốc học kỳ và thi thử
@@ -203,8 +204,55 @@ một area; khi phiên có area IELTS thì bước kết thúc có thêm phần 
 ## 9. Việc chủ app cần tự làm
 
 - [ ] Dọn Google Calendar theo mục 4 và 5 (làm cùng Claude, mọi xoá/tạo đều hỏi trước).
-- [ ] Đặt báo thức 8:00 và thông báo 15 phút trước mỗi khung.
+- [ ] Đặt báo thức **07:00** và thông báo 15 phút trước mỗi khung.
 - [ ] Cài app vào Màn hình chính iPhone (không thanh địa chỉ; Safari không cho web khoá xoay).
 - [ ] Chuẩn bị Cam 10–14 (bản giấy hoặc PDF hợp pháp) + audio.
 - [ ] Đặt lịch thi thử trả tiền 12–13/12 ở trung tâm ngay khi có lịch.
 - [ ] Đăng ký thi thật **sau cổng quyết định 12/12** (tránh mất phí dời lịch nếu phải chuyển sang T5–6).
+- [ ] Glow-up: đo vòng bụng thật (ngang rốn) sáng Thứ Hai 19/10, mua đồ skincare tuần 1.
+
+## 10. Glow-up 12 tuần (thêm 19/10/2026)
+
+Nguồn: kế hoạch cá nhân "Glow-up 12 tuần" (**19/10/2026 → 10/01/2027**). Đây là **việc tự giao thứ
+hai**, nên dùng đúng cơ chế đã chữa IELTS ở mục 1: app nói rõ hôm nay làm gì (buổi tập theo lịch,
+checklist) và đếm ngày, không ai phải nhớ quy trình.
+
+**Thứ tự ưu tiên:** IELTS vẫn là mục tiêu số 1. Glow-up **không được chiếm khung 9:30** — mọi buổi
+tập nằm trước 8:30 (gym 07:15, chạy 07:15, chạy dài Thứ Bảy 06:45).
+
+**Checklist hằng ngày (9 mục, Chủ nhật 8 mục vì là ngày nghỉ):**
+
+| Mục | Đạt khi |
+|---|---|
+| Ngủ | Giờ lên giường trong check-in sáng ≤ giờ tắt đèn của đêm đó (00:00 tới 21/10 · 23:30 tới 24/10 · 23:00 từ 25/10) |
+| Nước | ≥ 2,7 lít (+0,5 lít mỗi giờ chạy) |
+| Protein | ≥ 125 g |
+| Chất xơ | ≥ 30 g |
+| Bước chân | ≥ 8.000 |
+| Không nước ngọt / trà sữa | đánh dấu |
+| Skincare sáng / Skincare tối | đánh dấu (tuần 1–2 adapalene cách đêm, từ tuần 3 mỗi tối) |
+| Buổi tập hôm nay | có ghi một buổi tập trong ngày |
+
+- **Ngày đạt Glow-up** = đạt ≥ 7 mục (Chủ nhật: ≥ 7/8). Hiện "x/7 ngày tuần này" + 7 chấm như
+  khung 9:30. **Đếm ngày, không đếm chuỗi.**
+- Mỗi mục là một chạm (nước / protein / xơ có nút +), nhập cả ngày < 30 giây.
+
+**Buổi tập:** lịch tuần cố định (T2 Gym A · T3 chạy nhẹ · T4 Gym B · T5 chạy interval · T6 Gym C ·
+T7 chạy dài · CN nghỉ). Gym ghi từng hiệp (kg × lần), điền sẵn từ buổi trước cùng loại; khi cả 3
+hiệp đạt đỉnh số lần thì gợi ý +2,5 kg (thân trên) / +5 kg (chân). Tuần 8 là tuần giảm tải.
+
+**Check-in Chủ nhật:** cân trung bình (cân sáng 3 ngày/tuần, app tự tính, sửa được), vòng bụng,
+"đã chụp ảnh" (tuần 1 · 4 · 8 · 12), ghi chú. Số buổi gym / chạy tự đếm. Hai luật điều chỉnh của
+kế hoạch hiện thành một dòng gợi ý.
+
+**Mốc:** tính **tương đối** so với check-in tuần 1: tuần 4 −2 kg / −2 cm · tuần 8 −4 kg / −4 cm ·
+tuần 12 −5,5 kg / −6 cm. Ước tính ~0,5 kg/tuần, không phải lời khuyên y tế.
+
+**Quyền riêng tư:** tuổi, cân, vòng bụng chỉ nằm trong dữ liệu trên máy (IndexedDB), **không nằm
+trong mã app** (bản build ai có link cũng tải được). Ảnh tiến độ để trong app Ảnh của iPhone; app
+chỉ đánh dấu đã chụp.
+
+**Không làm (Glow-up):** đếm calo / nhập từng món ăn, lưu ảnh trong app, streak, AI tự đổi lịch tập.
+
+**Thứ tự build:** G1 checklist + Hôm nay → G2 ghi buổi tập → G3 check-in Chủ nhật (trước 25/10)
+→ G4 màn lịch 12 tuần + biểu đồ cân / vòng bụng (trước tuần 4).
