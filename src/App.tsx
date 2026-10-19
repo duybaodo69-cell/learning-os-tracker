@@ -6,7 +6,8 @@
  *   - mục con nào đang mở trong tab "Ôn tập" (để tab Hôm nay nhảy thẳng
  *     sang brain dump chỉ bằng một lần chạm)
  *   - màn con nào đang mở trong tab "Cài đặt" (Dự đoán, Thí nghiệm — Đợt 2
- *     chuyển chúng vào "Công cụ khác", dữ liệu giữ nguyên)
+ *     chuyển chúng vào "Công cụ khác", dữ liệu giữ nguyên; Glow-up 12 tuần)
+ *   - màn con của tab "Hôm nay" (Glow-up 12 tuần, mở từ thẻ Glow-up)
  */
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -22,6 +23,7 @@ import IeltsScreen from "./screens/IeltsScreen";
 import ExperimentsScreen from "./screens/ExperimentsScreen";
 import DashboardScreen from "./screens/DashboardScreen";
 import SettingsScreen from "./screens/SettingsScreen";
+import GlowUpScreen from "./screens/GlowUpScreen";
 import FocusSession from "./screens/FocusSession";
 import CloudLoginDialog from "./components/CloudLoginDialog";
 
@@ -33,13 +35,16 @@ import { getTimerStart, startTimer } from "./lib/timer";
 import { setLastArea } from "./lib/prefs";
 
 /** Màn con của tab Cài đặt. */
-type SettingsView = "main" | "predictions" | "experiments";
+type SettingsView = "main" | "predictions" | "experiments" | "glowup";
+/** Màn con của tab Hôm nay. */
+type TodayView = "main" | "glowup";
 
 export default function App() {
   // Mở app lên là vào thẳng tab "Hôm nay" vì đây là tab dùng nhiều nhất.
   const [activeTab, setActiveTab] = useState<TabId>("today");
   const [reviewView, setReviewView] = useState<ReviewView>("queue");
   const [settingsView, setSettingsView] = useState<SettingsView>("main");
+  const [todayView, setTodayView] = useState<TodayView>("main");
 
   // Mốc bắt đầu của phiên đang chạy (null = không có phiên nào).
   // Đọc từ localStorage lúc mở app, nên đóng app giữa phiên rồi mở lại
@@ -57,10 +62,11 @@ export default function App() {
     handleStartTimer();
   }
 
-  /** Bấm một tab ở thanh điều hướng. Bấm lại "Cài đặt" thì về màn chính của nó. */
+  /** Bấm một tab ở thanh điều hướng. Bấm lại "Cài đặt" / "Hôm nay" thì về màn chính của nó. */
   function changeTab(tab: TabId) {
     setActiveTab(tab);
     if (tab === "settings") setSettingsView("main");
+    if (tab === "today") setTodayView("main");
   }
 
   // Số thẻ đến hạn — hiện thành con số nhỏ trên tab "Ôn tập".
@@ -80,7 +86,14 @@ export default function App() {
   function renderScreen() {
     switch (activeTab) {
       case "today":
-        return <TodayScreen onNavigate={navigate} onStartTimer={handleStartTimer} />;
+        if (todayView === "glowup") return <GlowUpScreen backLabel="Hôm nay" onBack={() => setTodayView("main")} />;
+        return (
+          <TodayScreen
+            onNavigate={navigate}
+            onStartTimer={handleStartTimer}
+            onOpenGlowUp={() => setTodayView("glowup")}
+          />
+        );
       case "review":
         return (
           <ReviewScreen view={reviewView} onViewChange={setReviewView} dueCount={dueCount} />
@@ -92,6 +105,7 @@ export default function App() {
       case "settings":
         if (settingsView === "predictions") return <PredictionsScreen onBack={() => setSettingsView("main")} />;
         if (settingsView === "experiments") return <ExperimentsScreen onBack={() => setSettingsView("main")} />;
+        if (settingsView === "glowup") return <GlowUpScreen backLabel="Cài đặt" onBack={() => setSettingsView("main")} />;
         return <SettingsScreen onOpen={setSettingsView} />;
     }
   }

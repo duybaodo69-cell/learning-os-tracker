@@ -36,7 +36,7 @@ describe("patchGlowDay", () => {
 
 describe("GlowUpCard", () => {
   const renderCard = (today = MONDAY, workouts: Workout[] = []) =>
-    render(<GlowUpCard today={today} checkins={[]} workouts={workouts} onLogWorkout={vi.fn()} onEditWorkout={vi.fn()} />);
+    render(<GlowUpCard today={today} checkins={[]} workouts={workouts} onLogWorkout={vi.fn()} onEditWorkout={vi.fn()} onOpenSchedule={vi.fn()} />);
 
   it("ngoài 12 tuần thì không hiện gì", () => {
     const { container } = renderCard("2026-10-18");
@@ -45,7 +45,7 @@ describe("GlowUpCard", () => {
 
   it("hiện tuần, buổi hôm nay, adapalene tối đầu tiên", async () => {
     renderCard();
-    expect(await screen.findByText("Tuần 1 · Nền tảng")).toBeTruthy();
+    expect(await screen.findByText("Tuần 1 · Nền tảng ›")).toBeTruthy();
     expect(screen.getByText("Gym A (đẩy + chân)")).toBeTruthy();
     expect(screen.getByText("rửa mặt · adapalene · dưỡng ẩm")).toBeTruthy();
   });
@@ -74,10 +74,17 @@ describe("GlowUpCard", () => {
     await waitFor(async () => expect((await db.glowDays.get("#2026-10-19"))?.steps).toBe(8200));
   });
 
+  it("bấm tuần / giai đoạn mở màn lịch 12 tuần", async () => {
+    const onOpen = vi.fn();
+    render(<GlowUpCard today={MONDAY} checkins={[]} workouts={[]} onLogWorkout={vi.fn()} onEditWorkout={vi.fn()} onOpenSchedule={onOpen} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Tuần 1 · Nền tảng ›" }));
+    expect(onOpen).toHaveBeenCalled();
+  });
+
   it("buổi đã ghi hiện trong thẻ, bấm để sửa", async () => {
     const onEdit = vi.fn();
     const w: Workout = { id: "w1", date: MONDAY, startTime: "07:15", session: "gym_A", minutes: 60 };
-    render(<GlowUpCard today={MONDAY} checkins={[]} workouts={[w]} onLogWorkout={vi.fn()} onEditWorkout={onEdit} />);
+    render(<GlowUpCard today={MONDAY} checkins={[]} workouts={[w]} onLogWorkout={vi.fn()} onEditWorkout={onEdit} onOpenSchedule={vi.fn()} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sửa buổi Gym A 07:15" }));
     expect(onEdit).toHaveBeenCalledWith(w);
   });
@@ -137,7 +144,7 @@ describe("WorkoutForm", () => {
 
 describe("Cân sáng trong thẻ Glow-up", () => {
   const renderCard = () =>
-    render(<GlowUpCard today={MONDAY} checkins={[]} workouts={[]} onLogWorkout={vi.fn()} onEditWorkout={vi.fn()} />);
+    render(<GlowUpCard today={MONDAY} checkins={[]} workouts={[]} onLogWorkout={vi.fn()} onEditWorkout={vi.fn()} onOpenSchedule={vi.fn()} />);
 
   it("lưu số kg dấu phẩy khi rời ô", async () => {
     renderCard();

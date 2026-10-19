@@ -32,7 +32,7 @@ export default function SettingsScreen({
   onOpen,
 }: {
   /** Mở một màn con trong "Công cụ khác" (Đợt 2: Dự đoán, Thí nghiệm). */
-  onOpen: (view: "predictions" | "experiments") => void;
+  onOpen: (view: "predictions" | "experiments" | "glowup") => void;
 }) {
   const demo = isDemoMode();
 
@@ -195,6 +195,22 @@ export default function SettingsScreen({
       {/* ================= Công cụ khác (Đợt 2) =================
           Dự đoán và Thí nghiệm không còn là trọng tâm (PRODUCT.md mục 8) nhưng
           dữ liệu giữ nguyên, vẫn mở và dùng được, vẫn nằm trong sao lưu. */}
+      {/* Glow-up 12 tuần (PRODUCT.md mục 10): lối vào thứ hai, vẫn mở được khi
+          thẻ trên Hôm nay đã ẩn (trước 19/10/2026 hoặc sau 10/01/2027). */}
+      <ListGroup label="Glow-up">
+        <ListRow
+          label="Glow-up 12 tuần"
+          description="Lịch tập, số đo, mọi buổi tập đã ghi"
+          value={
+            <>
+              <span className="font-num">{workoutCount}</span> buổi tập
+            </>
+          }
+          onClick={() => onOpen("glowup")}
+          chevron
+        />
+      </ListGroup>
+
       <ListGroup label="Công cụ khác">
         <ListRow
           label="Dự đoán"

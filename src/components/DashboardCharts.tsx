@@ -27,6 +27,7 @@ import type { ErrorType } from "../lib/ielts";
 import { formatBand } from "../lib/ielts";
 import { areaColor } from "../lib/areaColors";
 import { uiScaleFactor } from "../lib/uiScale";
+import type { BodyWeekPoint } from "../lib/glowUp";
 
 /** Bảng màu cho các area. Lặp lại nếu có nhiều area hơn số màu. */
 /* Màu area lấy từ lib/areaColors.ts — mỗi area một màu cố định trên mọi màn hình. */
@@ -321,6 +322,74 @@ export function AnchorWeeksChart({ points, target }: { points: IeltsWeekPoint[];
           />
           <Bar dataKey="anchorDays" name="Giữ khung 9:30" fill="var(--accent)" radius={[3, 3, 0, 0]} />
         </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/* ==================== Glow-up: cân / vòng bụng (G4) ==================== */
+
+/** 70.4 -> "70,4". */
+const vnNum = (n: number) => String(n).replace(".", ",");
+
+/**
+ * Cân trung bình HOẶC vòng bụng theo 12 tuần — hai biểu đồ riêng, KHÔNG gộp
+ * một biểu đồ hai trục (hai đơn vị khác nhau, gộp lại là đọc sai).
+ * Đường = số check-in Chủ nhật (tuần thiếu thì nối qua, không kéo về 0).
+ * Chấm tròn rỗng = mốc tuần 4 / 8 / 12, tính từ số tuần 1.
+ */
+export function BodyChart({ points, kind }: { points: BodyWeekPoint[]; kind: "weight" | "waist" }) {
+  const value = kind === "weight" ? "weightKg" : "waistCm";
+  const target = kind === "weight" ? "targetWeightKg" : "targetWaistCm";
+  const unit = kind === "weight" ? "kg" : "cm";
+  const name = kind === "weight" ? "Cân trung bình" : "Vòng bụng";
+  if (points.every((p) => p[value] === null)) return <NoData />;
+
+  return (
+    <div className="h-52 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={points} margin={{ top: 16, right: 14, bottom: 0, left: 0 }}>
+          <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="label" tick={axis()} interval={0} />
+          {/* Trục không bắt đầu từ 0: thay đổi vài kg mới nhìn thấy được. */}
+          <YAxis
+            tick={axis()}
+            width={px(40)}
+            domain={[(min: number) => Math.floor(min - 1), (max: number) => Math.ceil(max + 1)]}
+            allowDecimals={false}
+            tickFormatter={(v: number) => vnNum(v)}
+          />
+          <Tooltip
+            labelFormatter={(v) => `Tuần ${String(v).slice(1)}`}
+            formatter={(v, key) => [`${vnNum(Number(v))} ${unit}`, key === target ? "Mốc" : name]}
+            contentStyle={tooltipStyle()}
+          />
+          {/* itemSorter null: giữ thứ tự khai báo (số đo trước, mốc sau) ở CẢ HAI biểu
+              đồ. Mặc định Recharts xếp theo vần nên hai biểu đồ bị đảo thứ tự. */}
+          <Legend wrapperStyle={{ fontSize: px(12) }} formatter={legendText} itemSorter={null} />
+          <Line
+            type="monotone"
+            dataKey={value}
+            name={name}
+            stroke="var(--chart-1)"
+            strokeWidth={2}
+            connectNulls
+            dot={{ r: 4, fill: "var(--chart-1)", stroke: "var(--surface)", strokeWidth: 2 }}
+            isAnimationActive={false}
+          />
+          {/* Chỉ có chấm, không có đường: mốc là đích, không phải dữ liệu đo. */}
+          <Line
+            dataKey={target}
+            name="Mốc (so với tuần 1)"
+            // Có màu để chú thích hiện được biểu tượng, nhưng nét dày 0 nên không vẽ đường.
+            stroke="var(--ink-2)"
+            strokeWidth={0}
+            legendType="circle"
+            dot={{ r: 5, fill: "var(--surface)", stroke: "var(--ink-2)", strokeWidth: 2 }}
+            activeDot={{ r: 6 }}
+            isAnimationActive={false}
+          />
+        </LineChart>
       </ResponsiveContainer>
     </div>
   );

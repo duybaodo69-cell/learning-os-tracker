@@ -293,10 +293,10 @@ Work on **one phase at a time**, in order. Do not build a later phase early.
       planning (replaces the 3-question weekly review), deadlines, cards with a source,
       "Sao chép prompt chấm Writing".
 - [x] **"Mặt hồ đêm" redesign (2026-09-29)** — navy + water gradients (DESIGN.md), both themes.
-- [x] **Glow-up G0–G3 (2026-10-19)** — `docs/PRODUCT.md` mục 10, Dexie v11 (3 tables), daily
+- [x] **Glow-up G0–G4 (2026-10-19)** — `docs/PRODUCT.md` mục 10, Dexie v11 (3 tables), daily
       checklist card on Hôm nay, workout log with prefilled sets + load suggestion, morning
-      weigh-in + Sunday check-in (average, waist, photo tick, vs week 1, adjust hints).
-- [ ] **Glow-up next:** G4 12-week schedule screen + weight/waist chart (before week 4, 9/11).
+      weigh-in + Sunday check-in (average, waist, photo tick, vs week 1, adjust hints),
+      "Glow-up 12 tuần" screen (schedule, weight/waist charts + table, all workouts).
 - [ ] **Next:** use it until thi thử 1 (15/11); after the 12/12 gate use the "Khi cần điều
       chỉnh kế hoạch" prompt in `docs/PROMPTS.md`.
 - [ ] Remaining: Phase 6 (later) — Claude weekly-analysis export.
@@ -338,7 +338,8 @@ src/
     IeltsSessionFields.tsx  # IELTS part of the block/finish form (area IELTS only)
     MockTestView.tsx   # IELTS tab → Thi thử: mock-test form + history
   screens/             # one file per tab (IeltsScreen = tab 3), FocusSession.tsx (timer),
-                       # PredictionsScreen / ExperimentsScreen (Cài đặt sub-screens)
+                       # PredictionsScreen / ExperimentsScreen (Cài đặt sub-screens),
+                       # GlowUpScreen (sub-screen of Hôm nay AND Cài đặt)
   config/
     schedule.ts        # EDIT HERE to change mock-test / exam dates and the baseline window
     glowUp.ts          # EDIT HERE: Glow-up 12 weeks, sleep ramp, targets, gym exercises (no body data)
@@ -374,7 +375,8 @@ src/
     cardSources.ts     # card sources, filters, quick card builder (tested)
     writingPrompt.ts   # the Writing grading prompt + clipboard helper
     glowUp.ts          # Glow-up: program week, day plan, sleep check, checklist, x/7, load
-                       # suggestion, set prefill, weekly average, adjust hints, vs week 1 (tested)
+                       # suggestion, set prefill, weekly average, adjust hints, vs week 1,
+                       # 12-week body series, met days per week (tested)
     glowUpDb.ts        # patchGlowDay: read-modify-write one day's checklist in a transaction
   config/cloud.ts      # Dexie Cloud database URLs (dev + prod; not secret)
   config/backgrounds.ts  # focus-session background presets + source/licence of each
@@ -771,7 +773,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 - **Not built (Đợt 2/3):** IELTS tab, countdown, "dời khung", error-trend charts, IELTS
   hours/week chart, cards from IELTS errors.
 
-### Glow-up G0–G3 (2026-10-19) — rules to keep
+### Glow-up G0–G4 (2026-10-19) — rules to keep
 
 - **Source of truth is `docs/PRODUCT.md` mục 10** (owner's answers 2026-10-19). The owner's
   plan file (`glow-up.json`) is NOT in the repo: it holds age/weight/waist and the built app is
@@ -817,6 +819,23 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   hints (`adjustHints`, live while typing): (1) loss < 0.2 kg in BOTH of the last two weeks,
   needs three consecutive weekly numbers; (2) from week 3, loss > 1 kg vs last week. Missing
   numbers → no hint. Differences are rounded to 0.1 before comparing.
+- **G4 screen** (`GlowUpScreen`, Segmented Lịch / Số đo / Buổi tập): opened from the card's
+  "Tuần x · … ›" button (`todayView` in App.tsx, back "‹ Hôm nay") and from Cài đặt → Glow-up
+  (`settingsView "glowup"`, back "‹ Cài đặt"), so it stays reachable before/after the 12 weeks
+  when the card is hidden. Tapping the Hôm nay tab returns to the main Today screen.
+  - Lịch: this week day by day (today highlighted, "đã tập" tag, gym exercises behind
+    `<details>`, deload sets) + the 12 weeks: checkpoint, relative milestone, and for past /
+    current weeks "Đạt x/7 ngày" (`weekMetCount`, future weeks null) + that week's check-in.
+  - Số đo: `bodySeries` = 12 points; missing weeks are null (line connects across, never 0);
+    targets = week-1 number + relative milestone, null without a week-1 number. Weight and
+    waist are TWO charts (`BodyChart` in DashboardCharts.tsx, same lazy Recharts chunk), never
+    one chart with two axes. Y axis does not start at 0 (a few kg must be visible). Milestones
+    are hollow dots with no line (stroke width 0 so the legend still has an icon);
+    `itemSorter={null}` keeps the legend order the same in both charts. A table under the
+    charts has the same numbers.
+  - Buổi tập: every workout newest first, 20 per "Xem thêm"; tap → the same WorkoutForm (keeps
+    the workout's date); delete inside the form through ConfirmDialog. This is the only place
+    to fix a workout from an earlier day.
 - **Backup / sync:** `glowDays`, `workouts`, `bodyCheckins` are backup tables (TABLE_NAMES,
   ROW_RULES, UNIQUE_FIELD by date / id / weekStart, PRIMARY_KEY) and seeded in demo data. Old
   files import with the three tables empty.
@@ -826,7 +845,9 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
   workout appears in the card. The kg box was 26px wide at 390 × 150% → set rows now wrap.
   G3 at a faked Sunday 25/10 (Playwright clock): weigh-in → check-in prefilled with the week's
   average → saved → collapsed row shows "kg · cm · bấm để sửa", same 24-view matrix clean.
-  Not verified on a phone.
+  G4 at a faked 15/12/2026 (week 9, demo check-ins for weeks 1–8): Lịch / Số đo / Buổi tập /
+  edit form × the same 12 combinations = 48 views, no page overflow, no control under 44px, no
+  text under 12px, no page errors, back returns to Hôm nay. Not verified on a phone.
 
 ### YouPass tests (2026-10-04) — rules to keep
 
@@ -1056,7 +1077,7 @@ public/backgrounds/    # 9 MP4 loops + posters/thumbs + CREDITS.md (licences)
 npm run dev -- --host   # dev server, reachable from the phone on the same Wi-Fi
 npm run build           # lint + tests + type-check + production build (Cloudflare runs this)
 npm run build:only      # type-check + production build, skipping lint/tests (local only)
-npm test                # unit tests (716: lib/ logic, db upgrade, hooks, components, worker)
+npm test                # unit tests (723: lib/ logic, db upgrade, hooks, components, worker)
 npm run lint            # oxlint
 npm run preview         # preview the production build
 ```

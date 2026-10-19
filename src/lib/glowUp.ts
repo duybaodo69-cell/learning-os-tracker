@@ -415,3 +415,55 @@ export function startComparison(
     milestone: programWeek(weekStart)?.milestone,
   };
 }
+
+/* ==================== Màn lịch 12 tuần + biểu đồ (G4) ==================== */
+
+export type BodyWeekPoint = {
+  week: number;
+  weekStart: string;
+  /** Nhãn trục ngang: "T1" ... "T12". */
+  label: string;
+  /** Số đã check-in. Tuần chưa check-in: null (đường nối qua, không về 0). */
+  weightKg: number | null;
+  waistCm: number | null;
+  /** Mốc của tuần 4 / 8 / 12 = số tuần 1 + mốc tương đối. Chưa có số tuần 1: null. */
+  targetWeightKg: number | null;
+  targetWaistCm: number | null;
+};
+
+/** 12 điểm cho biểu đồ cân / vòng bụng và bảng số đo (PRODUCT.md mục 10, "Mốc"). */
+export function bodySeries(checkins: BodyCheckin[]): BodyWeekPoint[] {
+  const byWeek = new Map(checkins.map((c) => [c.weekStart, c]));
+  const base = byWeek.get(GLOW_START);
+  // Cộng mốc tương đối vào số gốc, làm tròn 0,1 (78 + -5.5 = 72.5).
+  const target = (baseValue: number | undefined, delta: number | undefined) =>
+    baseValue === undefined || delta === undefined ? null : Math.round((baseValue + delta) * 10) / 10;
+  return WEEKS.map((w) => {
+    const c = byWeek.get(w.start);
+    return {
+      week: w.week,
+      weekStart: w.start,
+      label: `T${w.week}`,
+      weightKg: c?.avgWeightKg ?? null,
+      waistCm: c?.waistCm ?? null,
+      targetWeightKg: target(base?.avgWeightKg, w.milestone?.weightKg),
+      targetWaistCm: target(base?.waistCm, w.milestone?.waistCm),
+    };
+  });
+}
+
+/**
+ * Số ngày đạt Glow-up của một tuần (đếm tới hôm nay nếu là tuần đang chạy).
+ * Tuần chưa tới: null — không phải 0, vì chưa có gì để đếm.
+ */
+export function weekMetCount(
+  weekStart: string,
+  today: string,
+  days: GlowDay[],
+  checkins: DailyCheckin[],
+  workouts: Workout[]
+): number | null {
+  if (weekStart > today) return null;
+  const sunday = addDays(weekStart, 6);
+  return glowWeek(sunday < today ? sunday : today, days, checkins, workouts).filter((d) => d.met).length;
+}

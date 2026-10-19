@@ -1,7 +1,8 @@
 /**
  * Thẻ "Glow-up" trên màn Hôm nay (PRODUCT.md mục 10).
  *
- *   - Tuần mấy, giai đoạn; buổi tập theo lịch hôm nay + các buổi đã ghi
+ *   - Tuần mấy, giai đoạn (bấm để mở màn "Glow-up 12 tuần"); buổi tập theo lịch
+ *     hôm nay + các buổi đã ghi
  *   - Checklist: mỗi mục MỘT chạm, lưu ngay (không có nút Lưu)
  *       ngủ: tự lấy từ check-in sáng · nước / protein / xơ: nút − + ·
  *       bước chân: một ô số · 3 mục đánh dấu · buổi tập: tự tích khi đã ghi
@@ -229,6 +230,7 @@ export default function GlowUpCard({
   workouts,
   onLogWorkout,
   onEditWorkout,
+  onOpenSchedule,
 }: {
   today: string;
   /** Mọi check-in (mục ngủ của từng ngày trong tuần). */
@@ -237,6 +239,8 @@ export default function GlowUpCard({
   workouts: Workout[];
   onLogWorkout: () => void;
   onEditWorkout: (w: Workout) => void;
+  /** Mở màn "Glow-up 12 tuần". */
+  onOpenSchedule: () => void;
 }) {
   const week = programWeek(today);
   const days = useLiveQuery(() => db.glowDays.toArray(), [], [] as GlowDay[]);
@@ -261,12 +265,19 @@ export default function GlowUpCard({
 
   return (
     <Card className="mb-3">
-      <div className="mb-2 flex items-baseline justify-between gap-3">
+      <div className="mb-1 flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
           <span className="h-2 w-2 shrink-0 rounded-full bg-good" aria-hidden="true" />
           Glow-up
         </h2>
-        <span className="text-xs text-ink-2">{weekTitle(week)}</span>
+        {/* Tuần + giai đoạn cũng là lối vào màn lịch 12 tuần / số đo (G4). */}
+        <button
+          type="button"
+          onClick={onOpenSchedule}
+          className="tap-target -mr-2 flex shrink-0 items-center rounded-lg px-2 text-xs font-semibold text-accent active:bg-surface-2"
+        >
+          {weekTitle(week)} ›
+        </button>
       </div>
       <p className="text-xs text-ink-3">{week.focus}</p>
 
