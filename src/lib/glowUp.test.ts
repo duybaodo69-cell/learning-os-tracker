@@ -7,9 +7,11 @@ import {
   adapaleneTonight,
   adjustHints,
   averageWeight,
+  bodySeries,
   checkinWeekToAsk,
   isPhotoWeek,
   startComparison,
+  weekMetCount,
   weekSessionCounts,
   weekWeighIns,
   dayChecklist,
@@ -425,5 +427,37 @@ describe("check-in Chủ nhật (G3)", () => {
     });
     expect(startComparison(saved, "2026-10-19", 78, 98)).toBeNull(); // chính tuần 1
     expect(startComparison([], "2026-11-09", 76, 96)).toBeNull(); // chưa có tuần 1
+  });
+});
+
+describe("màn lịch 12 tuần (G4)", () => {
+  const body = (weekStart: string, avgWeightKg?: number, waistCm?: number): BodyCheckin => ({
+    id: `#${weekStart}`,
+    weekStart,
+    avgWeightKg,
+    waistCm,
+  });
+
+  it("12 điểm, tuần chưa check-in là null, mốc = số tuần 1 + mốc tương đối", () => {
+    const s = bodySeries([body("2026-10-19", 78, 98), body("2026-11-09", 76.4)]);
+    expect(s).toHaveLength(12);
+    expect(s[0]).toMatchObject({ label: "T1", weightKg: 78, waistCm: 98, targetWeightKg: null });
+    expect(s[1]).toMatchObject({ weightKg: null, waistCm: null });
+    expect(s[3]).toMatchObject({ weightKg: 76.4, waistCm: null, targetWeightKg: 76, targetWaistCm: 96 });
+    expect(s[7]).toMatchObject({ targetWeightKg: 74, targetWaistCm: 94 });
+    expect(s[11]).toMatchObject({ targetWeightKg: 72.5, targetWaistCm: 92 });
+  });
+
+  it("chưa có số tuần 1 (hoặc thiếu vòng bụng tuần 1): không vẽ mốc", () => {
+    expect(bodySeries([]).every((p) => p.targetWeightKg === null && p.targetWaistCm === null)).toBe(true);
+    const s = bodySeries([body("2026-10-19", 78)]);
+    expect(s[3]).toMatchObject({ targetWeightKg: 76, targetWaistCm: null });
+  });
+
+  it("ngày đạt mỗi tuần: tuần qua đếm đủ 7 ngày, tuần này tới hôm nay, tuần tới null", () => {
+    const days = ["2026-10-19", "2026-10-21", "2026-10-25", "2026-10-26"].map(fullDay);
+    expect(weekMetCount("2026-10-19", "2026-10-27", days, [], [])).toBe(3);
+    expect(weekMetCount("2026-10-26", "2026-10-27", days, [], [])).toBe(1);
+    expect(weekMetCount("2026-11-02", "2026-10-27", days, [], [])).toBeNull();
   });
 });

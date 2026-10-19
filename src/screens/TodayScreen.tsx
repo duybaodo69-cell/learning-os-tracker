@@ -67,11 +67,14 @@ import type { ReviewView } from "./ReviewScreen";
 export default function TodayScreen({
   onNavigate,
   onStartTimer,
+  onOpenGlowUp,
 }: {
   /** Chuyển sang tab khác, kèm mục con — dùng cho nút tắt Brain dump. */
   onNavigate: (tab: TabId, view?: ReviewView) => void;
   /** Bắt đầu phiên tập trung — App sẽ chuyển sang màn hình phiên. */
   onStartTimer: () => void;
+  /** Mở màn "Glow-up 12 tuần" (lịch, số đo, mọi buổi tập). */
+  onOpenGlowUp: () => void;
 }) {
   // Hook tự tính lại ngày khi qua nửa đêm — xem lib/useToday.ts.
   const today = useToday();
@@ -440,6 +443,7 @@ export default function TodayScreen({
               workouts={allWorkouts}
               onLogWorkout={() => setWorkoutForm({ editing: null })}
               onEditWorkout={(w) => setWorkoutForm({ editing: w })}
+              onOpenSchedule={onOpenGlowUp}
             />
           </>
         )

@@ -14,7 +14,7 @@ import { newId } from "../lib/dates";
 import { START_EASE, addDays } from "../lib/scheduling";
 import { experimentTagKey, mondayOf } from "../lib/metrics";
 import { FIRST_POSITION, defaultQuestions, positionAfter, type TestPosition } from "../lib/ielts";
-import { GYM, WEEK_TEMPLATE } from "../config/glowUp";
+import { GYM, WEEKS, WEEK_TEMPLATE } from "../config/glowUp";
 import { weekdayIndex } from "../lib/glowUp";
 
 /** Trừ đi n ngày từ một chuỗi "YYYY-MM-DD". */
@@ -475,12 +475,16 @@ async function loadGlowUpDemo(today: string): Promise<void> {
       note: i === 2 ? "[MẪU] chân hơi nặng" : undefined,
     });
   }
-  const checkins: BodyCheckin[] = [2, 1].map((weeksAgo) => ({
-    id: bodyCheckinId(mondayOf(minusDays(today, weeksAgo * 7))),
-    weekStart: mondayOf(minusDays(today, weeksAgo * 7)),
-    avgWeightKg: 70 - (2 - weeksAgo) * 0.4,
-    waistCm: 85 - (2 - weeksAgo) * 0.5,
-    photoTaken: weeksAgo === 2,
+  // Check-in Chủ nhật mẫu: mọi tuần của chương trình đã qua Chủ nhật (để màn
+  // "Số đo" có số tuần 1 và mốc). Trước chương trình: hai tuần gần nhất.
+  const pastWeeks = WEEKS.filter((w) => addDays(w.start, 6) < today).map((w) => w.start);
+  const weekStarts = pastWeeks.length > 0 ? pastWeeks : [14, 7].map((d) => mondayOf(minusDays(today, d)));
+  const checkins: BodyCheckin[] = weekStarts.map((weekStart, i) => ({
+    id: bodyCheckinId(weekStart),
+    weekStart,
+    avgWeightKg: Math.round((70 - i * 0.4) * 10) / 10,
+    waistCm: Math.round((85 - i * 0.4) * 10) / 10,
+    photoTaken: i === 0,
     note: "[MẪU] số đo giả",
   }));
   await db.glowDays.bulkPut(days);

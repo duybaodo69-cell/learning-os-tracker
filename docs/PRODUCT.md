@@ -257,3 +257,8 @@ chỉ đánh dấu đã chụp.
 
 **Thứ tự build:** G1 checklist + Hôm nay → G2 ghi buổi tập → G3 check-in Chủ nhật (trước 25/10)
 → G4 màn lịch 12 tuần + biểu đồ cân / vòng bụng (trước tuần 4).
+
+**Màn "Glow-up 12 tuần" (G4)** — mở từ "Tuần x · … ›" trên thẻ Glow-up hoặc Cài đặt → Glow-up:
+**Lịch** (tuần này từng ngày + bài gym; 12 tuần với mốc, số ngày đạt, số check-in), **Số đo** (cân và
+vòng bụng là hai biểu đồ riêng, chấm rỗng = mốc tuần 4 · 8 · 12, kèm bảng số), **Buổi tập** (mọi
+buổi đã ghi, sửa / xoá buổi của ngày cũ — xoá phải xác nhận).
