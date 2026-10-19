@@ -447,7 +447,8 @@ async function loadGlowUpDemo(today: string): Promise<void> {
       noSugaryDrinks: i % 4 !== 0,
       skincareAm: true,
       skincarePm: i % 3 !== 0,
-      weightKg: i % 2 === 0 ? 70 - (13 - i) * 0.08 : undefined,
+      // Cân kiểu cân điện tử: một chữ số thập phân.
+      weightKg: i % 2 === 0 ? Math.round((70 - (13 - i) * 0.08) * 10) / 10 : undefined,
     });
     const session = WEEK_TEMPLATE[weekdayIndex(date)].session;
     if (session === "rest" || i % 6 === 0) continue; // thỉnh thoảng bỏ một buổi

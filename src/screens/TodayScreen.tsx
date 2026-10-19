@@ -9,7 +9,8 @@
  *       nếu chưa có phiên IELTS: "dời sang lúc nào?" (Đợt 2)
  *   3. "Bắt đầu phiên deep work": area (một hàng vuốt ngang) + nút đếm
  *   4. Check-in đã có: một dòng tóm tắt
- *   4b. Glow-up (PRODUCT.md mục 10): checklist + buổi tập hôm nay; form ghi buổi tập
+ *   4b. Glow-up (PRODUCT.md mục 10): check-in Chủ nhật (G3), checklist + buổi tập
+ *       hôm nay; form ghi buổi tập
  *   5. Tổng deep work hôm nay + thanh chia theo area
  *   6. Danh sách block đã log (bấm để sửa; nút xoá nằm trong form sửa)
  *   7. Thí nghiệm hôm nay, dòng nhắc sao lưu
@@ -20,7 +21,18 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 import { db, isDemoMode } from "../db/db";
 import { anchorDelayId, checkinId, weekReviewId } from "../db/keys";
-import type { AnchorDelay, DailyCheckin, Experiment, ExperimentTag, FocusBlock, ReviewLog, WeeklyReview, Workout } from "../db/types";
+import type {
+  AnchorDelay,
+  BodyCheckin,
+  DailyCheckin,
+  Experiment,
+  ExperimentTag,
+  FocusBlock,
+  GlowDay,
+  ReviewLog,
+  WeeklyReview,
+  Workout,
+} from "../db/types";
 import { formatDayLabel, formatMinutes, todayISO, yesterdayISO } from "../lib/dates";
 import { useNowHHmm, useToday } from "../lib/useToday";
 import { isSunday, mondayOf } from "../lib/metrics";
@@ -45,6 +57,8 @@ import { Button, Card, ChipGroup, Notice, SectionLabel, Tag } from "../component
 import WeeklyReviewCard, { ThisWeekChange } from "../components/WeeklyReviewCard";
 import ExperimentChip from "../components/ExperimentChip";
 import GlowUpCard from "../components/GlowUpCard";
+import BodyCheckinCard from "../components/BodyCheckinCard";
+import { checkinWeekToAsk } from "../lib/glowUp";
 import WorkoutForm from "../components/WorkoutForm";
 import { SESSION_LABELS } from "../config/glowUp";
 import type { TabId } from "../components/AppNav";
@@ -144,6 +158,10 @@ export default function TodayScreen({
   // Đang mở một form (block hoặc buổi tập): ẩn các thẻ hành động khác, để màn
   // hình chỉ có MỘT nút tô màu đầy là nút Lưu của form.
   const formOpen = blockFormOpen || workoutForm !== null;
+  /* Glow-up G3: check-in Chủ nhật (Thứ Hai hỏi bù tuần trước nếu còn thiếu). */
+  const bodyCheckins = useLiveQuery(() => db.bodyCheckins.toArray(), [], [] as BodyCheckin[]);
+  const glowDays = useLiveQuery(() => db.glowDays.toArray(), [], [] as GlowDay[]);
+  const bodyWeek = checkinWeekToAsk(today, bodyCheckins);
   /** Lối tắt IELTS: chọn sẵn area IELTS rồi chạy CHÍNH đồng hồ phiên như thường. */
   function startIelts() {
     setTimerArea("IELTS");
@@ -401,13 +419,29 @@ export default function TodayScreen({
         </Card>
       ) : (
         !blockFormOpen && (
-          <GlowUpCard
-            today={today}
-            checkins={allCheckins}
-            workouts={allWorkouts}
-            onLogWorkout={() => setWorkoutForm({ editing: null })}
-            onEditWorkout={(w) => setWorkoutForm({ editing: w })}
-          />
+          <>
+            {bodyWeek && (
+              <BodyCheckinCard
+                // key theo tuần: sang tuần khác thì form bắt đầu lại từ đầu.
+                key={bodyWeek}
+                weekStart={bodyWeek}
+                existing={bodyCheckins.find((c) => c.weekStart === bodyWeek)}
+                checkins={bodyCheckins}
+                days={glowDays}
+                workouts={allWorkouts}
+                onSave={async (c) => {
+                  await db.bodyCheckins.put(c);
+                }}
+              />
+            )}
+            <GlowUpCard
+              today={today}
+              checkins={allCheckins}
+              workouts={allWorkouts}
+              onLogWorkout={() => setWorkoutForm({ editing: null })}
+              onEditWorkout={(w) => setWorkoutForm({ editing: w })}
+            />
+          </>
         )
       )}
 

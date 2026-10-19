@@ -5,6 +5,7 @@
  *   - Checklist: mỗi mục MỘT chạm, lưu ngay (không có nút Lưu)
  *       ngủ: tự lấy từ check-in sáng · nước / protein / xơ: nút − + ·
  *       bước chân: một ô số · 3 mục đánh dấu · buổi tập: tự tích khi đã ghi
+ *   - Cân sáng (tuỳ chọn, KHÔNG tính vào 9 mục): check-in Chủ nhật lấy trung bình (G3)
  *   - "Đạt Glow-up: x/7 tuần này" + 7 chấm (đếm ngày, không đếm chuỗi)
  *
  * Không có nút tô màu đầy: nút chính của Hôm nay vẫn là "Bắt đầu IELTS".
@@ -12,7 +13,7 @@
  */
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { CHECKLIST_STEPS, DAILY_TARGETS, DAY_MET_MIN, SESSION_LABELS } from "../config/glowUp";
+import { CHECKLIST_STEPS, DAILY_TARGETS, DAY_MET_MIN, SESSION_LABELS, WEIGHT_RANGE_KG } from "../config/glowUp";
 import { db } from "../db/db";
 import type { DailyCheckin, GlowDay, Workout } from "../db/types";
 import { formatMinutes } from "../lib/dates";
@@ -20,15 +21,19 @@ import { patchGlowDay } from "../lib/glowUpDb";
 import {
   adapaleneTonight,
   dayChecklist,
+  formatKg,
   glowWeek,
+  parseDecimal,
   planFor,
   programWeek,
   sleepCheck,
   stepValue,
   waterTarget,
   weekTitle,
+  weekWeighIns,
   type ChecklistId,
 } from "../lib/glowUp";
+import { mondayOf } from "../lib/metrics";
 import { Button, Card } from "./ui";
 
 const WEEKDAY_SHORT = ["2", "3", "4", "5", "6", "7", "CN"];
@@ -158,6 +163,63 @@ function StepsRow({ date, value, done }: { date: string; value: number | undefin
         className="tap-target w-28 shrink-0 rounded-xl border border-line bg-surface-2 px-3 text-right font-num text-ink"
       />
     </li>
+  );
+}
+
+/**
+ * Cân sáng (tuỳ chọn): sau khi đi vệ sinh, trước khi ăn, 3 sáng mỗi tuần.
+ * Lưu khi rời ô; số ngoài 30–250 kg (gõ nhầm) thì không lưu và báo ngay dưới ô.
+ * Xoá trống ô = bỏ lần cân của ngày này. `key` như ô bước chân.
+ */
+function WeightRow({ date, value, weekCount }: { date: string; value: number | undefined; weekCount: number }) {
+  const [text, setText] = useState(value === undefined ? "" : formatKg(value));
+  const [error, setError] = useState<string | null>(null);
+
+  function save() {
+    const kg = parseDecimal(text);
+    if (kg !== null && (Number.isNaN(kg) || kg < WEIGHT_RANGE_KG.min || kg > WEIGHT_RANGE_KG.max)) {
+      setError("Nhập số kg, ví dụ 70,4.");
+      return;
+    }
+    setError(null);
+    if ((kg ?? undefined) === value) return;
+    void patchGlowDay(date, () => ({ weightKg: kg ?? undefined }));
+  }
+
+  return (
+    <div className="border-t border-line/70 py-1.5">
+      <div className="flex min-h-[52px] items-center gap-3">
+        {/* Không có vòng ✓: cân không phải một mục của checklist. */}
+        <span aria-hidden="true" className="w-6 shrink-0 text-center text-xs text-ink-3">
+          kg
+        </span>
+        <label htmlFor={`weight-${date}`} className="min-w-0 flex-1 text-sm text-ink">
+          Cân sáng <span className="text-ink-3">(tuỳ chọn)</span>
+          <span className="block text-xs text-ink-3">
+            3 sáng/tuần · tuần này <span className="font-num">{weekCount}</span> lần
+          </span>
+        </label>
+        <input
+          id={`weight-${date}`}
+          type="text"
+          inputMode="decimal"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
+          placeholder="—"
+          aria-invalid={error !== null}
+          className="tap-target w-28 shrink-0 rounded-xl border border-line bg-surface-2 px-3 text-right font-num text-ink"
+        />
+      </div>
+      {error && (
+        <p role="alert" className="text-right text-sm text-bad-ink">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -311,6 +373,12 @@ export default function GlowUpCard({
           onToggle={toggle("skincarePm")}
         />
       </ul>
+      <WeightRow
+        key={`${today}:${day?.weightKg ?? ""}`}
+        date={today}
+        value={day?.weightKg}
+        weekCount={weekWeighIns(days, mondayOf(today)).length}
+      />
 
       {/* ----- Đếm ngày đạt trong tuần ----- */}
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-line/70 pt-3">

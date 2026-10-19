@@ -243,7 +243,8 @@ hiệp đạt đỉnh số lần thì gợi ý +2,5 kg (thân trên) / +5 kg (ch
 
 **Check-in Chủ nhật:** cân trung bình (cân sáng 3 ngày/tuần, app tự tính, sửa được), vòng bụng,
 "đã chụp ảnh" (tuần 1 · 4 · 8 · 12), ghi chú. Số buổi gym / chạy tự đếm. Hai luật điều chỉnh của
-kế hoạch hiện thành một dòng gợi ý.
+kế hoạch hiện thành một dòng gợi ý. Lỡ Chủ nhật thì **Thứ Hai vẫn hỏi bù** tuần trước. Ô "Cân sáng"
+nằm trong thẻ Glow-up hằng ngày nhưng **không tính** vào 9 mục checklist.
 
 **Mốc:** tính **tương đối** so với check-in tuần 1: tuần 4 −2 kg / −2 cm · tuần 8 −4 kg / −4 cm ·
 tuần 12 −5,5 kg / −6 cm. Ước tính ~0,5 kg/tuần, không phải lời khuyên y tế.

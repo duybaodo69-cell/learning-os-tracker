@@ -170,3 +170,20 @@ export const PHOTO_WEEKS = [1, 4, 8, 12];
 
 /** Adapalene: tuần 1..ALTERNATE_UNTIL_WEEK dùng cách đêm, sau đó mỗi tối. */
 export const ADAPALENE_ALTERNATE_UNTIL_WEEK = 2;
+
+/* ==================== Check-in Chủ nhật (G3) ==================== */
+
+/** Khoảng hợp lệ khi nhập số đo — ngoài khoảng này gần như chắc là gõ nhầm. */
+export const WEIGHT_RANGE_KG = { min: 30, max: 250 } as const;
+export const WAIST_RANGE_CM = { min: 40, max: 200 } as const;
+
+/** Hai luật điều chỉnh của kế hoạch (PRODUCT.md mục 10), hiện thành một dòng gợi ý. */
+export const ADJUST_RULES = {
+  /** Cân trung bình giảm DƯỚI mức này hai tuần liền (kg/tuần)... */
+  slowLossKg: 0.2,
+  slowLossAdvice: "Giảm một phần tư chén cơm bữa tối hoặc thêm 2.000 bước mỗi ngày.",
+  /** ...hoặc giảm TRÊN mức này trong một tuần, từ tuần 3 trở đi. */
+  fastLossKg: 1,
+  fastLossFromWeek: 3,
+  fastLossAdvice: "Ăn thêm khoảng 150 kcal mỗi ngày (nhất là nếu tạ tập đang tụt).",
+} as const;

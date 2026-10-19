@@ -1,10 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { GLOW_END, GLOW_START, GYM, PHOTO_WEEKS, SLEEP_RAMP, WEEKS, WEEK_TEMPLATE } from "../config/glowUp";
-import type { DailyCheckin, GlowDay, Workout, WorkoutSet } from "../db/types";
+import type { BodyCheckin, DailyCheckin, GlowDay, Workout, WorkoutSet } from "../db/types";
 import { daysUntil } from "./dates";
 import { addDays } from "./scheduling";
 import {
   adapaleneTonight,
+  adjustHints,
+  averageWeight,
+  checkinWeekToAsk,
+  isPhotoWeek,
+  startComparison,
+  weekSessionCounts,
+  weekWeighIns,
   dayChecklist,
   defaultReps,
   formatKg,
@@ -329,5 +336,94 @@ describe("tăng tạ", () => {
 describe("không lệch ngày theo múi giờ", () => {
   it("đếm ngày bằng chuỗi YYYY-MM-DD", () => {
     expect(daysUntil(GLOW_START, GLOW_END)).toBe(83);
+  });
+});
+
+describe("check-in Chủ nhật (G3)", () => {
+  const body = (weekStart: string, avgWeightKg?: number, waistCm?: number): BodyCheckin => ({
+    id: `#${weekStart}`,
+    weekStart,
+    avgWeightKg,
+    waistCm,
+  });
+
+  it("hỏi vào Chủ nhật; Thứ Hai hỏi bù tuần trước nếu chưa có", () => {
+    expect(checkinWeekToAsk("2026-10-25", [])).toBe("2026-10-19"); // CN tuần 1
+    expect(checkinWeekToAsk("2026-10-26", [])).toBe("2026-10-19"); // T2 tuần 2, bù tuần 1
+    expect(checkinWeekToAsk("2026-10-26", [body("2026-10-19", 70)])).toBeNull();
+    expect(checkinWeekToAsk("2026-10-21", [])).toBeNull(); // Thứ Tư
+    expect(checkinWeekToAsk("2026-10-19", [])).toBeNull(); // T2 đầu tiên: tuần trước ngoài chương trình
+    expect(checkinWeekToAsk("2026-10-18", [])).toBeNull(); // CN trước chương trình
+    expect(checkinWeekToAsk("2027-01-10", [])).toBe("2027-01-04"); // CN tuần 12
+    expect(checkinWeekToAsk("2027-01-11", [])).toBe("2027-01-04"); // T2 sau cùng, bù tuần 12
+    expect(checkinWeekToAsk("2027-01-17", [])).toBeNull();
+  });
+
+  it("lần cân trong tuần và trung bình làm tròn 0,1", () => {
+    const days: GlowDay[] = [
+      { id: "#2026-10-21", date: "2026-10-21", weightKg: 70.1 },
+      { id: "#2026-10-19", date: "2026-10-19", weightKg: 70.4 },
+      { id: "#2026-10-20", date: "2026-10-20", waterL: 1 },
+      { id: "#2026-10-26", date: "2026-10-26", weightKg: 69 }, // tuần sau
+    ];
+    expect(weekWeighIns(days, "2026-10-19")).toEqual([70.4, 70.1]);
+    expect(averageWeight([70.4, 70.1])).toBe(70.3); // 70.25 -> 70.3
+    expect(averageWeight([70.1, 70.2])).toBe(70.2); // 70.15 -> 70.2, không phải 70.1
+    expect(averageWeight([])).toBeNull();
+  });
+
+  it("đếm buổi gym / chạy trong tuần", () => {
+    const ws = [
+      workout("2026-10-19", "gym_A"),
+      workout("2026-10-20", "run_easy"),
+      workout("2026-10-25", "other"),
+      workout("2026-10-26", "gym_A"), // tuần sau
+    ];
+    expect(weekSessionCounts(ws, "2026-10-19")).toEqual({ gym: 1, run: 1 });
+  });
+
+  it("tuần chụp ảnh 1, 4, 8, 12", () => {
+    expect(isPhotoWeek("2026-10-19")).toBe(true);
+    expect(isPhotoWeek("2026-10-26")).toBe(false);
+    expect(isPhotoWeek("2026-11-09")).toBe(true);
+    expect(isPhotoWeek("2027-01-04")).toBe(true);
+  });
+
+  it("luật 1: giảm dưới 0,2 kg hai tuần liền", () => {
+    const saved = [body("2026-10-19", 78), body("2026-10-26", 77.9)];
+    // 78 -> 77,9 -> 77,8: mỗi tuần chỉ giảm 0,1.
+    expect(adjustHints(saved, "2026-11-02", 77.8)).toEqual([
+      "Giảm một phần tư chén cơm bữa tối hoặc thêm 2.000 bước mỗi ngày.",
+    ]);
+    // Giảm đúng 0,2 một tuần: không còn "dưới 0,2".
+    expect(adjustHints(saved, "2026-11-02", 77.7)).toEqual([]);
+    // Thiếu một tuần ở giữa: không kết luận.
+    expect(adjustHints([body("2026-10-19", 78)], "2026-11-02", 77.9)).toEqual([]);
+    // Chưa có số tuần này: không kết luận.
+    expect(adjustHints(saved, "2026-11-02", null)).toEqual([]);
+  });
+
+  it("luật 2: từ tuần 3, giảm trên 1 kg một tuần", () => {
+    expect(adjustHints([body("2026-10-26", 77)], "2026-11-02", 75.9)).toEqual([
+      "Ăn thêm khoảng 150 kcal mỗi ngày (nhất là nếu tạ tập đang tụt).",
+    ]);
+    expect(adjustHints([body("2026-10-26", 77)], "2026-11-02", 76)).toEqual([]); // đúng 1 kg
+    expect(adjustHints([body("2026-10-19", 78)], "2026-10-26", 76.5)).toEqual([]); // tuần 2: chưa áp dụng
+  });
+
+  it("so với tuần 1, kèm mốc tuần 4", () => {
+    const saved = [body("2026-10-19", 78, 98)];
+    expect(startComparison(saved, "2026-11-09", 76.2, 96.5)).toEqual({
+      weightKg: -1.8,
+      waistCm: -1.5,
+      milestone: { weightKg: -2, waistCm: -2 },
+    });
+    expect(startComparison(saved, "2026-10-26", 77.6, null)).toEqual({
+      weightKg: -0.4,
+      waistCm: null,
+      milestone: undefined,
+    });
+    expect(startComparison(saved, "2026-10-19", 78, 98)).toBeNull(); // chính tuần 1
+    expect(startComparison([], "2026-11-09", 76, 96)).toBeNull(); // chưa có tuần 1
   });
 });

@@ -8,10 +8,12 @@
  */
 import {
   ADAPALENE_ALTERNATE_UNTIL_WEEK,
+  ADJUST_RULES,
   DAILY_TARGETS,
   DAY_MET_MIN,
   GLOW_END,
   GLOW_START,
+  PHOTO_WEEKS,
   GYM,
   LOAD_STEP_KG,
   PHASE_LABELS,
@@ -24,7 +26,7 @@ import {
   type PlannedSessionId,
   type ProgramWeek,
 } from "../config/glowUp";
-import type { DailyCheckin, GlowDay, Workout, WorkoutSet } from "../db/types";
+import type { BodyCheckin, DailyCheckin, GlowDay, Workout, WorkoutSet } from "../db/types";
 import { daysUntil } from "./dates";
 import { mondayOf } from "./metrics";
 import { addDays } from "./scheduling";
@@ -305,4 +307,111 @@ export function prefillSets(session: GymSessionId, date: string, workouts: Worko
       return { exercise: ex.id, kg: prev?.kg ?? null, reps: prev?.reps ?? firstReps };
     });
   });
+}
+
+/* ==================== Check-in Chủ nhật (G3) ==================== */
+
+/**
+ * Tuần cần check-in hôm nay (Thứ Hai của tuần đó), hoặc null:
+ *   - Chủ nhật trong 12 tuần: tuần này
+ *   - Thứ Hai: tuần TRƯỚC, nếu tuần đó thuộc chương trình mà chưa check-in
+ *     (lỡ Chủ nhật thì vẫn còn một ngày để ghi, nhất là check-in gốc tuần 1)
+ */
+export function checkinWeekToAsk(today: string, checkins: BodyCheckin[]): string | null {
+  const day = weekdayIndex(today);
+  if (day === 6) return programWeek(today) ? mondayOf(today) : null;
+  if (day === 0) {
+    const lastMonday = addDays(today, -7);
+    const missing = !checkins.some((c) => c.weekStart === lastMonday);
+    return programWeek(lastMonday) && missing ? lastMonday : null;
+  }
+  return null;
+}
+
+/** Các lần cân sáng trong tuần bắt đầu `weekStart`, Thứ Hai trước. */
+export function weekWeighIns(days: GlowDay[], weekStart: string): number[] {
+  const end = addDays(weekStart, 6);
+  return days
+    .filter((d) => d.date >= weekStart && d.date <= end && d.weightKg !== undefined)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((d) => d.weightKg as number);
+}
+
+/** Trung bình, làm tròn 0,1 kg. Không có lần cân nào: null (không phải 0). */
+export function averageWeight(weights: number[]): number | null {
+  if (weights.length === 0) return null;
+  const sum = weights.reduce((a, b) => a + b, 0);
+  // Nhân 10 trước rồi mới chia, tránh lỗi số thực kiểu 70.15 -> 70.1.
+  return Math.round((sum * 10) / weights.length) / 10;
+}
+
+/** Số buổi gym và chạy đã ghi trong tuần (Thứ Hai → Chủ nhật). */
+export function weekSessionCounts(workouts: Workout[], weekStart: string): { gym: number; run: number } {
+  const end = addDays(weekStart, 6);
+  const inWeek = workouts.filter((w) => w.date >= weekStart && w.date <= end);
+  return {
+    gym: inWeek.filter((w) => w.session.startsWith("gym_")).length,
+    run: inWeek.filter((w) => w.session.startsWith("run_")).length,
+  };
+}
+
+/** Tuần này có phải tuần chụp ảnh tiến độ (1, 4, 8, 12) không. */
+export function isPhotoWeek(weekStart: string): boolean {
+  const week = programWeek(weekStart);
+  return week !== null && PHOTO_WEEKS.includes(week.week);
+}
+
+/** Làm tròn hiệu số tới 0,1 (tránh 69.8 - 70 = -0.20000000000000284). */
+const diff1 = (a: number, b: number) => Math.round((a - b) * 10) / 10;
+
+/**
+ * Hai luật điều chỉnh (PRODUCT.md mục 10), dùng cân trung bình của tuần này
+ * (`currentAvg`, có thể đang gõ dở) và các check-in đã lưu của tuần trước:
+ *   1. giảm dưới 0,2 kg hai tuần liền (cần 3 tuần liên tiếp có số) -> bớt cơm / thêm bước
+ *   2. từ tuần 3, giảm trên 1 kg so với tuần trước -> ăn thêm ~150 kcal
+ * Thiếu số thì không kết luận gì (trả về danh sách rỗng).
+ */
+export function adjustHints(checkins: BodyCheckin[], weekStart: string, currentAvg: number | null): string[] {
+  if (currentAvg === null) return [];
+  const avgOf = (monday: string) => checkins.find((c) => c.weekStart === monday)?.avgWeightKg ?? null;
+  const prev = avgOf(addDays(weekStart, -7));
+  const prev2 = avgOf(addDays(weekStart, -14));
+  const hints: string[] = [];
+  if (prev !== null && prev2 !== null) {
+    const slow = diff1(prev2, prev) < ADJUST_RULES.slowLossKg && diff1(prev, currentAvg) < ADJUST_RULES.slowLossKg;
+    if (slow) hints.push(ADJUST_RULES.slowLossAdvice);
+  }
+  const week = programWeek(weekStart)?.week ?? 0;
+  if (prev !== null && week >= ADJUST_RULES.fastLossFromWeek && diff1(prev, currentAvg) > ADJUST_RULES.fastLossKg) {
+    hints.push(ADJUST_RULES.fastLossAdvice);
+  }
+  return hints;
+}
+
+export type StartComparison = {
+  /** Thay đổi so với tuần 1 (âm = giảm). null khi thiếu số của một trong hai tuần. */
+  weightKg: number | null;
+  waistCm: number | null;
+  /** Mốc của tuần này (tuần 4 / 8 / 12), nếu có. */
+  milestone?: { weightKg: number; waistCm: number };
+};
+
+/**
+ * So số đo tuần này với check-in tuần 1 (mốc tính tương đối, PRODUCT.md mục 10).
+ * Chính tuần 1, hoặc chưa có check-in tuần 1: null.
+ */
+export function startComparison(
+  checkins: BodyCheckin[],
+  weekStart: string,
+  avgWeightKg: number | null,
+  waistCm: number | null
+): StartComparison | null {
+  if (weekStart <= GLOW_START) return null;
+  const base = checkins.find((c) => c.weekStart === GLOW_START);
+  if (!base) return null;
+  return {
+    weightKg: avgWeightKg !== null && base.avgWeightKg !== undefined ? diff1(avgWeightKg, base.avgWeightKg) : null,
+    waistCm: waistCm !== null && base.waistCm !== undefined ? diff1(waistCm, base.waistCm) : null,
+    milestone: programWeek(weekStart)?.milestone,
+  };
 }
