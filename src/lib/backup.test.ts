@@ -273,6 +273,37 @@ describe("IELTS (Đợt 1) trong file sao lưu", () => {
   });
 });
 
+describe("Glow-up trong file sao lưu", () => {
+  const DAY = { id: "#2026-10-19", date: "2026-10-19", waterL: 2.5, proteinG: 100, skincareAm: true, weightKg: 70.4 };
+  const WORKOUT = {
+    id: "w1", date: "2026-10-19", startTime: "07:15", session: "gym_A", minutes: 60, effort: 3,
+    sets: [{ exercise: "bench_press", kg: 40, reps: 10 }, { exercise: "plank", kg: null, reps: 40 }],
+  };
+  const RUN = { id: "w2", date: "2026-10-20", startTime: "07:15", session: "run_easy", minutes: 30, km: 4.5 };
+  const BODY = { id: "#2026-10-19", weekStart: "2026-10-19", avgWeightKg: 70.2, waistCm: 85, photoTaken: true };
+
+  it("nhận ba bảng; khoá ngày / tuần luôn tính lại", () => {
+    const { counts } = parseBackup(fileWith({ glowDays: [DAY], workouts: [WORKOUT, RUN], bodyCheckins: [BODY] }));
+    expect(counts).toMatchObject({ glowDays: 1, workouts: 2, bodyCheckins: 1 });
+    const d = normaliseBackupData({ glowDays: [{ ...DAY, id: "sai" }], bodyCheckins: [{ ...BODY, id: "sai" }] } as never);
+    expect(d.glowDays[0].id).toBe("#2026-10-19");
+    expect(d.bodyCheckins[0].id).toBe("#2026-10-19");
+  });
+
+  it("từ chối loại buổi lạ, hiệp hỏng, hai checklist cùng ngày", () => {
+    expect(() => parseBackup(fileWith({ workouts: [{ ...WORKOUT, session: "yoga" }] }))).toThrow("session");
+    expect(() => parseBackup(fileWith({ workouts: [{ ...WORKOUT, sets: [{ exercise: "x", kg: "40", reps: 10 }] }] }))).toThrow("sets");
+    expect(() => parseBackup(fileWith({ glowDays: [DAY, { ...DAY, id: "x" }] }))).toThrow("trùng khoá");
+    expect(() => parseBackup(fileWith({ bodyCheckins: [{ ...BODY, waistCm: -1 }] }))).toThrow("waistCm");
+  });
+
+  it("file cũ không có ba bảng này: rỗng", () => {
+    const { counts } = parseBackup(fileWith({ focusBlocks: [BLOCK] }));
+    expect(counts).toMatchObject({ glowDays: 0, workouts: 0, bodyCheckins: 0 });
+    expect(normaliseBackupData({}).workouts).toEqual([]);
+  });
+});
+
 describe("Dời khung 9:30 (Đợt 2) trong file sao lưu", () => {
   const DELAY = { id: "#2026-10-01", date: "2026-10-01", target: "evening", reason: "school", at: "10:45" };
 

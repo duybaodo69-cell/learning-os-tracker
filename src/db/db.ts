@@ -16,6 +16,7 @@ import { CLOUD_DB_URL } from "../config/cloud";
 import { STORE_DB_NAME, chooseStore, type StoreKind } from "./store";
 import type {
   AnchorDelay,
+  BodyCheckin,
   Deadline,
   BrainDump,
   Card,
@@ -23,10 +24,12 @@ import type {
   Experiment,
   ExperimentTag,
   FocusBlock,
+  GlowDay,
   MockTest,
   Prediction,
   ReviewLog,
   WeeklyReview,
+  Workout,
 } from "./types";
 import { checkinId, weekReviewId } from "./keys";
 
@@ -75,6 +78,10 @@ export class LearningDB extends Dexie {
   anchorDelays!: Table<AnchorDelay, string>;
   /** Deadline tự thêm (Đợt 3). */
   deadlines!: Table<Deadline, string>;
+  // Glow-up (PRODUCT.md mục 10)
+  glowDays!: Table<GlowDay, string>;
+  workouts!: Table<Workout, string>;
+  bodyCheckins!: Table<BodyCheckin, string>;
 
   constructor(databaseName: string, options?: DexieOptions) {
     super(databaseName, options);
@@ -173,6 +180,16 @@ export class LearningDB extends Dexie {
     // không có index nên không cần khai báo; bản ghi cũ không có vẫn hợp lệ.
     this.version(10).stores({
       deadlines: "id, date",
+    });
+
+    // version(11) — Glow-up (PRODUCT.md mục 10), ba bảng mới, bảng cũ giữ nguyên:
+    //   - glowDays: checklist mỗi ngày, khoá "#ngày" (một bản ghi mỗi ngày)
+    //   - workouts: buổi tập, khoá UUID; index `session` để tìm buổi trước cùng loại
+    //   - bodyCheckins: check-in Chủ nhật, khoá "#Thứ Hai" (một bản ghi mỗi tuần)
+    this.version(11).stores({
+      glowDays: "id, date",
+      workouts: "id, date, session",
+      bodyCheckins: "id, weekStart",
     });
   }
 }

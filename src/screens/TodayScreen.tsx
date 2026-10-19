@@ -9,6 +9,7 @@
  *       nếu chưa có phiên IELTS: "dời sang lúc nào?" (Đợt 2)
  *   3. "Bắt đầu phiên deep work": area (một hàng vuốt ngang) + nút đếm
  *   4. Check-in đã có: một dòng tóm tắt
+ *   4b. Glow-up (PRODUCT.md mục 10): checklist + buổi tập hôm nay; form ghi buổi tập
  *   5. Tổng deep work hôm nay + thanh chia theo area
  *   6. Danh sách block đã log (bấm để sửa; nút xoá nằm trong form sửa)
  *   7. Thí nghiệm hôm nay, dòng nhắc sao lưu
@@ -19,7 +20,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 import { db, isDemoMode } from "../db/db";
 import { anchorDelayId, checkinId, weekReviewId } from "../db/keys";
-import type { AnchorDelay, DailyCheckin, Experiment, ExperimentTag, FocusBlock, ReviewLog, WeeklyReview } from "../db/types";
+import type { AnchorDelay, DailyCheckin, Experiment, ExperimentTag, FocusBlock, ReviewLog, WeeklyReview, Workout } from "../db/types";
 import { formatDayLabel, formatMinutes, todayISO, yesterdayISO } from "../lib/dates";
 import { useNowHHmm, useToday } from "../lib/useToday";
 import { isSunday, mondayOf } from "../lib/metrics";
@@ -43,6 +44,9 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { Button, Card, ChipGroup, Notice, SectionLabel, Tag } from "../components/ui";
 import WeeklyReviewCard, { ThisWeekChange } from "../components/WeeklyReviewCard";
 import ExperimentChip from "../components/ExperimentChip";
+import GlowUpCard from "../components/GlowUpCard";
+import WorkoutForm from "../components/WorkoutForm";
+import { SESSION_LABELS } from "../config/glowUp";
 import type { TabId } from "../components/AppNav";
 import type { ReviewView } from "./ReviewScreen";
 
@@ -110,7 +114,10 @@ export default function TodayScreen({
       (await db.cards.count()) +
       (await db.brainDumps.count()) +
       (await db.predictions.count()) +
-      (await db.mockTests.count()),
+      (await db.mockTests.count()) +
+      (await db.glowDays.count()) +
+      (await db.workouts.count()) +
+      (await db.bodyCheckins.count()),
     [],
     0
   );
@@ -130,6 +137,13 @@ export default function TodayScreen({
   const [blockFormOpen, setBlockFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FocusBlock | null>(null);
   const [blockToDelete, setBlockToDelete] = useState<FocusBlock | null>(null);
+  /* Glow-up: form ghi buổi tập. null = đóng; { editing: null } = buổi mới. */
+  const allWorkouts = useLiveQuery(() => db.workouts.toArray(), [], [] as Workout[]);
+  const [workoutForm, setWorkoutForm] = useState<{ editing: Workout | null } | null>(null);
+  const [workoutToDelete, setWorkoutToDelete] = useState<Workout | null>(null);
+  // Đang mở một form (block hoặc buổi tập): ẩn các thẻ hành động khác, để màn
+  // hình chỉ có MỘT nút tô màu đầy là nút Lưu của form.
+  const formOpen = blockFormOpen || workoutForm !== null;
   /** Lối tắt IELTS: chọn sẵn area IELTS rồi chạy CHÍNH đồng hồ phiên như thường. */
   function startIelts() {
     setTimerArea("IELTS");
@@ -167,6 +181,20 @@ export default function TodayScreen({
     await db.focusBlocks.put(stamped);
     setBlockFormOpen(false);
     setEditingBlock(null);
+  }
+
+  async function saveWorkout(value: Workout) {
+    // Buổi mới: ngày lấy lúc bấm Lưu (như block). Sửa buổi cũ: giữ ngày gốc.
+    const stamped = workoutForm?.editing ? value : { ...value, date: todayISO() };
+    await db.workouts.put(stamped);
+    setWorkoutForm(null);
+  }
+
+  async function confirmDeleteWorkout() {
+    if (!workoutToDelete) return;
+    await db.workouts.delete(workoutToDelete.id);
+    setWorkoutToDelete(null);
+    setWorkoutForm(null);
   }
 
   async function confirmDeleteBlock() {
@@ -242,7 +270,7 @@ export default function TodayScreen({
       )}
 
       {/* ---------- 2a. IELTS — hành động chính của buổi sáng ---------- */}
-      {!blockFormOpen && (
+      {!formOpen && (
         <IeltsStartCard blocks={allBlocks} today={today} onStart={startIelts}>
           {showDelayRow && delayToday !== undefined && (
             <AnchorDelayRow ask={askDelay} delayToday={delayToday} weekCount={weekDelays} />
@@ -257,7 +285,7 @@ export default function TodayScreen({
       )}
 
       {/* ---------- 2. Bắt đầu phiên deep work (mọi area) ---------- */}
-      {!blockFormOpen && (
+      {!formOpen && (
         <Card className="mb-3">
           <div className="mb-3 flex items-center gap-2">
             <span className="h-2 w-2 shrink-0 rounded-full bg-accent" aria-hidden="true" />
@@ -347,6 +375,40 @@ export default function TodayScreen({
             Sửa
           </button>
         </div>
+      )}
+
+      {/* ---------- 4b. Glow-up: checklist, hoặc form ghi buổi tập ---------- */}
+      {workoutForm ? (
+        <Card className="mb-4">
+          <SectionLabel>{workoutForm.editing ? "Sửa buổi tập" : "Ghi buổi tập"}</SectionLabel>
+          <WorkoutForm
+            date={today}
+            existing={workoutForm.editing ?? undefined}
+            workouts={allWorkouts}
+            onSave={saveWorkout}
+            onCancel={() => setWorkoutForm(null)}
+          />
+          {/* Xoá chỉ nằm trong form sửa, qua hộp xác nhận (luật số 4). */}
+          {workoutForm.editing && (
+            <Button
+              variant="danger"
+              onClick={() => setWorkoutToDelete(workoutForm.editing)}
+              className="mt-3 w-full text-sm"
+            >
+              Xoá buổi tập này
+            </Button>
+          )}
+        </Card>
+      ) : (
+        !blockFormOpen && (
+          <GlowUpCard
+            today={today}
+            checkins={allCheckins}
+            workouts={allWorkouts}
+            onLogWorkout={() => setWorkoutForm({ editing: null })}
+            onEditWorkout={(w) => setWorkoutForm({ editing: w })}
+          />
+        )
       )}
 
       {/* ---------- 4. Tổng deep work hôm nay — hiện MỘT lần, dạng "3h05" ---------- */}
@@ -447,7 +509,7 @@ export default function TodayScreen({
         </section>
       )}
 
-      {!blockFormOpen && (
+      {!formOpen && (
         <ExperimentChip experiments={experiments} tags={experimentTags} today={today} />
       )}
 
@@ -476,6 +538,24 @@ export default function TodayScreen({
         }
         onConfirm={confirmDeleteBlock}
         onCancel={() => setBlockToDelete(null)}
+      />
+      <ConfirmDialog
+        open={workoutToDelete !== null}
+        title="Xoá buổi tập này?"
+        detail={
+          workoutToDelete && (
+            <>
+              <strong>
+                {SESSION_LABELS[workoutToDelete.session]} · {formatMinutes(workoutToDelete.minutes)}
+              </strong>
+              <br />
+              bắt đầu {workoutToDelete.startTime}
+              {workoutToDelete.sets && `, ${workoutToDelete.sets.length} hiệp đã ghi`}
+            </>
+          )
+        }
+        onConfirm={confirmDeleteWorkout}
+        onCancel={() => setWorkoutToDelete(null)}
       />
     </ScreenShell>
   );

@@ -40,7 +40,7 @@ async function makeVersion5Db() {
   old.close();
 }
 
-describe("nâng cấp version 5 -> 10", () => {
+describe("nâng cấp version 5 -> 11", () => {
   it("chép đủ mọi check-in sang bảng mới với khoá #ngày, giữ nguyên nội dung", async () => {
     await makeVersion5Db();
     const db = new LearningDB(NAME);
@@ -70,11 +70,11 @@ describe("nâng cấp version 5 -> 10", () => {
     expect(names).not.toContain("checkins");
     expect(names).not.toContain("weeklyReviews");
     expect(await db.focusBlocks.count()).toBe(1);
-    expect(db.verno).toBe(10);
+    expect(db.verno).toBe(11);
     db.close();
   });
 
-  it("máy mới cài (chưa có database) mở thẳng version 10", async () => {
+  it("máy mới cài (chưa có database) mở thẳng version mới nhất", async () => {
     const db = new LearningDB(NAME);
     await db.dailyCheckins.put({ id: "#2026-09-26", date: "2026-09-26", bedTime: "23:00", wakeTime: "06:00", sleepHours: 7, energy: 3 });
     expect(await db.dailyCheckins.count()).toBe(1);
@@ -87,7 +87,7 @@ describe("nâng cấp version 5 -> 10", () => {
  * Máy của chủ app đang ở version 7 — nâng lên KHÔNG được mất block nào,
  * và block cũ (không có `ielts`) vẫn đọc được như cũ.
  */
-describe("nâng cấp version 7 -> 10", () => {
+describe("nâng cấp version 7 -> 11", () => {
   async function makeVersion7Db() {
     const old = new Dexie(NAME);
     old.version(1).stores({ checkins: "date", focusBlocks: "id, date, area" });
@@ -115,7 +115,10 @@ describe("nâng cấp version 7 -> 10", () => {
     expect(await db.mockTests.count()).toBe(0);
     expect(await db.anchorDelays.count()).toBe(0);
     expect(await db.deadlines.count()).toBe(0);
-    expect(db.verno).toBe(10);
+    expect(await db.glowDays.count()).toBe(0);
+    expect(await db.workouts.count()).toBe(0);
+    expect(await db.bodyCheckins.count()).toBe(0);
+    expect(db.verno).toBe(11);
     db.close();
   });
 
@@ -128,6 +131,56 @@ describe("nâng cấp version 7 -> 10", () => {
     await db.mockTests.add({ id: "m1", date: "2026-10-03", source: "home", listeningRaw: 22 });
     expect((await db.focusBlocks.get("b1"))?.ielts?.test?.correct).toBe(7);
     expect(await db.mockTests.where("date").equals("2026-10-03").count()).toBe(1);
+    db.close();
+  });
+});
+
+/**
+ * Version 11 (Glow-up): ba bảng mới. Máy của chủ app đang ở version 10 —
+ * nâng lên không được đụng bảng nào khác.
+ */
+describe("nâng cấp version 10 -> 11", () => {
+  async function makeVersion10Db() {
+    const old = new Dexie(NAME);
+    old.version(1).stores({ checkins: "date", focusBlocks: "id, date, area" });
+    old.version(2).stores({ brainDumps: "id, date, area", cards: "id, area, dueDate", reviewLogs: "id, cardId, date" });
+    old.version(3).stores({ predictions: "id, resolveBy, category" });
+    old.version(4).stores({ weeklyReviews: "weekStart", experiments: "id, active", experimentTags: "key, date, experimentId" });
+    old.version(5).stores({ focusBlocks: "id, date, area" });
+    old.version(6).stores({ dailyCheckins: "id, date", weekReviews: "id, weekStart" });
+    old.version(7).stores({ checkins: null, weeklyReviews: null });
+    old.version(8).stores({ focusBlocks: "id, date, area", mockTests: "id, date" });
+    old.version(9).stores({ anchorDelays: "id, date" });
+    old.version(10).stores({ deadlines: "id, date" });
+    await old.open();
+    await old.table("focusBlocks").add({ id: "b1", date: "2026-10-18", startTime: "09:30", minutes: 50, area: "IELTS", focusRating: 4, distractions: 0, phoneAway: true });
+    await old.table("deadlines").add({ id: "d1", date: "2026-10-25", title: "AFEP" });
+    old.close();
+  }
+
+  it("giữ dữ liệu cũ, thêm glowDays / workouts / bodyCheckins rỗng", async () => {
+    await makeVersion10Db();
+    const db = new LearningDB(NAME);
+    expect(await db.focusBlocks.count()).toBe(1);
+    expect(await db.deadlines.count()).toBe(1);
+    expect(await db.glowDays.count()).toBe(0);
+    expect(await db.workouts.count()).toBe(0);
+    expect(await db.bodyCheckins.count()).toBe(0);
+    expect(db.verno).toBe(11);
+    db.close();
+  });
+
+  it("tìm buổi tập theo ngày và theo loại buổi", async () => {
+    await makeVersion10Db();
+    const db = new LearningDB(NAME);
+    await db.workouts.bulkAdd([
+      { id: "w1", date: "2026-10-19", startTime: "07:15", session: "gym_A", minutes: 60 },
+      { id: "w2", date: "2026-10-20", startTime: "07:15", session: "run_easy", minutes: 30 },
+    ]);
+    await db.glowDays.put({ id: "#2026-10-19", date: "2026-10-19", waterL: 1 });
+    expect(await db.workouts.where("session").equals("gym_A").count()).toBe(1);
+    expect(await db.workouts.where("date").equals("2026-10-20").count()).toBe(1);
+    expect((await db.glowDays.get("#2026-10-19"))?.waterL).toBe(1);
     db.close();
   });
 });

@@ -9,13 +9,14 @@
  * mười năm nữa mở ra vẫn hiểu được, không cần app này.
  */
 import { db, isDemoMode, type LearningDB } from "../db/db";
-import { anchorDelayId, checkinId, weekReviewId } from "../db/keys";
-import { AREAS, CARD_SOURCES, DELAY_REASONS, DELAY_TARGETS, MOCK_SOURCES, PREDICTION_CATEGORIES } from "../db/types";
+import { anchorDelayId, bodyCheckinId, checkinId, glowDayId, weekReviewId } from "../db/keys";
+import { AREAS, CARD_SOURCES, DELAY_REASONS, DELAY_TARGETS, MOCK_SOURCES, PREDICTION_CATEGORIES, WORKOUT_SESSIONS } from "../db/types";
 import { isBand, isValidIeltsSession } from "./ielts";
 import { computeSleepHours } from "./dates";
 import { isIntIn, isNumberIn, isValidDate, isValidTime } from "./validation";
 import type {
   AnchorDelay,
+  BodyCheckin,
   BrainDump,
   Card,
   DailyCheckin,
@@ -23,10 +24,12 @@ import type {
   Experiment,
   ExperimentTag,
   FocusBlock,
+  GlowDay,
   MockTest,
   Prediction,
   ReviewLog,
   WeeklyReview,
+  Workout,
 } from "../db/types";
 
 /**
@@ -56,6 +59,10 @@ export type BackupData = {
   anchorDelays: AnchorDelay[];
   /** Deadline tự thêm (Đợt 3). File cũ không có bảng này vẫn nhập được. */
   deadlines: Deadline[];
+  /** Glow-up (PRODUCT.md mục 10). File cũ không có ba bảng này vẫn nhập được. */
+  glowDays: GlowDay[];
+  workouts: Workout[];
+  bodyCheckins: BodyCheckin[];
 };
 
 export type BackupFile = {
@@ -79,6 +86,9 @@ export const TABLE_NAMES = [
   "mockTests",
   "anchorDelays",
   "deadlines",
+  "glowDays",
+  "workouts",
+  "bodyCheckins",
 ] as const;
 
 /** Tên tiếng Việt để hiện cho người dùng xem. */
@@ -95,6 +105,9 @@ export const TABLE_LABELS: Record<string, string> = {
   mockTests: "Thi thử IELTS",
   anchorDelays: "Dời khung 9:30",
   deadlines: "Deadline",
+  glowDays: "Checklist Glow-up",
+  workouts: "Buổi tập",
+  bodyCheckins: "Check-in Glow-up",
 };
 
 /* ==================== Kiểm tra từng bản ghi ==================== */
@@ -146,6 +159,15 @@ function isValidWeekPlan(v: unknown): boolean {
     optional(position)(p.readingFrom)
   );
 }
+
+/** Danh sách hiệp gym (Workout.sets, Glow-up). */
+const workoutSets: Check = (v) =>
+  Array.isArray(v) &&
+  v.every((x) => {
+    if (typeof x !== "object" || x === null) return false;
+    const s = x as Record<string, unknown>;
+    return nonEmpty(s.exercise) && (s.kg === null || nonNeg(s.kg)) && count(s.reps);
+  });
 
 /** Trường bắt buộc (và tuỳ chọn) của từng bảng trong file. */
 const ROW_RULES: Record<(typeof TABLE_NAMES)[number], Record<string, Check>> = {
@@ -258,6 +280,37 @@ const ROW_RULES: Record<(typeof TABLE_NAMES)[number], Record<string, Check>> = {
     date,
     title: str,
   },
+  glowDays: {
+    id: optional(str), // luôn tính lại từ ngày, như check-in
+    date,
+    waterL: optional(nonNeg),
+    proteinG: optional(nonNeg),
+    fiberG: optional(nonNeg),
+    steps: optional(count),
+    noSugaryDrinks: optional(bool),
+    skincareAm: optional(bool),
+    skincarePm: optional(bool),
+    weightKg: optional(nonNeg),
+  },
+  workouts: {
+    id: nonEmpty,
+    date,
+    startTime: timeOrEmpty,
+    session: oneOf(WORKOUT_SESSIONS),
+    minutes: nonNeg,
+    sets: optional(workoutSets),
+    km: optional(nonNeg),
+    effort: optional(rating),
+    note: optional(str),
+  },
+  bodyCheckins: {
+    id: optional(str), // luôn tính lại từ Thứ Hai
+    weekStart: date,
+    avgWeightKg: optional(nonNeg),
+    waistCm: optional(nonNeg),
+    photoTaken: optional(bool),
+    note: optional(str),
+  },
 };
 
 /** Trường nào làm khoá duy nhất của từng bảng — hai dòng trùng khoá là file hỏng. */
@@ -274,6 +327,9 @@ const UNIQUE_FIELD: Record<(typeof TABLE_NAMES)[number], string> = {
   mockTests: "id",
   anchorDelays: "date",
   deadlines: "id",
+  glowDays: "date",
+  workouts: "id",
+  bodyCheckins: "weekStart",
 };
 
 /**
@@ -351,6 +407,9 @@ export function normaliseBackupData(d: Partial<BackupData>): BackupData {
     mockTests: clean(d.mockTests),
     anchorDelays: clean(d.anchorDelays).map((r) => ({ ...r, id: anchorDelayId(r.date) })),
     deadlines: clean(d.deadlines),
+    glowDays: clean(d.glowDays).map((r) => ({ ...r, id: glowDayId(r.date) })),
+    workouts: clean(d.workouts),
+    bodyCheckins: clean(d.bodyCheckins).map((r) => ({ ...r, id: bodyCheckinId(r.weekStart) })),
   };
 }
 
@@ -424,6 +483,9 @@ export async function collectBackupFrom(db: LearningDB): Promise<BackupFile> {
     mockTests,
     anchorDelays,
     deadlines,
+    glowDays,
+    workouts,
+    bodyCheckins,
   ] = await Promise.all([
     db.dailyCheckins.toArray(),
     db.focusBlocks.toArray(),
@@ -437,6 +499,9 @@ export async function collectBackupFrom(db: LearningDB): Promise<BackupFile> {
     db.mockTests.toArray(),
     db.anchorDelays.toArray(),
     db.deadlines.toArray(),
+    db.glowDays.toArray(),
+    db.workouts.toArray(),
+    db.bodyCheckins.toArray(),
   ]);
 
   return {
@@ -456,6 +521,9 @@ export async function collectBackupFrom(db: LearningDB): Promise<BackupFile> {
       mockTests,
       anchorDelays,
       deadlines,
+      glowDays,
+      workouts,
+      bodyCheckins,
     }),
   };
 }
@@ -596,7 +664,7 @@ export function parseBackup(text: string): ParsedBackup {
 
 /** Đếm số bản ghi đang có trong database — để so với file trước khi ghi đè. */
 export async function currentCounts(): Promise<Record<string, number>> {
-  const [a, b, c, d, e, f, g, h, i, j, k, l] = await Promise.all([
+  const [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o] = await Promise.all([
     db.dailyCheckins.count(),
     db.focusBlocks.count(),
     db.brainDumps.count(),
@@ -609,6 +677,9 @@ export async function currentCounts(): Promise<Record<string, number>> {
     db.mockTests.count(),
     db.anchorDelays.count(),
     db.deadlines.count(),
+    db.glowDays.count(),
+    db.workouts.count(),
+    db.bodyCheckins.count(),
   ]);
   return {
     checkins: a,
@@ -623,6 +694,9 @@ export async function currentCounts(): Promise<Record<string, number>> {
     mockTests: j,
     anchorDelays: k,
     deadlines: l,
+    glowDays: m,
+    workouts: n,
+    bodyCheckins: o,
   };
 }
 
@@ -656,6 +730,9 @@ export async function importBackup(file: BackupFile): Promise<void> {
       db.mockTests,
       db.anchorDelays,
       db.deadlines,
+      db.glowDays,
+      db.workouts,
+      db.bodyCheckins,
     ],
     async () => {
       await Promise.all([
@@ -671,6 +748,9 @@ export async function importBackup(file: BackupFile): Promise<void> {
         db.mockTests.clear(),
         db.anchorDelays.clear(),
         db.deadlines.clear(),
+        db.glowDays.clear(),
+        db.workouts.clear(),
+        db.bodyCheckins.clear(),
       ]);
       await Promise.all([
         db.dailyCheckins.bulkAdd(d.checkins),
@@ -685,6 +765,9 @@ export async function importBackup(file: BackupFile): Promise<void> {
         db.mockTests.bulkAdd(d.mockTests),
         db.anchorDelays.bulkAdd(d.anchorDelays),
         db.deadlines.bulkAdd(d.deadlines),
+        db.glowDays.bulkAdd(d.glowDays),
+        db.workouts.bulkAdd(d.workouts),
+        db.bodyCheckins.bulkAdd(d.bodyCheckins),
       ]);
     }
   );

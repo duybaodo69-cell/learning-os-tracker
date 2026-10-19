@@ -8,12 +8,14 @@
  * Mọi nội dung mẫu đều có chữ "[MẪU]" để không nhầm với dữ liệu thật.
  */
 import { db } from "./db";
-import { anchorDelayId, checkinId, weekReviewId } from "./keys";
-import type { AnchorDelay, Area, BrainDump, Card, CardSource, DailyCheckin, Deadline, Experiment, ExperimentTag, FocusBlock, Grade, IeltsSession, MockTest, Prediction, PredictionCategory, ReviewLog, Rating, WeeklyReview } from "./types";
+import { anchorDelayId, bodyCheckinId, checkinId, glowDayId, weekReviewId } from "./keys";
+import type { AnchorDelay, Area, BodyCheckin, BrainDump, Card, CardSource, DailyCheckin, Deadline, Experiment, ExperimentTag, FocusBlock, GlowDay, Grade, IeltsSession, MockTest, Prediction, PredictionCategory, ReviewLog, Rating, WeeklyReview, Workout, WorkoutSet } from "./types";
 import { newId } from "../lib/dates";
 import { START_EASE, addDays } from "../lib/scheduling";
 import { experimentTagKey, mondayOf } from "../lib/metrics";
 import { FIRST_POSITION, defaultQuestions, positionAfter, type TestPosition } from "../lib/ielts";
+import { GYM, WEEK_TEMPLATE } from "../config/glowUp";
+import { weekdayIndex } from "../lib/glowUp";
 
 /** Trừ đi n ngày từ một chuỗi "YYYY-MM-DD". */
 function minusDays(iso: string, n: number): string {
@@ -422,6 +424,67 @@ export async function loadDemoData(today: string): Promise<void> {
     { id: anchorDelayId(minusDays(today, 24)), date: minusDays(today, 24), target: "tomorrow", reason: "personal", at: "10:50" },
   ];
   await db.anchorDelays.bulkPut(delays);
+
+  await loadGlowUpDemo(today);
+}
+
+/**
+ * Glow-up mẫu (PRODUCT.md mục 10): 14 ngày checklist, buổi tập theo lịch tuần
+ * (tạ tăng dần để thấy gợi ý tăng tạ), hai check-in Chủ nhật. Số đo là số giả.
+ */
+async function loadGlowUpDemo(today: string): Promise<void> {
+  const days: GlowDay[] = [];
+  const workouts: Workout[] = [];
+  for (let i = 13; i >= 1; i--) {
+    const date = minusDays(today, i);
+    days.push({
+      id: glowDayId(date),
+      date,
+      waterL: 2 + (i % 4) * 0.25,
+      proteinG: 75 + (i % 3) * 25,
+      fiberG: 20 + (i % 2) * 10,
+      steps: 6500 + (i % 5) * 600,
+      noSugaryDrinks: i % 4 !== 0,
+      skincareAm: true,
+      skincarePm: i % 3 !== 0,
+      weightKg: i % 2 === 0 ? 70 - (13 - i) * 0.08 : undefined,
+    });
+    const session = WEEK_TEMPLATE[weekdayIndex(date)].session;
+    if (session === "rest" || i % 6 === 0) continue; // thỉnh thoảng bỏ một buổi
+    // Buổi càng gần đây càng nặng hơn một chút; buổi gần nhất đạt đỉnh số lần.
+    const sets: WorkoutSet[] | undefined =
+      session.startsWith("gym_")
+        ? GYM[session as keyof typeof GYM].exercises.flatMap((ex) =>
+            Array.from({ length: ex.sets }, () => ({
+              exercise: ex.id,
+              kg: ex.load === "bodyweight" ? null : (ex.load === "lower" ? 30 : 15) + (i < 7 ? 2.5 : 0),
+              reps: i < 7 ? 10 : 8,
+            }))
+          )
+        : undefined;
+    workouts.push({
+      id: newId(),
+      date,
+      startTime: session === "run_long" ? "06:45" : "07:15",
+      session,
+      minutes: session === "run_long" ? 70 : session.startsWith("gym_") ? 60 : 40,
+      sets,
+      km: session.startsWith("run_") ? (session === "run_long" ? 7 : 5) : undefined,
+      effort: ((i % 3) + 2) as Rating,
+      note: i === 2 ? "[MẪU] chân hơi nặng" : undefined,
+    });
+  }
+  const checkins: BodyCheckin[] = [2, 1].map((weeksAgo) => ({
+    id: bodyCheckinId(mondayOf(minusDays(today, weeksAgo * 7))),
+    weekStart: mondayOf(minusDays(today, weeksAgo * 7)),
+    avgWeightKg: 70 - (2 - weeksAgo) * 0.4,
+    waistCm: 85 - (2 - weeksAgo) * 0.5,
+    photoTaken: weeksAgo === 2,
+    note: "[MẪU] số đo giả",
+  }));
+  await db.glowDays.bulkPut(days);
+  await db.workouts.bulkPut(workouts);
+  await db.bodyCheckins.bulkPut(checkins);
 }
 
 /** Xoá sạch database demo. Chỉ ảnh hưởng chế độ demo. */
@@ -438,4 +501,7 @@ export async function clearDemoData(): Promise<void> {
   await db.mockTests.clear();
   await db.anchorDelays.clear();
   await db.deadlines.clear();
+  await db.glowDays.clear();
+  await db.workouts.clear();
+  await db.bodyCheckins.clear();
 }
